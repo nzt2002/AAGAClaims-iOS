@@ -63,7 +63,7 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 
 52. **Live data by default:** `PortalDataSource` is `live`. UI tests force demo mode and mock data with launch arguments.
 53. **Keychain entitlement:** `Config/AAGAClaims.entitlements` declares the app's keychain access group. Without it the Mobile SDK can't store tokens (errSecMissingEntitlement, -34018) and sign-in fails with "required parameters for the identity service were missing: access token". This happens on the simulator too, so build signed ("Sign to Run Locally" is enough), not with `CODE_SIGNING_ALLOWED=NO`.
-54. **Internal users** can sign in through the portal login page. The API treats them as internal: lists show records they own or manage, and record access isn't restricted. See open question 10.
+54. **Internal users** (staff) can use the app with the "Portal Mobile App (Staff)" permission set. They sign in through the portal login page. Their lists show the claims and leads they own or manage, and record access isn't restricted, the same as on internal record pages.
 55. **"Failed: DPoP Validation Error"** appears in Login History next to every successful app sign-in. The Mobile SDK tries DPoP token binding first and falls back; sign-in succeeds.
 
 ## Open questions
@@ -77,4 +77,4 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 7. **Universal links:** the portal must serve `/.well-known/apple-app-site-association` for the app's team and bundle id, and the app needs the Associated Domains entitlement (`applinks:portal.accurateadjustmentsga.com`). Both need the Apple team id.
 8. **Should location metadata be stripped from all photos before upload?** It's currently only dropped when a photo is downscaled.
 9. **Brand colours:** the designer should confirm the contrast-driven refinements in assumption 46, and supply dark-mode values (ours are placeholders).
-10. **Should the API refuse internal users?** The spec only covers portal customers and partners.
+10. ~~**Should the API refuse internal users?**~~ **Decided 2026-10-12:** no. Staff use the app too, with the "Portal Mobile App (Staff)" permission set.
