@@ -49,7 +49,7 @@ All users sign in with their **existing portal credentials**. They are Salesforc
 | Formatting | Currency USD (`$12,500.00`); dates in the user's locale; percentages for adjuster fees |
 | Testing | Unit tests for view models and JSON decoding (fixtures in §5); SwiftUI previews with mock data for every screen; UI test for login → claim detail |
 
-> **Blocking prerequisite (handled by the human team, not the agent):** confirm that Customer Community Login users can call the Salesforce REST API through the External Client App. Until then, build against a mock `PortalAPI` implementation that serves the JSON fixtures.
+> **Prerequisite, resolved 2026-10-12:** Customer Community Login users can call the REST API through the External Client App when they have the **Portal Mobile App** permission set (API Enabled plus access to `PortalApiV1`). A portal user signed in through the app on the simulator and loaded live data. The mock `PortalAPI` with JSON fixtures remains for demo mode and tests.
 
 ---
 
