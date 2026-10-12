@@ -129,3 +129,30 @@ struct OfflineCacheTests {
         #expect(await cache.load("claims/a23000000000001AAA") == nil)
     }
 }
+
+private actor Counter {
+    var count = 0
+    func increment() { count += 1 }
+}
+
+@Suite("Session expiry")
+struct SessionExpiryTests {
+    @Test("A 401 on any call asks the app to sign in again; other errors don't")
+    func sessionExpired() async throws {
+        let base = MockPortalAPI(fixtures: try .bundled())
+        let api = CachingPortalAPI(base: base, cache: MemoryResponseCache())
+        let counter = Counter()
+        await api.setSessionExpiredHandler { await counter.increment() }
+
+        await base.setFailure(.sessionExpired)
+        await #expect(throws: PortalAPIError.sessionExpired) { _ = try await api.claims() }
+        await #expect(throws: PortalAPIError.sessionExpired) {
+            try await api.addComment(to: .claim("a23000000000001AAA"), text: "Hi")
+        }
+        #expect(await counter.count == 2)
+
+        await base.setFailure(.notFound)
+        await #expect(throws: PortalAPIError.notFound) { _ = try await api.claims() }
+        #expect(await counter.count == 2)
+    }
+}

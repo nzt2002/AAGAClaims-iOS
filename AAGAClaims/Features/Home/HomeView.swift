@@ -8,6 +8,7 @@ struct HomeView: View {
 
     private var viewModel: HomeViewModel { router.home }
     @Environment(\.isOffline) private var isOffline
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         LoadingContainer(state: viewModel.state, subject: "your dashboard", retry: reload) { _ in
@@ -47,7 +48,8 @@ struct HomeView: View {
     }
 
     private func tiles(_ summary: HomeViewModel.Summary) -> some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Theme.Spacing.m) {
+        let columns = Array(repeating: GridItem(.flexible()), count: dynamicTypeSize.isAccessibilitySize ? 1 : 2)
+        return LazyVGrid(columns: columns, spacing: Theme.Spacing.m) {
             tile("Open Claims", summary.openClaims, "doc.text", id: "tileOpenClaims") {
                 router.showClaims(openOnly: true)
             }
@@ -89,7 +91,7 @@ struct HomeView: View {
     private var quickActions: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
             SectionHeading("Quick actions")
-            HStack(spacing: Theme.Spacing.s) {
+            AdaptiveStack(spacing: Theme.Spacing.s) {
                 quickAction("Submit a Lead", "person.badge.plus", id: "quickSubmitLead") { router.submitLead() }
                     .disabledWhenOffline(isOffline)
                 quickAction("Request Assistance", "questionmark.bubble", id: "quickRequestAssistance") { router.requestAssistance() }

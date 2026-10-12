@@ -172,6 +172,8 @@ extension View {
                     DemoBanner()
                 }
             }
+            // Large but capped, so the banners never crowd out the screen at accessibility sizes.
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         }
     }
 }

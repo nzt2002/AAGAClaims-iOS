@@ -54,6 +54,13 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 44. **Camera photos** are saved as HEIC where the device supports it, otherwise JPEG, and downscaled like library photos.
 45. **Photo metadata** (including location) is kept on photos that don't need downscaling, and dropped from downscaled ones.
 
+46. **Colour refinements for contrast:** brand blue `#1A73E8` is `#1967D2` for text, links and filled buttons (it was 4.4:1 on the tinted backgrounds; now 5.4:1 or better), and warning `#B06000` is `#9A5300` in light mode (was 4.1:1 on tinted backgrounds; now 4.9:1 or better). Every text colour passes 4.5:1 on every background it's used on, in light and dark mode. The spec says the designer may refine the palette; these are the minimum changes for WCAG AA.
+47. **Large text:** two-column rows (card headers and footers, the team card, the action bar) stack vertically from the xxLarge text size up; Home shows one tile per row and stacked quick actions at accessibility sizes; titles wrap rather than truncate. The demo and offline banners are capped at xxxLarge so they never crowd out the screen.
+48. **Accessibility audit:** `AccessibilityAuditUITests` runs Xcode's audit on every main screen and fails on any new issue. Its allowlist covers only reviewed false positives: iOS's own search field placeholder, contrast reports with no element attached, the capped banners, iOS's grouped-form header and footer grey, and five labels checked in screenshots at accessibility sizes.
+49. **Foreground refresh:** returning to the app reloads any list, dashboard or open detail whose data is more than 5 minutes old, or whose last load failed (spec §7).
+50. **Expired session (401):** any 401 signs the user out through the Mobile SDK, which shows the login screen again (spec §5). In demo mode there's no session to expire.
+51. **Privacy manifest** (`PrivacyInfo.xcprivacy`) declares the spec §10 data (name, email, phone, photos, other user content, user ID; app functionality only, no tracking) and the required-reason APIs the app uses (UserDefaults CA92.1, file timestamps C617.1).
+
 ## Open questions
 
 1. **API access for Customer Community Login users** (spec §3 blocking prerequisite). The portal profile currently has API Enabled = false. Until this is resolved, live mode can't work.
@@ -64,3 +71,4 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 6. **Push setup:** an Apple Developer team, an APNs key added to the External Client App's push settings, and the server-side trigger (spec §8).
 7. **Universal links:** the portal must serve `/.well-known/apple-app-site-association` for the app's team and bundle id, and the app needs the Associated Domains entitlement (`applinks:portal.accurateadjustmentsga.com`). Both need the Apple team id.
 8. **Should location metadata be stripped from all photos before upload?** It's currently only dropped when a photo is downscaled.
+9. **Brand colours:** the designer should confirm the contrast-driven refinements in assumption 46, and supply dark-mode values (ours are placeholders).

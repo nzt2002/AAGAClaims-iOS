@@ -42,7 +42,7 @@ struct ClaimsListView: View {
         .background(Color.appBackground)
         .navigationTitle("My Claims")
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $viewModel.searchText, prompt: "Name, number, address, status or peril")
+        .searchable(text: $viewModel.searchText, prompt: "Search claims")
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 filterMenu
@@ -132,10 +132,11 @@ struct ClaimCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-            HStack(alignment: .firstTextBaseline) {
+            AdaptiveStack(horizontalAlignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(claim.recordName ?? "Claim")
                         .font(.headline)
+                        .fixedSize(horizontal: false, vertical: true)
                         .foregroundStyle(Color.textPrimary)
                     if let number = PortalFormat.nonEmpty(claim.claimNumber) {
                         Text(number)
@@ -143,7 +144,7 @@ struct ClaimCard: View {
                             .foregroundStyle(Color.textSecondary)
                     }
                 }
-                Spacer()
+                AdaptiveSpacer()
                 if let status = PortalFormat.nonEmpty(claim.claimStatus) {
                     StatusPill(text: status, tone: StatusPill.tone(forClaimStatus: status))
                 }
@@ -158,7 +159,7 @@ struct ClaimCard: View {
 
             Divider()
 
-            HStack {
+            AdaptiveStack(horizontalAlignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Payments collected")
                         .font(.caption)
@@ -166,8 +167,8 @@ struct ClaimCard: View {
                     Text(PortalFormat.currency(claim.paymentCollected))
                         .font(.subheadline.weight(.semibold))
                 }
-                Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
+                AdaptiveSpacer()
+                VStack(alignment: .leading, spacing: 2) {
                     Text("Account manager")
                         .font(.caption)
                         .foregroundStyle(Color.textSecondary)

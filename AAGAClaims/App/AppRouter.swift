@@ -39,6 +39,14 @@ final class AppRouter {
         cases = CasesListViewModel(api: api)
     }
 
+    /// Reloads anything more than 5 minutes old when the app returns to the foreground (spec §7).
+    func refreshStale() {
+        if home.state.isStale() { Task { await home.load() } }
+        if claims.state.isStale() { Task { await claims.load() } }
+        if leads.state.isStale() { Task { await leads.load() } }
+        if cases.state.isStale() { Task { await cases.load() } }
+    }
+
     // MARK: - Home tiles and status overview
 
     func showClaims(stage: String? = nil, openOnly: Bool = false) {

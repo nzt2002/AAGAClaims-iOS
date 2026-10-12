@@ -142,3 +142,18 @@ struct MockAPITests {
         #expect(PortalFormat.currency(nil) == "—")
     }
 }
+
+@Suite("Foreground refresh")
+struct StalenessTests {
+    @Test("Loaded data goes stale after 5 minutes; failures always retry")
+    func stale() {
+        let loadedAt = Date(timeIntervalSince1970: 1_000_000)
+        let state = LoadState<[Int]>.loaded([1], at: loadedAt)
+        #expect(!state.isStale(now: loadedAt.addingTimeInterval(299)))
+        #expect(!state.isStale(now: loadedAt.addingTimeInterval(300)))
+        #expect(state.isStale(now: loadedAt.addingTimeInterval(301)))
+        #expect(LoadState<[Int]>.failed(.offline).isStale())
+        #expect(!LoadState<[Int]>.loading.isStale())
+        #expect(!LoadState<[Int]>.idle.isStale())
+    }
+}

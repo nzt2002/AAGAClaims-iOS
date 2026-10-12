@@ -4,6 +4,7 @@ import SwiftUI
 /// Case detail with a chat-style thread and reply composer (spec §6.9).
 struct CaseDetailView: View {
     @State private var viewModel: CaseDetailViewModel
+    @Environment(\.scenePhase) private var scenePhase
 
     @FocusState private var replyFocused: Bool
     @Environment(\.isOffline) private var isOffline
@@ -20,6 +21,12 @@ struct CaseDetailView: View {
             .task {
                 if viewModel.state.value == nil {
                     await viewModel.load()
+                }
+            }
+            .onChange(of: scenePhase) { _, phase in
+                // Back in the foreground with data more than 5 minutes old (spec §7).
+                if phase == .active, viewModel.state.isStale() {
+                    Task { await viewModel.load() }
                 }
             }
     }
@@ -151,11 +158,12 @@ private struct CaseHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-            HStack(alignment: .firstTextBaseline) {
+            AdaptiveStack(horizontalAlignment: .firstTextBaseline) {
                 Text(detail.subject ?? "Support request")
                     .font(.title3.bold())
+                    .fixedSize(horizontal: false, vertical: true)
                     .foregroundStyle(Color.textPrimary)
-                Spacer()
+                AdaptiveSpacer()
                 if let status = PortalFormat.nonEmpty(detail.status) {
                     StatusPill(text: status, tone: SupportCase.isClosedStatus(status) ? .neutral : .active)
                 }

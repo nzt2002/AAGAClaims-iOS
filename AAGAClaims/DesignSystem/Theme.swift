@@ -22,6 +22,47 @@ enum Theme {
 
 // Colours come from Assets.xcassets; Xcode generates `Color.brandPrimary`, `Color.textSecondary` etc.
 
+/// A row that lays out side by side, and stacks vertically from xxLarge text up (and at every
+/// accessibility size), so two-column layouts never clip (spec §7). A size threshold rather than
+/// ViewThatFits: the unused ViewThatFits candidate still shows up in accessibility audits.
+struct AdaptiveStack<Content: View>: View {
+    var horizontalAlignment: VerticalAlignment = .center
+    var verticalAlignment: HorizontalAlignment = .leading
+    var spacing: CGFloat? = Theme.Spacing.s
+    @ViewBuilder let content: () -> Content
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    static func isStacked(_ size: DynamicTypeSize) -> Bool {
+        size >= .xxLarge
+    }
+
+    var body: some View {
+        if Self.isStacked(dynamicTypeSize) {
+            VStack(alignment: verticalAlignment, spacing: spacing) { content() }
+                .environment(\.isAdaptiveRowHorizontal, false)
+        } else {
+            HStack(alignment: horizontalAlignment, spacing: spacing) { content() }
+                .environment(\.isAdaptiveRowHorizontal, true)
+        }
+    }
+}
+
+extension EnvironmentValues {
+    @Entry var isAdaptiveRowHorizontal = false
+}
+
+/// Pushes the rest of an `AdaptiveStack` row to the trailing edge, but only when it's horizontal.
+struct AdaptiveSpacer: View {
+    @Environment(\.isAdaptiveRowHorizontal) private var isHorizontal
+
+    var body: some View {
+        if isHorizontal {
+            Spacer(minLength: Theme.Spacing.s)
+        }
+    }
+}
+
 struct CardStyle: ViewModifier {
     func body(content: Content) -> some View {
         content

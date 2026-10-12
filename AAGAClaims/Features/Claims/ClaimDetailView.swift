@@ -4,6 +4,7 @@ import SwiftUI
 /// Claim detail (spec §6.5).
 struct ClaimDetailView: View {
     @State private var viewModel: ClaimDetailViewModel
+    @Environment(\.scenePhase) private var scenePhase
     /// The list row, for fields only `GET /claims` returns (loss reason).
     let summary: ClaimSummary?
     let api: PortalAPI
@@ -23,6 +24,12 @@ struct ClaimDetailView: View {
             .task {
                 if viewModel.detail.value == nil {
                     await viewModel.load()
+                }
+            }
+            .onChange(of: scenePhase) { _, phase in
+                // Back in the foreground with data more than 5 minutes old (spec §7).
+                if phase == .active, viewModel.detail.isStale() {
+                    Task { await viewModel.load() }
                 }
             }
     }
@@ -98,11 +105,12 @@ private struct ClaimHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-            HStack(alignment: .firstTextBaseline) {
+            AdaptiveStack(horizontalAlignment: .firstTextBaseline) {
                 Text(detail.claimName ?? "Claim")
                     .font(.title2.bold())
+                    .fixedSize(horizontal: false, vertical: true)
                     .foregroundStyle(Color.textPrimary)
-                Spacer()
+                AdaptiveSpacer()
                 if let status = PortalFormat.nonEmpty(detail.claimStatus) {
                     StatusPill(text: status, tone: StatusPill.tone(forClaimStatus: status))
                 }

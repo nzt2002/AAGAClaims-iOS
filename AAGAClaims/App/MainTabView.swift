@@ -12,6 +12,7 @@ struct MainTabView: View {
     @State private var router: AppRouter
     @State private var safariLink: SafariLink?
     @State private var offeringLock = false
+    @Environment(\.scenePhase) private var scenePhase
 
     init(session: AppSession, user: CurrentUser) {
         self.session = session
@@ -69,6 +70,11 @@ struct MainTabView: View {
         .opensWebLinksInSafari($safariLink)
         .sheet(isPresented: $router.showingNotifications) {
             NotificationsView(router: router)
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                router.refreshStale()
+            }
         }
         .onChange(of: router.home.unreadCount, initial: true) { _, count in
             AppBadge.update(count)

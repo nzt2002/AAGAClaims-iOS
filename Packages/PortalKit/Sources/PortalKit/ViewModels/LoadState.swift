@@ -25,6 +25,18 @@ public enum LoadState<Value: Sendable>: Sendable {
         if case .loading = self { return true }
         return false
     }
+
+    /// Data is refreshed on returning to the foreground once it's more than 5 minutes old (spec §7).
+    public static var staleAfter: TimeInterval { 5 * 60 }
+
+    /// True when loaded more than `staleAfter` ago, or when the last load failed.
+    public func isStale(now: Date = Date()) -> Bool {
+        switch self {
+        case .loaded(_, let at): now.timeIntervalSince(at) > Self.staleAfter
+        case .failed: true
+        case .idle, .loading: false
+        }
+    }
 }
 
 extension PortalAPIError {

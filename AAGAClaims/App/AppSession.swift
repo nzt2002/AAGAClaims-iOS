@@ -35,7 +35,11 @@ final class AppSession {
     init(environment: AppEnvironment) {
         self.environment = environment
         let base: PortalAPI = switch environment.dataSource {
-        case .mock: MockPortalAPI.standard(latency: environment.mockLatency)
+        case .mock:
+            // -MockFailure YES makes every call fail, to check error states (spec §7).
+            UserDefaults.standard.bool(forKey: "MockFailure")
+                ? MockPortalAPI(fixtures: .empty, latency: environment.mockLatency, failure: .server(status: 500))
+                : MockPortalAPI.standard(latency: environment.mockLatency)
         case .live: HTTPPortalAPI(transport: SalesforceTransport())
         }
         let offline = self.offline
@@ -51,6 +55,14 @@ final class AppSession {
         }
 
         let cachingAPI = self.cachingAPI
+        if environment.auth == .salesforce {
+            // 401: the session has expired. Signing out shows the SDK login again (spec §5).
+            Task {
+                await cachingAPI.setSessionExpiredHandler {
+                    await MainActor.run { SalesforceSession.signOut() }
+                }
+            }
+        }
         connectivity.start { online in
             offline.setOffline(!online)
             Task { await cachingAPI.setOnline(online) }

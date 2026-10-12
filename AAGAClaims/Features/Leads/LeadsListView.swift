@@ -57,7 +57,7 @@ struct LeadsListView: View {
         .background(Color.appBackground)
         .navigationTitle("My Leads")
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $viewModel.searchText, prompt: "Name, claim number, address, status or peril")
+        .searchable(text: $viewModel.searchText, prompt: "Search leads")
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 filterMenu
@@ -156,10 +156,11 @@ struct LeadCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-            HStack(alignment: .firstTextBaseline) {
+            AdaptiveStack(horizontalAlignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(lead.recordName ?? "Lead")
                         .font(.headline)
+                        .fixedSize(horizontal: false, vertical: true)
                         .foregroundStyle(Color.textPrimary)
                     if let number = PortalFormat.nonEmpty(lead.claimNumber) {
                         Text(number)
@@ -167,7 +168,7 @@ struct LeadCard: View {
                             .foregroundStyle(Color.textSecondary)
                     }
                 }
-                Spacer()
+                AdaptiveSpacer()
                 if let status = PortalFormat.nonEmpty(lead.prospectStatus) {
                     StatusPill(text: status, tone: StatusPill.tone(forLeadStatus: status))
                 }
@@ -180,9 +181,9 @@ struct LeadCard: View {
 
             agreement
 
-            HStack {
+            AdaptiveStack(verticalAlignment: .leading, spacing: Theme.Spacing.xs) {
                 Text("Account manager: \(PortalFormat.nonEmpty(lead.accountManagerName) ?? "—")")
-                Spacer()
+                AdaptiveSpacer()
                 Text("Updated \(PortalFormat.date(lead.lastModifiedDate))")
             }
             .font(.caption)
@@ -197,7 +198,7 @@ struct LeadCard: View {
     @ViewBuilder
     private var agreement: some View {
         if let sent = lead.agreementSentDate {
-            HStack(spacing: Theme.Spacing.l) {
+            AdaptiveStack(spacing: Theme.Spacing.l) {
                 Label("Sent \(PortalFormat.date(sent))", systemImage: "paperplane")
                 if let signed = lead.agreementCompletedDate {
                     Label("Signed \(PortalFormat.date(signed))", systemImage: "signature")

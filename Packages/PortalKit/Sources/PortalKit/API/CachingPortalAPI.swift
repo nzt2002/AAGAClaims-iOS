@@ -75,11 +75,17 @@ public actor CachingPortalAPI: PortalAPI {
     private var isOnline = true
     /// Called with the save time whenever cached data is shown.
     private let onServedFromCache: @Sendable (Date) async -> Void
+    /// Called when the server says the session has expired (401), so the app can sign in again (spec §5).
+    private var onSessionExpired: @Sendable () async -> Void = {}
 
     public init(base: PortalAPI, cache: ResponseCache, onServedFromCache: @escaping @Sendable (Date) async -> Void = { _ in }) {
         self.base = base
         self.cache = cache
         self.onServedFromCache = onServedFromCache
+    }
+
+    public func setSessionExpiredHandler(_ handler: @escaping @Sendable () async -> Void) {
+        onSessionExpired = handler
     }
 
     public func setOnline(_ online: Bool) {
@@ -111,7 +117,7 @@ public actor CachingPortalAPI: PortalAPI {
 
     public func insuranceCompanies(matching query: String) async throws -> [InsuranceCompany] {
         try requireOnline()
-        return try await base.insuranceCompanies(matching: query)
+        return try await guarded { try await $0.insuranceCompanies(matching: query) }
     }
 
     public func perilValues() async throws -> [String] { try await read("picklists/peril") { try await $0.perilValues() } }
@@ -120,42 +126,54 @@ public actor CachingPortalAPI: PortalAPI {
 
     public func createLead(_ submission: LeadSubmission) async throws -> String {
         try requireOnline()
-        return try await base.createLead(submission)
+        return try await guarded { try await $0.createLead(submission) }
     }
 
     public func addComment(to record: RecordRef, text: String) async throws {
         try requireOnline()
-        try await base.addComment(to: record, text: text)
+        try await guarded { try await $0.addComment(to: record, text: text) }
     }
 
     public func markActivityRead(commentIds: [String]) async throws {
         try requireOnline()
-        try await base.markActivityRead(commentIds: commentIds)
+        try await guarded { try await $0.markActivityRead(commentIds: commentIds) }
     }
 
     public func replyToCase(id: String, body: String) async throws {
         try requireOnline()
-        try await base.replyToCase(id: id, body: body)
+        try await guarded { try await $0.replyToCase(id: id, body: body) }
     }
 
     public func requestAssistance(recordId: String, comments: String) async throws -> String {
         try requireOnline()
-        return try await base.requestAssistance(recordId: recordId, comments: comments)
+        return try await guarded { try await $0.requestAssistance(recordId: recordId, comments: comments) }
     }
 
     // MARK: Files (never cached: spec §8)
 
     public func fileContent(contentDocumentId: String) async throws -> Data {
         try requireOnline()
-        return try await base.fileContent(contentDocumentId: contentDocumentId)
+        return try await guarded { try await $0.fileContent(contentDocumentId: contentDocumentId) }
     }
 
     public func uploadFile(_ upload: FileUpload, to record: RecordRef) async throws -> PortalFile {
         try requireOnline()
-        return try await base.uploadFile(upload, to: record)
+        return try await guarded { try await $0.uploadFile(upload, to: record) }
     }
 
     // MARK: - Plumbing
+
+    /// Runs a call against the base API, reporting an expired session.
+    private func guarded<T: Sendable>(_ call: @Sendable (PortalAPI) async throws -> T) async throws -> T {
+        do {
+            return try await call(base)
+        } catch {
+            if PortalAPIError.wrap(error) == .sessionExpired {
+                await onSessionExpired()
+            }
+            throw error
+        }
+    }
 
     private func requireOnline() throws {
         guard isOnline else { throw PortalAPIError.offline }
@@ -164,7 +182,7 @@ public actor CachingPortalAPI: PortalAPI {
     private func read<T: Codable & Sendable>(_ key: String, _ fetch: @Sendable (PortalAPI) async throws -> T) async throws -> T {
         if isOnline {
             do {
-                let value = try await fetch(base)
+                let value = try await guarded(fetch)
                 if let data = try? PortalJSON.makeEncoder().encode(value) {
                     await cache.store(data, for: key)
                 }

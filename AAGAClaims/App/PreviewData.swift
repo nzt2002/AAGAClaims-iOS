@@ -1,8 +1,8 @@
-#if DEBUG
 import PortalKit
 import SwiftUI
 
-/// View models backed by the bundled fixtures, for SwiftUI previews.
+/// View models backed by the bundled fixtures, for SwiftUI previews. Compiled in every
+/// configuration because `#Preview` blocks are; it only uses the demo-mode mock, which ships anyway.
 enum PreviewData {
     static func api() -> MockPortalAPI {
         MockPortalAPI.standard(latency: .zero)
@@ -38,4 +38,3 @@ enum PreviewData {
         return viewModel
     }
 }
-#endif

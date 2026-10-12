@@ -4,6 +4,7 @@ import SwiftUI
 /// Lead detail (spec §6.7).
 struct LeadDetailView: View {
     @State private var viewModel: LeadDetailViewModel
+    @Environment(\.scenePhase) private var scenePhase
     let fallbackName: String?
     let api: PortalAPI
 
@@ -21,6 +22,12 @@ struct LeadDetailView: View {
             .task {
                 if viewModel.detail.value == nil {
                     await viewModel.load()
+                }
+            }
+            .onChange(of: scenePhase) { _, phase in
+                // Back in the foreground with data more than 5 minutes old (spec §7).
+                if phase == .active, viewModel.detail.isStale() {
+                    Task { await viewModel.load() }
                 }
             }
     }
@@ -75,11 +82,12 @@ struct LeadDetailView: View {
 
     private func header(_ detail: LeadDetail) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-            HStack(alignment: .firstTextBaseline) {
+            AdaptiveStack(horizontalAlignment: .firstTextBaseline) {
                 Text(detail.prospectName ?? "Lead")
                     .font(.title2.bold())
+                    .fixedSize(horizontal: false, vertical: true)
                     .foregroundStyle(Color.textPrimary)
-                Spacer()
+                AdaptiveSpacer()
                 if let status = PortalFormat.nonEmpty(detail.prospectStatus) {
                     StatusPill(text: status, tone: StatusPill.tone(forLeadStatus: status))
                 }

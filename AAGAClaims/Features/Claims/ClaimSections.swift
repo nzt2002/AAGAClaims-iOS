@@ -267,7 +267,7 @@ struct TeamCard: View {
     @ViewBuilder
     private func member(_ role: String, _ member: Member) -> some View {
         if let name = PortalFormat.nonEmpty(member.name) {
-            HStack(spacing: Theme.Spacing.m) {
+            AdaptiveStack(spacing: Theme.Spacing.m) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(role)
                         .font(.caption)
@@ -275,12 +275,14 @@ struct TeamCard: View {
                     Text(name)
                         .font(.subheadline.weight(.semibold))
                 }
-                Spacer()
+                AdaptiveSpacer()
+                HStack(spacing: Theme.Spacing.m) {
                 if let url = ContactURL.phone(member.phone) {
                     contactButton(url: url, systemImage: "phone.fill", label: "Call \(name)")
                 }
                 if let url = ContactURL.email(member.email) {
                     contactButton(url: url, systemImage: "envelope.fill", label: "Email \(name)")
+                }
                 }
             }
         }

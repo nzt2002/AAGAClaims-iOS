@@ -34,6 +34,32 @@ If package resolution fails with `cannot use bare repository`, your git config h
 2. Copy its consumer key into `bootconfig.plist`.
 3. Run the app: the Mobile SDK shows the portal's login page.
 
+## TestFlight
+
+The Release configuration builds for devices and includes the privacy manifest. To ship a TestFlight build:
+
+1. Put the External Client App's consumer key in `AAGAClaims/Resources/bootconfig.plist`. Without it, the app runs in demo mode.
+2. Set the Apple team on both targets, and add an app icon (1024×1024) to `Assets.xcassets/AppIcon`.
+3. In App Store Connect, create the app with bundle id `com.accurateadjustmentsga.claims`, then fill in App Privacy from `PrivacyInfo.xcprivacy` (spec §10).
+4. In Xcode: Product → Archive → Distribute App → TestFlight.
+
+Check the Release build without signing:
+
+```sh
+xcodebuild build -project AAGAClaims.xcodeproj -scheme AAGAClaims -configuration Release \
+  -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO
+```
+
+## Test switches (launch arguments)
+
+| Argument | Effect |
+|---|---|
+| `-UITestDemo YES` | Demo sign-in, no artificial latency, no Face ID offer |
+| `-PortalDataSource mock\|live` | Fixtures or the Apex REST API |
+| `-SimulateOffline YES` | Offline: cached data and disabled writes |
+| `-MockFailure YES` | Every mock call fails, to check error states |
+| `-AppLockEnabled YES` | Start with the Face ID lock on |
+
 ## Push notifications and universal links
 
 The app code is in place; these need an Apple Developer team:
@@ -60,4 +86,4 @@ Deep links: `xcrun simctl openurl booted aagaclaims://claim/a23000000000001AAA`
 - [x] 4. Support
 - [x] 5. Home and notifications
 - [x] 6. Native features (app side; push and universal links need the setup below)
-- [ ] 7. Hardening
+- [x] 7. Hardening (TestFlight needs an Apple team; see below)

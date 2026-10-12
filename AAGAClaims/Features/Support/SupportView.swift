@@ -55,7 +55,7 @@ struct SupportView: View {
         .background(Color.appBackground)
         .navigationTitle("Support")
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $viewModel.searchText, prompt: "Subject, case number, claim or lead")
+        .searchable(text: $viewModel.searchText, prompt: "Search cases")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -115,26 +115,27 @@ struct CaseRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-            HStack(alignment: .firstTextBaseline) {
+            AdaptiveStack(horizontalAlignment: .firstTextBaseline) {
                 Text(supportCase.caseNumber.map { "Case \($0)" } ?? "Case")
                     .font(.caption)
                     .foregroundStyle(Color.textSecondary)
-                Spacer()
+                AdaptiveSpacer()
                 if let status = PortalFormat.nonEmpty(supportCase.status) {
                     StatusPill(text: status, tone: supportCase.isClosed ? .neutral : .active)
                 }
             }
             Text(supportCase.subject ?? "Support request")
                 .font(.headline)
+                    .fixedSize(horizontal: false, vertical: true)
                 .foregroundStyle(Color.textPrimary)
             if let name = supportCase.relatedRecordName, let type = supportCase.relatedRecordType {
                 Label(name, systemImage: type == .claim ? "doc.text" : "person.2")
                     .font(.subheadline)
                     .accessibilityLabel("\(type.displayName): \(name)")
             }
-            HStack {
+            AdaptiveStack(spacing: Theme.Spacing.xs) {
                 Text("Account manager: \(PortalFormat.nonEmpty(supportCase.accountManager) ?? "—")")
-                Spacer()
+                AdaptiveSpacer()
                 Text(PortalFormat.date(supportCase.createdDate))
             }
             .font(.caption)

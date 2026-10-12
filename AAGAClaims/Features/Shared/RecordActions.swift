@@ -43,11 +43,12 @@ struct RecordActions: ViewModifier {
     }
 
     private var buttons: some View {
-        HStack(spacing: Theme.Spacing.m) {
+        AdaptiveStack(spacing: Theme.Spacing.m) {
             Button {
                 composer = .comment
             } label: {
                 Label("Add Comment", systemImage: "text.bubble")
+                    .foregroundStyle(Color.brandPrimaryDark)
                     .frame(maxWidth: .infinity, minHeight: Theme.minTapTarget)
             }
             .buttonStyle(.bordered)
