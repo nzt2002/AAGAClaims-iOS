@@ -18,18 +18,6 @@ final class HomeUITests: XCTestCase {
 
     private var bell: XCUIElement { app.buttons["notificationsBell"] }
 
-    /// Scrolls in small steps until the element sits in the middle of the screen, clear of the
-    /// navigation bar and the floating tab bar, so a tap lands on it. Full swipes overshoot.
-    private func scrollIntoView(_ element: XCUIElement) {
-        let height = app.frame.height
-        for _ in 0..<15 {
-            if element.exists, element.frame.minY > height * 0.25, element.frame.maxY < height * 0.7 { return }
-            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6))
-            let dy = element.exists && element.frame.minY < height * 0.25 ? 0.15 : -0.15
-            start.press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6 + dy)))
-        }
-    }
-
     func testOpenClaimsTileFiltersList() {
         app.buttons["tileOpenClaims"].tap()
         XCTAssertTrue(app.buttons["claimCard-a23000000000001AAA"].waitForExistence(timeout: 5))
@@ -39,7 +27,7 @@ final class HomeUITests: XCTestCase {
 
     func testStatusOverviewRowFiltersByStage() {
         let row = app.buttons["stage-Negotiations"]
-        scrollIntoView(row)
+        app.scrollIntoView(row)
         row.tap()
         XCTAssertTrue(app.buttons["claimCard-a23000000000002AAA"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["claimCard-a23000000000001AAA"].exists)
@@ -49,7 +37,7 @@ final class HomeUITests: XCTestCase {
         XCTAssertEqual(bell.label, "Notifications, 2 unread")
 
         let item = app.buttons["activity-a1Y000000000002AAA"]
-        scrollIntoView(item)
+        app.scrollIntoView(item)
         item.tap()
         XCTAssertTrue(element(containing: "Inspection is booked for October 9.").waitForExistence(timeout: 5))
 

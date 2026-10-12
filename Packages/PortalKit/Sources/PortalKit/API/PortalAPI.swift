@@ -30,6 +30,27 @@ public protocol PortalAPI: Sendable {
     func replyToCase(id: String, body: String) async throws
     /// Request Assistance. `recordId` is a claim or lead id. Returns the new case id.
     func requestAssistance(recordId: String, comments: String) async throws -> String
+
+    // Files [new endpoints]
+    /// `GET /files/{contentDocumentId}/content`: the file's bytes, for Quick Look.
+    func fileContent(contentDocumentId: String) async throws -> Data
+    /// `POST /claims|leads/{id}/files`: multipart upload (`file`, `title`).
+    func uploadFile(_ upload: FileUpload, to record: RecordRef) async throws -> PortalFile
+}
+
+/// A file ready to upload (already checked and downscaled by `FileUploadRules`).
+public struct FileUpload: Hashable, Sendable {
+    public let fileName: String
+    public let title: String
+    public let mimeType: String
+    public let data: Data
+
+    public init(fileName: String, title: String, mimeType: String, data: Data) {
+        self.fileName = fileName
+        self.title = title
+        self.mimeType = mimeType
+        self.data = data
+    }
 }
 
 public enum PortalAPIError: Error, Equatable, Sendable {

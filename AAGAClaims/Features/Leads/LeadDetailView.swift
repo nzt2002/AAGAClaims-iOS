@@ -110,9 +110,7 @@ struct LeadDetailView: View {
         case .insurance:
             LeadInsuranceSection(detail: detail)
         case .files:
-            SectionLoader(state: viewModel.files, subject: "files", retry: { await viewModel.loadFiles() }) { files in
-                FilesList(files: files)
-            }
+            FilesSection(record: viewModel.record, state: viewModel.files, api: api) { await viewModel.loadFiles() }
         }
     }
 }

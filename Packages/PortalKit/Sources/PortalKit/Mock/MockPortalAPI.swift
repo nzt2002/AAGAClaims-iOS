@@ -279,6 +279,49 @@ public actor MockPortalAPI: PortalAPI {
         return id
     }
 
+    // MARK: - Files
+
+    private var fileContents: [String: Data] = [:]
+
+    public func fileContent(contentDocumentId: String) async throws -> Data {
+        try await simulate()
+        guard data.files.values.contains(where: { $0.contains { $0.contentDocumentId == contentDocumentId } }) else {
+            throw PortalAPIError.notFound
+        }
+        // Uploaded files come back as uploaded; fixture files are a small sample PDF.
+        return fileContents[contentDocumentId] ?? Self.samplePDF
+    }
+
+    public func uploadFile(_ upload: FileUpload, to record: RecordRef) async throws -> PortalFile {
+        try await simulate()
+        try requireRecord(record)
+        let file = PortalFile(
+            contentDocumentId: makeId(prefix: "069"),
+            title: upload.title,
+            fileType: FileUploadRules.fileExtension(of: upload.fileName).uppercased(),
+            contentSize: upload.data.count,
+            createdDate: Date(),
+            createdByName: "You"
+        )
+        data.files[record.id, default: []].insert(file, at: 0)
+        fileContents[file.contentDocumentId] = upload.data
+        return file
+    }
+
+    /// A one-page PDF that says "Sample document".
+    static let samplePDF = Data("""
+    %PDF-1.4
+    1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+    2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
+    3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj
+    4 0 obj << /Length 52 >> stream
+    BT /F1 24 Tf 72 700 Td (Sample document) Tj ET
+    endstream endobj
+    5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
+    trailer << /Root 1 0 R >>
+    %%EOF
+    """.utf8)
+
     // MARK: - Helpers
 
     private func simulate() async throws {

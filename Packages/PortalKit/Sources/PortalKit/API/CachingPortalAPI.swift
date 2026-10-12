@@ -143,6 +143,18 @@ public actor CachingPortalAPI: PortalAPI {
         return try await base.requestAssistance(recordId: recordId, comments: comments)
     }
 
+    // MARK: Files (never cached: spec §8)
+
+    public func fileContent(contentDocumentId: String) async throws -> Data {
+        try requireOnline()
+        return try await base.fileContent(contentDocumentId: contentDocumentId)
+    }
+
+    public func uploadFile(_ upload: FileUpload, to record: RecordRef) async throws -> PortalFile {
+        try requireOnline()
+        return try await base.uploadFile(upload, to: record)
+    }
+
     // MARK: - Plumbing
 
     private func requireOnline() throws {

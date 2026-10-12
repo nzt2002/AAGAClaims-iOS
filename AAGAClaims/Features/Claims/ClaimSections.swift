@@ -106,9 +106,11 @@ struct ClaimInsuranceSection: View {
     }
 }
 
-/// File list. Opening files in Quick Look and uploading come with the file endpoints in milestone 6.
+/// File rows. Tapping one opens it in Quick Look (see `FilesSection`).
 struct FilesList: View {
     let files: [PortalFile]
+    var loadingFileId: String?
+    var onOpen: ((PortalFile) -> Void)?
 
     var body: some View {
         if files.isEmpty {
@@ -118,27 +120,15 @@ struct FilesList: View {
         } else {
             VStack(spacing: 0) {
                 ForEach(files) { file in
-                    HStack(alignment: .top, spacing: Theme.Spacing.m) {
-                        Image(systemName: Self.icon(for: file.fileType))
-                            .font(.title2)
-                            .foregroundStyle(Color.brandPrimary)
-                            .frame(width: 32)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(file.title ?? "Untitled file")
-                                .font(.subheadline.weight(.semibold))
-                            Text("\(file.fileType ?? "File") · \(PortalFormat.fileSize(file.contentSize)) · Uploaded \(PortalFormat.date(file.createdDate))")
-                                .font(.caption)
-                                .foregroundStyle(Color.textSecondary)
-                            if let name = PortalFormat.nonEmpty(file.createdByName) {
-                                Text("Uploaded by \(name)")
-                                    .font(.caption)
-                                    .foregroundStyle(Color.textSecondary)
-                            }
-                        }
-                        Spacer(minLength: 0)
+                    Button {
+                        onOpen?(file)
+                    } label: {
+                        row(file)
                     }
-                    .padding(.vertical, Theme.Spacing.s)
-                    .accessibilityElement(children: .combine)
+                    .buttonStyle(.plain)
+                    .disabled(onOpen == nil || loadingFileId != nil)
+                    .accessibilityHint("Opens the file")
+                    .accessibilityIdentifier("file-\(file.contentDocumentId)")
                     if file.id != files.last?.id {
                         Divider()
                     }
@@ -146,6 +136,35 @@ struct FilesList: View {
             }
             .cardStyle()
         }
+    }
+
+    private func row(_ file: PortalFile) -> some View {
+        HStack(alignment: .top, spacing: Theme.Spacing.m) {
+            Image(systemName: Self.icon(for: file.fileType))
+                .font(.title2)
+                .foregroundStyle(Color.brandPrimary)
+                .frame(width: 32)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(file.title ?? "Untitled file")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.textPrimary)
+                Text("\(file.fileType ?? "File") · \(PortalFormat.fileSize(file.contentSize)) · Uploaded \(PortalFormat.date(file.createdDate))")
+                    .font(.caption)
+                    .foregroundStyle(Color.textSecondary)
+                if let name = PortalFormat.nonEmpty(file.createdByName) {
+                    Text("Uploaded by \(name)")
+                        .font(.caption)
+                        .foregroundStyle(Color.textSecondary)
+                }
+            }
+            Spacer(minLength: 0)
+            if loadingFileId == file.id {
+                ProgressView()
+            }
+        }
+        .padding(.vertical, Theme.Spacing.s)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 
     static func icon(for fileType: String?) -> String {

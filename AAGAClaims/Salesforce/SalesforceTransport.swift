@@ -18,8 +18,8 @@ nonisolated struct SalesforceTransport: PortalTransport {
         )
         // The path is already absolute; don't prefix /services/data.
         restRequest.endpoint = ""
-        if let body = request.jsonBody {
-            restRequest.setCustomRequestBodyData(body, contentType: "application/json")
+        if let body = request.body {
+            restRequest.setCustomRequestBodyData(body, contentType: request.contentType ?? "application/octet-stream")
         }
 
         do {

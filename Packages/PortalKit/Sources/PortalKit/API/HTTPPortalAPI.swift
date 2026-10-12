@@ -10,13 +10,25 @@ public struct TransportRequest: Hashable, Sendable {
     /// Path under `/services/apexrest/portal/v1`, starting with "/".
     public let path: String
     public let queryItems: [URLQueryItem]
-    public let jsonBody: Data?
+    public let body: Data?
+    /// Content type of `body`, e.g. "application/json" or "multipart/form-data; boundary=…".
+    public let contentType: String?
 
-    public init(method: HTTPMethod, path: String, queryItems: [URLQueryItem] = [], jsonBody: Data? = nil) {
+    public init(method: HTTPMethod, path: String, queryItems: [URLQueryItem] = [], body: Data? = nil, contentType: String? = nil) {
         self.method = method
         self.path = path
         self.queryItems = queryItems
-        self.jsonBody = jsonBody
+        self.body = body
+        self.contentType = contentType
+    }
+
+    public init(method: HTTPMethod, path: String, jsonBody: Data) {
+        self.init(method: method, path: path, body: jsonBody, contentType: "application/json")
+    }
+
+    /// The JSON body, for tests.
+    public var jsonBody: Data? {
+        contentType == "application/json" ? body : nil
     }
 }
 
@@ -114,6 +126,23 @@ public struct HTTPPortalAPI: PortalAPI {
     public func requestAssistance(recordId: String, comments: String) async throws -> String {
         let response: CaseIdResponse = try await post("/cases", body: ["recordId": recordId, "comments": comments])
         return response.caseId
+    }
+
+    public func fileContent(contentDocumentId: String) async throws -> Data {
+        try await send(TransportRequest(method: .get, path: "/files/\(escaped(contentDocumentId))/content")).body
+    }
+
+    public func uploadFile(_ upload: FileUpload, to record: RecordRef) async throws -> PortalFile {
+        let form = MultipartForm()
+        form.addField(name: "title", value: upload.title)
+        form.addFile(name: "file", fileName: upload.fileName, mimeType: upload.mimeType, data: upload.data)
+        let response = try await send(TransportRequest(
+            method: .post,
+            path: "/\(record.collectionPath)/\(escaped(record.id))/files",
+            body: form.encoded(),
+            contentType: form.contentType
+        ))
+        return try decode(response.body)
     }
 
     // MARK: - Plumbing

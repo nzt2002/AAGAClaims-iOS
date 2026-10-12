@@ -15,7 +15,7 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 9. **Dates without a time** (`lossDate`, `dateOfNotice` etc.) are decoded as `CalendarDate`, not `Date`, so they never shift a day across time zones.
 10. **Dark-mode colours** are our own equivalents of the portal palette (Assets.xcassets); the designer may refine them.
 11. **Update bodies** are rendered without WebKit by an allow-list (`HTMLText`): paragraphs, breaks, lists, headings, bold, italic, and links with http(s), mailto or tel URLs. Scripts, styles, iframes and other embedded content are dropped with their contents; `javascript:` and `data:` links are dropped. Web links open in `SFSafariViewController`.
-12. **Claim files** are listed, but opening them in Quick Look and uploading wait for the [new] file endpoints and milestone 6 (spec §6.10).
+12. **Files** open in Quick Look from a temporary copy that's deleted when Quick Look closes; nothing is cached (spec §8).
 13. **"View case"** after Request Assistance opens the Support tab straight into the new case.
 14. **Status filter** on the claims list offers the 7 lifecycle stages. Claims with any other status appear only when the filter is "All statuses".
 15. **Loss reason** (`lossReason`) only comes from `GET /claims`, so claim detail shows it from the list row it was opened from. Opened any other way (deep link, milestone 6), it's hidden.
@@ -25,7 +25,7 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 18. **Lead Status filter** offers New, Working, Qualified, Converted and Unqualified.
 19. **Submit a Lead validation** beyond the spec: email must look like an email, ZIP must be exactly 5 digits, and the photos link must be a full http(s) address. Peril, address and insurance fields are optional, as on the portal. "Has a claim been filed?" can be left unanswered ("Not sure").
 20. **Insurance typeahead** matches anywhere in the name (like the server's `LIKE '%term%'`), so "st" finds both Allstate and State Farm. Editing the text after picking a company clears the selection.
-21. **Supporting-files step** after Submit a Lead shows the confirmation and a Done button. Uploading from it arrives with milestone 6 (spec §6.10); until then it explains that and points to Add Comment for sharing a photo link.
+21. **Supporting-files step** after Submit a Lead has the same Upload menu as a lead's Files section.
 22. **Lead detail** also shows the referral (associated party) details in a "Referred by" card, so every `LeadDetail` field appears somewhere.
 23. **Submit a Lead** is the + button in the Leads toolbar, next to the notifications bell.
 24. **Keyboard Done button** on the Submit a Lead form, because number and phone pads have no return key.
@@ -41,9 +41,26 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 32. **Opening an update** (from Home or Notifications) marks it read straight away, and "Open Claim / Open Lead" closes the sheets and opens the record in its tab.
 33. **App icon badge** is set to the unread count whenever it changes, but iOS only shows it after the user allows notifications, which is asked for with push in milestone 6.
 
+34. **Record types from ids:** portal universal links (`/s/detail/{id}`) and update pushes only carry an id, so the app tells claims from leads by key prefix: Claims2__c `a23`, Prospects__c `a0r` (from the org). Fixtures use the same prefixes.
+35. **Deep links are strict:** only `aagaclaims://claim|lead|case/{id}` with a 15- or 18-character id, and portal links on `https://portal.accurateadjustmentsga.com`. Anything else is ignored. Links that arrive before sign-in open after it.
+36. **Update pushes** open the claim or lead and mark the update read, rather than opening the Update sheet on top.
+37. **Notifications toggle** asks for permission the first time; after that iOS only allows changes in Settings, so the toggle opens Settings.
+38. **App lock** uses `.deviceOwnerAuthentication`, so it falls back to the device passcode. It's turned on only after a successful check, is offered once after the first sign-in, is cleared on sign-out, and turns itself off if the device passcode is removed (otherwise the user would be locked out).
+39. **Offline cache** is response JSON in files under Caches with complete file protection, not SmartStore or SwiftData: it's read-only and keyed by endpoint, so a database adds nothing. It's cleared on sign-out. 404s and server errors are never replaced by cached data. The banner shows the age of the oldest cached data on screen.
+40. **Offline writes:** Add Comment, Request Assistance, replies, Submit a Lead, Mark all read, uploads and opening files are disabled or refused with "Available when you're back online."
+41. **Upload progress** shows each file's state (Waiting, Uploading, Uploaded, or Failed with Retry) rather than a percentage: the Mobile SDK's REST client doesn't report upload progress.
+42. **Upload size:** files over 25 MB are refused on the device. See open question 5.
+43. **Photo library picks** have no file name without full photo-library access, so they're titled like camera photos ("Photo {yyyy-MM-dd HH:mm}", numbered when several are picked).
+44. **Camera photos** are saved as HEIC where the device supports it, otherwise JPEG, and downscaled like library photos.
+45. **Photo metadata** (including location) is kept on photos that don't need downscaling, and dropped from downscaled ones.
+
 ## Open questions
 
 1. **API access for Customer Community Login users** (spec §3 blocking prerequisite). The portal profile currently has API Enabled = false. Until this is resolved, live mode can't work.
 2. **Privacy policy and terms URLs** for the Account screen (spec §6.11).
 3. **App icon and vector logo** from the designer.
 4. **Consumer key** from the "AAGA Claims iOS" External Client App, once it's deployed.
+5. **Upload size limit.** Apex REST request bodies are limited by heap size (about 6 MB synchronous), which a 4,000 px photo can exceed. The Salesforce team should confirm the limit for `POST /claims|leads/{id}/files`, or have it accept larger files another way. The app currently refuses files over 25 MB.
+6. **Push setup:** an Apple Developer team, an APNs key added to the External Client App's push settings, and the server-side trigger (spec §8).
+7. **Universal links:** the portal must serve `/.well-known/apple-app-site-association` for the app's team and bundle id, and the app needs the Associated Domains entitlement (`applinks:portal.accurateadjustmentsga.com`). Both need the Apple team id.
+8. **Should location metadata be stripped from all photos before upload?** It's currently only dropped when a photo is downscaled.

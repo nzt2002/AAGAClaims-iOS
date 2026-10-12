@@ -13,6 +13,7 @@ struct RootView: View {
                 }
             case .signedIn(let user):
                 MainTabView(session: session, user: user)
+                    .environment(session.uploads)
                 if session.lock.isLocked {
                     LockScreen(lock: session.lock)
                 }

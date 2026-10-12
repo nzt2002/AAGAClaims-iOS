@@ -82,9 +82,7 @@ struct ClaimDetailView: View {
         case .insurance:
             ClaimInsuranceSection(detail: detail)
         case .files:
-            SectionLoader(state: viewModel.files, subject: "files", retry: { await viewModel.loadFiles() }) { files in
-                FilesList(files: files)
-            }
+            FilesSection(record: viewModel.record, state: viewModel.files, api: api) { await viewModel.loadFiles() }
         case .payments:
             SectionLoader(state: viewModel.payments, subject: "payments", retry: { await viewModel.loadPayments() }) { payments in
                 PaymentsList(payments: payments, totalCollected: detail.paymentCollected)

@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import Observation
 import PortalKit
 
@@ -26,6 +27,8 @@ final class AppSession {
     let connectivity = ConnectivityMonitor()
     /// The offline cache in front of the API (spec §8).
     private let cachingAPI: CachingPortalAPI
+    /// App-wide, so uploads continue when the user leaves the screen (spec §6.10).
+    let uploads: UploadQueue
     /// Covers the UI while the app is inactive, so the app switcher snapshot shows no data.
     var isShielded = false
 
@@ -40,6 +43,12 @@ final class AppSession {
             await offline.servedFromCache(savedAt: savedAt)
         }
         api = cachingAPI
+        uploads = UploadQueue(api: cachingAPI)
+        uploads.keepAlive = {
+            // Finish the current upload if the app goes to the background.
+            let task = UIApplication.shared.beginBackgroundTask(withName: "Uploads")
+            return { UIApplication.shared.endBackgroundTask(task) }
+        }
 
         let cachingAPI = self.cachingAPI
         connectivity.start { online in

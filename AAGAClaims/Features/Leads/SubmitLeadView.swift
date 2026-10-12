@@ -19,7 +19,7 @@ struct SubmitLeadView: View {
         NavigationStack {
             Group {
                 if let leadId = viewModel.createdLeadId {
-                    SubmittedLeadView(message: viewModel.confirmationMessage) {
+                    SubmittedLeadView(leadId: leadId, message: viewModel.confirmationMessage) {
                         onDone(leadId, viewModel.submission.leadName)
                     }
                 } else {
@@ -266,8 +266,11 @@ struct SubmitLeadView: View {
 
 /// Confirmation and the supporting-files step (spec §6.8).
 private struct SubmittedLeadView: View {
+    let leadId: String
     let message: String
     let done: () -> Void
+
+    @Environment(UploadQueue.self) private var queue
 
     var body: some View {
         ScrollView {
@@ -284,12 +287,18 @@ private struct SubmittedLeadView: View {
                 }
 
                 VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-                    SectionHeading("Supporting files")
-                    // Uploading arrives with the file endpoints (milestone 6, spec §6.10).
-                    Text("Photos and documents help us review the loss. Uploading them from the app is coming in a later update. If you have a link to photos, send it to us with Add Comment on the lead.")
+                    HStack {
+                        SectionHeading("Supporting files")
+                        Spacer()
+                        UploadMenu(record: .lead(leadId))
+                    }
+                    Text("Add photos of the damage and any documents, such as the policy or an estimate. You can also add them later from the lead's Files.")
+                        .font(.subheadline)
                         .foregroundStyle(Color.textSecondary)
                 }
                 .cardStyle()
+
+                UploadStatusList(record: .lead(leadId))
             }
             .padding(Theme.Spacing.l)
         }
