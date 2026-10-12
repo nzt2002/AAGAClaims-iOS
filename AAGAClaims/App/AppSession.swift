@@ -21,6 +21,9 @@ final class AppSession {
     private(set) var state: State = .signingIn
     let environment: AppEnvironment
     let api: PortalAPI
+    let lock = AppLock()
+    /// Covers the UI while the app is inactive, so the app switcher snapshot shows no data.
+    var isShielded = false
 
     init(environment: AppEnvironment) {
         self.environment = environment
@@ -37,6 +40,7 @@ final class AppSession {
     }
 
     func didSignOut() {
+        lock.reset()
         state = .signingIn
     }
 }

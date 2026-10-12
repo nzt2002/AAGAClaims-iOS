@@ -5,13 +5,21 @@ struct RootView: View {
     let session: AppSession
 
     var body: some View {
-        switch session.state {
-        case .signingIn:
-            SplashView(isDemo: session.isDemo) {
-                session.didSignIn(.demo)
+        ZStack {
+            switch session.state {
+            case .signingIn:
+                SplashView(isDemo: session.isDemo) {
+                    session.didSignIn(.demo)
+                }
+            case .signedIn(let user):
+                MainTabView(session: session, user: user)
+                if session.lock.isLocked {
+                    LockScreen(lock: session.lock)
+                }
             }
-        case .signedIn(let user):
-            MainTabView(session: session, user: user)
+            if session.isShielded {
+                PrivacyShield()
+            }
         }
     }
 }

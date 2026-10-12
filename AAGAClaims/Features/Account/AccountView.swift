@@ -26,6 +26,15 @@ struct AccountView: View {
                 Text(notificationFooter)
             }
 
+            if session.lock.isAvailable || session.lock.isEnabled {
+                Section {
+                    Toggle(session.lock.methodName, isOn: lockBinding)
+                        .accessibilityIdentifier("appLockToggle")
+                } footer: {
+                    Text("Ask for \(session.lock.methodName) when you open the app and after 5 minutes away.")
+                }
+            }
+
             Section {
                 Button("Contact support", action: openSupport)
             }
@@ -65,6 +74,18 @@ struct AccountView: View {
                 }
             } else {
                 PushNotifications.openSettings()
+            }
+        }
+    }
+
+    private var lockBinding: Binding<Bool> {
+        Binding {
+            session.lock.isEnabled
+        } set: { wantsOn in
+            if wantsOn {
+                Task { _ = await session.lock.enable() }
+            } else {
+                session.lock.disable()
             }
         }
     }

@@ -62,9 +62,25 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func sceneWillEnterForeground(_ scene: UIScene) {
+        session.lock.willEnterForeground()
         if session.environment.auth == .salesforce {
             signInIfNeeded(scene)
         }
+    }
+
+    func sceneDidEnterBackground(_ scene: UIScene) {
+        session.lock.didEnterBackground()
+    }
+
+    /// Mask content in the app switcher when the lock is on (spec §10).
+    func sceneWillResignActive(_ scene: UIScene) {
+        if session.lock.isEnabled {
+            session.isShielded = true
+        }
+    }
+
+    func sceneDidBecomeActive(_ scene: UIScene) {
+        session.isShielded = false
     }
 
     /// Shows the SDK login (pointed at the portal domain via `SFDCOAuthLoginHost`) when there's

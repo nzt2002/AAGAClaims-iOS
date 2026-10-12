@@ -11,6 +11,7 @@ struct MainTabView: View {
 
     @State private var router: AppRouter
     @State private var safariLink: SafariLink?
+    @State private var offeringLock = false
 
     init(session: AppSession, user: CurrentUser) {
         self.session = session
@@ -73,6 +74,18 @@ struct MainTabView: View {
         .task {
             // Home also drives the bell badge, so load it up front.
             await router.home.load()
+        }
+        .task {
+            // After the first sign-in, offer Face ID (spec §6.1).
+            if session.lock.shouldOffer {
+                offeringLock = true
+            }
+        }
+        .alert("Use \(session.lock.methodName)?", isPresented: $offeringLock) {
+            Button("Turn On") { Task { _ = await session.lock.enable() } }
+            Button("Not Now", role: .cancel) { session.lock.markOffered() }
+        } message: {
+            Text("Lock AAGA Claims with \(session.lock.methodName) so only you can see your claims. You can change this in Account.")
         }
     }
 
