@@ -36,7 +36,9 @@ struct SplashView: View {
                 .foregroundStyle(Color.textSecondary)
             Spacer()
             if isDemo {
-                Button("Continue in demo mode", action: continueInDemo)
+                Button(action: continueInDemo) {
+                    Text("Continue in demo mode").foregroundStyle(Color.surface)
+                }
                     .buttonStyle(.borderedProminent)
                     .frame(minHeight: Theme.minTapTarget)
                     .accessibilityIdentifier("continueDemo")

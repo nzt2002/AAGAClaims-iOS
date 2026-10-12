@@ -34,6 +34,7 @@ struct LeadsListView: View {
         }
         .background(Color.appBackground)
         .navigationTitle("My Leads")
+        .navigationBarTitleDisplayMode(.inline)
         .task {
             if viewModel.state.value == nil {
                 await viewModel.load()

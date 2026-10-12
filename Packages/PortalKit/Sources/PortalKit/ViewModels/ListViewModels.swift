@@ -4,7 +4,21 @@ import Observation
 @MainActor
 @Observable
 public final class ClaimsListViewModel {
+    public enum PaymentFilter: String, CaseIterable, Sendable {
+        case any = "Any"
+        case received = "Payment received"
+        case none = "No payment yet"
+    }
+
     public private(set) var state: LoadState<[ClaimSummary]> = .idle
+
+    /// Matches claim name, claim number, address, status or peril, on the device (spec §6.4).
+    public var searchText = ""
+    /// A lifecycle stage name, or nil for all.
+    public var statusFilter: String?
+    public var paymentFilter: PaymentFilter = .any
+    /// A peril value from the data, or nil for all.
+    public var perilFilter: String?
 
     private let api: PortalAPI
 
@@ -12,9 +26,50 @@ public final class ClaimsListViewModel {
         self.api = api
     }
 
-    /// Most recently updated first (spec §6.4).
+    /// All claims, most recently updated first.
     public var claims: [ClaimSummary] {
         (state.value ?? []).sorted { ($0.lastModifiedDate ?? .distantPast) > ($1.lastModifiedDate ?? .distantPast) }
+    }
+
+    /// Claims after search and filters, most recently updated first (spec §6.4).
+    public var filteredClaims: [ClaimSummary] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return claims.filter { claim in
+            if let statusFilter, claim.claimStatus?.caseInsensitiveCompare(statusFilter) != .orderedSame {
+                return false
+            }
+            if let perilFilter, claim.peril?.caseInsensitiveCompare(perilFilter) != .orderedSame {
+                return false
+            }
+            let collected = claim.paymentCollected ?? 0
+            switch paymentFilter {
+            case .any: break
+            case .received: if collected <= 0 { return false }
+            case .none: if collected > 0 { return false }
+            }
+            guard !query.isEmpty else { return true }
+            return [claim.recordName, claim.claimNumber, claim.lossAddress, claim.claimStatus, claim.peril]
+                .compactMap { $0 }
+                .contains { $0.localizedCaseInsensitiveContains(query) }
+        }
+    }
+
+    public var statusOptions: [String] { ClaimLifecycle.stages }
+
+    /// Perils present in the user's claims, sorted (spec: "built from the values in the data").
+    public var perilOptions: [String] {
+        let values = claims.compactMap { PortalFormat.nonEmpty($0.peril) }
+        return Array(Set(values)).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+
+    public var hasActiveFilters: Bool {
+        statusFilter != nil || perilFilter != nil || paymentFilter != .any
+    }
+
+    public func clearFilters() {
+        statusFilter = nil
+        perilFilter = nil
+        paymentFilter = .any
     }
 
     public func load() async {

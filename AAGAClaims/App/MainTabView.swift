@@ -15,6 +15,7 @@ struct MainTabView: View {
     @State private var leads: LeadsListViewModel
     @State private var cases: CasesListViewModel
     @State private var showingNotifications = false
+    @State private var safariLink: SafariLink?
 
     init(session: AppSession, user: CurrentUser) {
         self.session = session
@@ -36,7 +37,7 @@ struct MainTabView: View {
             }
             Tab("Claims", systemImage: "doc.text", value: .claims) {
                 NavigationStack {
-                    ClaimsListView(viewModel: claims, openSupport: { selection = .support })
+                    ClaimsListView(viewModel: claims, api: session.api, openSupport: { selection = .support })
                         .demoBanner(session.isDemo)
                         .toolbar { bell }
                 }
@@ -61,6 +62,12 @@ struct MainTabView: View {
                 }
             }
         }
+        .environment(\.openSupport, OpenSupportAction { _ in
+            // Case detail arrives in milestone 4; for now show the refreshed list.
+            selection = .support
+            Task { await cases.load() }
+        })
+        .opensWebLinksInSafari($safariLink)
         .sheet(isPresented: $showingNotifications) {
             NotificationsView(viewModel: home)
         }

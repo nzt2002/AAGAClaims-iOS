@@ -33,6 +33,7 @@ struct AccountView: View {
             }
         }
         .navigationTitle("Account")
+        .navigationBarTitleDisplayMode(.inline)
         .confirmationDialog("Sign out of AAGA Claims?", isPresented: $confirmingSignOut, titleVisibility: .visible) {
             Button("Sign out", role: .destructive, action: signOut)
         }

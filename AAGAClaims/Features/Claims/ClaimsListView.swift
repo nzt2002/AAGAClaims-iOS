@@ -1,9 +1,10 @@
 import PortalKit
 import SwiftUI
 
-/// Claims list (spec §6.4). Search, filters and claim detail come in milestone 2.
+/// Claims list (spec §6.4).
 struct ClaimsListView: View {
-    let viewModel: ClaimsListViewModel
+    @Bindable var viewModel: ClaimsListViewModel
+    let api: PortalAPI
     let openSupport: () -> Void
 
     var body: some View {
@@ -16,9 +17,21 @@ struct ClaimsListView: View {
                         openSupport: openSupport
                     )
                 } else {
-                    LazyVStack(spacing: Theme.Spacing.m) {
-                        ForEach(viewModel.claims) { claim in
-                            ClaimCard(claim: claim)
+                    VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                        if viewModel.hasActiveFilters {
+                            activeFilters
+                        }
+                        if viewModel.filteredClaims.isEmpty {
+                            ContentUnavailableView.search(text: viewModel.searchText)
+                        }
+                        LazyVStack(spacing: Theme.Spacing.m) {
+                            ForEach(viewModel.filteredClaims) { claim in
+                                NavigationLink(value: claim) {
+                                    ClaimCard(claim: claim)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("claimCard-\(claim.recordId)")
+                            }
                         }
                     }
                     .padding(Theme.Spacing.l)
@@ -28,11 +41,80 @@ struct ClaimsListView: View {
         }
         .background(Color.appBackground)
         .navigationTitle("My Claims")
+        .navigationBarTitleDisplayMode(.inline)
+        .searchable(text: $viewModel.searchText, prompt: "Name, number, address, status or peril")
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                filterMenu
+            }
+        }
+        .navigationDestination(for: ClaimSummary.self) { claim in
+            ClaimDetailView(claimId: claim.recordId, summary: claim, api: api)
+        }
         .task {
             if viewModel.state.value == nil {
                 await viewModel.load()
             }
         }
+    }
+
+    private var filterMenu: some View {
+        Menu {
+            Picker("Status", selection: $viewModel.statusFilter) {
+                Text("All statuses").tag(String?.none)
+                ForEach(viewModel.statusOptions, id: \.self) { status in
+                    Text(status).tag(String?.some(status))
+                }
+            }
+            .pickerStyle(.menu)
+
+            Picker("Payment Collected", selection: $viewModel.paymentFilter) {
+                ForEach(ClaimsListViewModel.PaymentFilter.allCases, id: \.self) { option in
+                    Text(option.rawValue).tag(option)
+                }
+            }
+            .pickerStyle(.menu)
+
+            Picker("Peril", selection: $viewModel.perilFilter) {
+                Text("All perils").tag(String?.none)
+                ForEach(viewModel.perilOptions, id: \.self) { peril in
+                    Text(peril).tag(String?.some(peril))
+                }
+            }
+            .pickerStyle(.menu)
+
+            if viewModel.hasActiveFilters {
+                Button("Clear filters", role: .destructive) { viewModel.clearFilters() }
+            }
+        } label: {
+            Image(systemName: viewModel.hasActiveFilters
+                  ? "line.3.horizontal.decrease.circle.fill"
+                  : "line.3.horizontal.decrease.circle")
+                .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
+        }
+        .accessibilityLabel(viewModel.hasActiveFilters ? "Filters, active" : "Filters")
+        .accessibilityIdentifier("claimFilters")
+    }
+
+    private var activeFilters: some View {
+        HStack {
+            Text(activeFilterSummary)
+                .font(.subheadline)
+                .foregroundStyle(Color.textSecondary)
+                .lineLimit(2)
+            Spacer()
+            Button("Clear filters") { viewModel.clearFilters() }
+                .font(.subheadline.weight(.semibold))
+                .frame(minHeight: Theme.minTapTarget)
+        }
+    }
+
+    private var activeFilterSummary: String {
+        var parts: [String] = []
+        if let status = viewModel.statusFilter { parts.append(status) }
+        if viewModel.paymentFilter != .any { parts.append(viewModel.paymentFilter.rawValue) }
+        if let peril = viewModel.perilFilter { parts.append(peril) }
+        return "Showing: " + parts.joined(separator: " · ")
     }
 
     private func reload() {
@@ -95,7 +177,9 @@ struct ClaimCard: View {
                 .foregroundStyle(Color.textSecondary)
         }
         .cardStyle()
-        .accessibilityElement(children: .contain)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Opens claim details")
     }
 }
 
@@ -119,13 +203,13 @@ struct EmptyRecordsView: View {
 
 #Preview("Claims") {
     NavigationStack {
-        ClaimsListView(viewModel: PreviewData.loadedClaims(), openSupport: {})
+        ClaimsListView(viewModel: PreviewData.loadedClaims(), api: PreviewData.api(), openSupport: {})
     }
 }
 
 #Preview("No claims") {
     NavigationStack {
-        ClaimsListView(viewModel: ClaimsListViewModel(api: MockPortalAPI(fixtures: .empty)), openSupport: {})
+        ClaimsListView(viewModel: ClaimsListViewModel(api: MockPortalAPI(fixtures: .empty)), api: PreviewData.api(), openSupport: {})
     }
 }
 
@@ -133,7 +217,14 @@ struct EmptyRecordsView: View {
     NavigationStack {
         ClaimsListView(
             viewModel: ClaimsListViewModel(api: MockPortalAPI(fixtures: .empty, failure: .server(status: 500))),
+            api: PreviewData.api(),
             openSupport: {}
         )
+    }
+}
+
+#Preview("Claim detail") {
+    NavigationStack {
+        ClaimDetailView(claimId: "a0X000000000001AAA", summary: nil, api: PreviewData.api())
     }
 }

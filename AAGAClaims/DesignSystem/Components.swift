@@ -118,7 +118,9 @@ struct ErrorStateView: View {
         } description: {
             Text("Unable to load \(subject). Pull to refresh or contact support.")
         } actions: {
-            Button("Retry", action: retry)
+            Button(action: retry) {
+                Text("Retry").foregroundStyle(Color.surface)
+            }
                 .buttonStyle(.borderedProminent)
                 .frame(minHeight: Theme.minTapTarget)
         }

@@ -36,6 +36,7 @@ struct SupportView: View {
         }
         .background(Color.appBackground)
         .navigationTitle("Support")
+        .navigationBarTitleDisplayMode(.inline)
         .task {
             if viewModel.state.value == nil {
                 await viewModel.load()

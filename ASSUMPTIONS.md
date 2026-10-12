@@ -14,7 +14,12 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 8. **"Open Leads"** on Home counts leads that are not `Converted` or `Unqualified`.
 9. **Dates without a time** (`lossDate`, `dateOfNotice` etc.) are decoded as `CalendarDate`, not `Date`, so they never shift a day across time zones.
 10. **Dark-mode colours** are our own equivalents of the portal palette (Assets.xcassets); the designer may refine them.
-11. **Update bodies** show as plain-text previews for now (tags and scripts stripped). Full rich rendering comes with the Update sheet in milestone 5.
+11. **Update bodies** are rendered without WebKit by an allow-list (`HTMLText`): paragraphs, breaks, lists, headings, bold, italic, and links with http(s), mailto or tel URLs. Scripts, styles, iframes and other embedded content are dropped with their contents; `javascript:` and `data:` links are dropped. Web links open in `SFSafariViewController`.
+12. **Claim files** are listed, but opening them in Quick Look and uploading wait for the [new] file endpoints and milestone 6 (spec §6.10).
+13. **"View case"** after Request Assistance opens the Support tab with the new case at the top. Opening the case itself comes with case detail in milestone 4.
+14. **Status filter** on the claims list offers the 7 lifecycle stages. Claims with any other status appear only when the filter is "All statuses".
+15. **Loss reason** (`lossReason`) only comes from `GET /claims`, so claim detail shows it from the list row it was opened from. Opened any other way (deep link, milestone 6), it's hidden.
+16. **Claim detail** leaves the navigation bar title empty because the header already shows the claim name.
 
 ## Open questions
 
