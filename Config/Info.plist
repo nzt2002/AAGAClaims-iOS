@@ -26,7 +26,7 @@
 	<key>NSFaceIDUsageDescription</key>
 	<string>Use Face ID to unlock AAGA Claims.</string>
 	<key>PortalDataSource</key>
-	<string>mock</string>
+	<string>live</string>
 	<key>SFDCOAuthLoginHost</key>
 	<string>portal.accurateadjustmentsga.com</string>
 	<key>UIApplicationSceneManifest</key>

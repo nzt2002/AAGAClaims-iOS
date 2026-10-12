@@ -30,9 +30,11 @@ If package resolution fails with `cannot use bare repository`, your git config h
 
 ## Signing in for real
 
-1. Deploy the "AAGA Claims iOS" External Client App (metadata is in the Salesforce repo).
-2. Copy its consumer key into `bootconfig.plist`.
-3. Run the app: the Mobile SDK shows the portal's login page.
+The app signs in to the portal by default. A portal user needs the **Portal Mobile App** permission set in Salesforce (API access and the REST class).
+
+Build signed, even for the simulator (Xcode's default "Sign to Run Locally" is enough). Unsigned builds (`CODE_SIGNING_ALLOWED=NO`) can't use the keychain, so sign-in fails with "identity service … missing: access token". Unsigned builds are fine for the UI tests, which run in demo mode.
+
+To sign out on the simulator without the UI: `xcrun simctl keychain booted reset`.
 
 ## TestFlight
 

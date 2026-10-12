@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The Mobile SDK keeps OAuth tokens and encryption keys in the keychain. Without an access
+	     group the simulator refuses keychain writes (errSecMissingEntitlement, -34018). -->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)com.accurateadjustmentsga.claims</string>
+	</array>
+</dict>
+</plist>

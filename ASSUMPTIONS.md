@@ -61,14 +61,20 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 50. **Expired session (401):** any 401 signs the user out through the Mobile SDK, which shows the login screen again (spec §5). In demo mode there's no session to expire.
 51. **Privacy manifest** (`PrivacyInfo.xcprivacy`) declares the spec §10 data (name, email, phone, photos, other user content, user ID; app functionality only, no tracking) and the required-reason APIs the app uses (UserDefaults CA92.1, file timestamps C617.1).
 
+52. **Live data by default:** `PortalDataSource` is `live`. UI tests force demo mode and mock data with launch arguments.
+53. **Keychain entitlement:** `Config/AAGAClaims.entitlements` declares the app's keychain access group. Without it the Mobile SDK can't store tokens (errSecMissingEntitlement, -34018) and sign-in fails with "required parameters for the identity service were missing: access token". This happens on the simulator too, so build signed ("Sign to Run Locally" is enough), not with `CODE_SIGNING_ALLOWED=NO`.
+54. **Internal users** can sign in through the portal login page. The API treats them as internal: lists show records they own or manage, and record access isn't restricted. See open question 10.
+55. **"Failed: DPoP Validation Error"** appears in Login History next to every successful app sign-in. The Mobile SDK tries DPoP token binding first and falls back; sign-in succeeds.
+
 ## Open questions
 
-1. **API access for Customer Community Login users** (spec §3 blocking prerequisite). The portal profile currently has API Enabled = false. Until this is resolved, live mode can't work.
+1. ~~**API access for Customer Community Login users**~~ **Resolved 2026-10-12:** the "Portal Mobile App" permission set (Customer Community Login licence, API Enabled, PortalApiV1 access) works. A portal user signed in through the app and loaded live data. Assign it to every portal user who uses the app.
 2. **Privacy policy and terms URLs** for the Account screen (spec §6.11).
 3. **App icon and vector logo** from the designer.
-4. **Consumer key** from the "AAGA Claims iOS" External Client App, once it's deployed.
+4. ~~**Consumer key**~~ **Resolved:** the External Client App is deployed and its key is in `bootconfig.plist`.
 5. **Files over 4 MB.** The Apex REST layer caps uploads and downloads at 4 MB. Larger files (big PDFs) need another route, e.g. the standard ContentVersion REST API once portal users have API access.
 6. **Push setup:** an Apple Developer team, an APNs key added to the External Client App's push settings, and the server-side trigger (spec §8).
 7. **Universal links:** the portal must serve `/.well-known/apple-app-site-association` for the app's team and bundle id, and the app needs the Associated Domains entitlement (`applinks:portal.accurateadjustmentsga.com`). Both need the Apple team id.
 8. **Should location metadata be stripped from all photos before upload?** It's currently only dropped when a photo is downscaled.
+10. **Should the API refuse internal users?** The spec only covers portal customers and partners.
 9. **Brand colours:** the designer should confirm the contrast-driven refinements in assumption 46, and supply dark-mode values (ours are placeholders).
