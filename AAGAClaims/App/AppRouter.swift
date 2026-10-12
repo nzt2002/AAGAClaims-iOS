@@ -22,6 +22,7 @@ final class AppRouter {
     var showingNotifications = false
     var showingSubmitLead = false
     var showingRequestAssistance = false
+    var showingNewTask = false
     /// The Update sheet opened from Home's recent activity.
     var homeUpdate: ActivityItem?
     /// The Update sheet opened from the Notifications sheet.

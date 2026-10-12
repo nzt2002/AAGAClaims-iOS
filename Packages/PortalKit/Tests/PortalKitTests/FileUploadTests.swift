@@ -20,6 +20,25 @@ private func makeImage(width: Int, height: Int, type: UTType) -> Data {
     return output as Data
 }
 
+/// Random pixels, which compress badly, so the file starts large.
+private func noiseImage(width: Int, height: Int, type: UTType) -> Data {
+    var bytes = [UInt8](repeating: 0, count: width * height * 4)
+    var seed: UInt32 = 12_345
+    for i in 0..<bytes.count {
+        seed = seed &* 1_103_515_245 &+ 12_345
+        bytes[i] = UInt8(truncatingIfNeeded: seed >> 16)
+    }
+    let context = bytes.withUnsafeMutableBytes { buffer in
+        CGContext(data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                  space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)!
+    }
+    let output = NSMutableData()
+    let destination = CGImageDestinationCreateWithData(output, type.identifier as CFString, 1, nil)!
+    CGImageDestinationAddImage(destination, context.makeImage()!, [kCGImageDestinationLossyCompressionQuality: 1.0] as CFDictionary)
+    CGImageDestinationFinalize(destination)
+    return output as Data
+}
+
 private func pixelSize(_ data: Data) -> (width: Int, height: Int, type: String)? {
     guard let source = CGImageSourceCreateWithData(data as CFData, nil),
           let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
@@ -71,6 +90,24 @@ struct FileUploadRuleTests {
         #expect(size.height == 2_400)
         #expect(size.type == type.identifier)
         #expect(upload.mimeType == (type == .heic ? "image/heic" : "image/jpeg"))
+    }
+
+    @Test("Photos still over the size limit after downscaling are shrunk to fit", arguments: [UTType.jpeg, .png])
+    func fitsLargePhotos(type: UTType) throws {
+        let original = noiseImage(width: 3_000, height: 2_000, type: type)
+        #expect(original.count > FileUploadRules.maxBytes, "Test image must start over the limit")
+        let upload = try FileUploadRules.prepare(data: original, fileName: "big.\(type.preferredFilenameExtension!)", title: "Big")
+        #expect(upload.data.count <= FileUploadRules.maxBytes)
+        #expect(upload.mimeType == "image/jpeg")
+        #expect(upload.fileName == "big.jpg")
+        #expect(pixelSize(upload.data) != nil)
+    }
+
+    @Test("Documents over the limit are still refused")
+    func largeDocument() {
+        #expect(throws: FileUploadRules.Problem.tooLarge) {
+            _ = try FileUploadRules.prepare(data: Data(count: FileUploadRules.maxBytes + 1), fileName: "big.pdf", title: "x")
+        }
     }
 
     @Test("Small photos are uploaded unchanged")

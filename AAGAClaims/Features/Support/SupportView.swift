@@ -24,7 +24,7 @@ struct SupportView: View {
         LoadingContainer(state: viewModel.state, subject: "your support cases", retry: reload) { _ in
             List {
                 Section {
-                    Text("Use Request Assistance when you have a question about a claim or lead, such as a status update, a document request, or a follow-up on an inspection or estimate.")
+                    Text("Use Ask Question when you have a question about a claim or lead, such as a status update, a document request, or a follow-up on an inspection or estimate.")
                         .font(.subheadline)
                         .foregroundStyle(Color.textSecondary)
 
@@ -61,7 +61,7 @@ struct SupportView: View {
                 Button {
                     showingRequest = true
                 } label: {
-                    Label("Request Assistance", systemImage: "plus.bubble")
+                    Label("Ask Question", systemImage: "plus.bubble")
                         .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
                 }
                 .disabledWhenOffline(isOffline)
@@ -100,7 +100,7 @@ struct SupportView: View {
             ContentUnavailableView(
                 viewModel.filter == .closed ? "No closed cases" : "No open cases",
                 systemImage: "questionmark.bubble",
-                description: Text("Need help with a claim or lead? Tap Request Assistance.")
+                description: Text("Need help with a claim or lead? Tap Ask Question.")
             )
         }
     }

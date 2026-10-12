@@ -16,6 +16,8 @@ public actor MockPortalAPI: PortalAPI {
         var caseDetails: [String: SupportCaseDetail]
         var insuranceCompanies: [InsuranceCompany]
         var perils: [String]
+        var agenda: Agenda
+        var assignees: [TaskAssignee]
 
         /// The fixtures bundled with PortalKit.
         public static func bundled() throws -> Fixtures {
@@ -31,7 +33,9 @@ public actor MockPortalAPI: PortalAPI {
                 cases: try load("cases"),
                 caseDetails: try load("case_details"),
                 insuranceCompanies: try load("insurance_companies"),
-                perils: try load("peril")
+                perils: try load("peril"),
+                agenda: try load("agenda"),
+                assignees: try load("task_assignees")
             )
         }
 
@@ -39,7 +43,8 @@ public actor MockPortalAPI: PortalAPI {
         public static let empty = Fixtures(
             claims: [], claimDetails: [:], payments: [:], updates: [:], files: [:],
             leads: [], leadDetails: [:], activity: [], cases: [], caseDetails: [:],
-            insuranceCompanies: [], perils: []
+            insuranceCompanies: [], perils: [],
+            agenda: Agenda(items: [], canCreateTasks: false), assignees: []
         )
 
         public static func load<T: Decodable>(_ name: String) throws -> T {
@@ -276,6 +281,38 @@ public actor MockPortalAPI: PortalAPI {
             relatedRecordType: related.type, relatedRecordStage: related.stage,
             accountManager: related.manager, comments: []
         )
+        return id
+    }
+
+    // MARK: - Agenda and tasks
+
+    public func agenda() async throws -> Agenda {
+        try await simulate()
+        return data.agenda
+    }
+
+    public func taskAssignees() async throws -> [TaskAssignee] {
+        try await simulate()
+        guard data.agenda.canCreateTasks else { throw PortalAPIError.notFound }
+        return data.assignees
+    }
+
+    public func createTask(_ task: NewTask, onClaim claimId: String) async throws -> String {
+        try await simulate()
+        guard data.agenda.canCreateTasks else { throw PortalAPIError.notFound }
+        try requireClaim(claimId)
+        guard !task.subject.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              let assignee = data.assignees.first(where: { $0.userId == task.assignedToId }) else {
+            throw PortalAPIError.invalidRequest
+        }
+        let id = makeId(prefix: "00T")
+        let item = AgendaItem(
+            id: id, kind: .task, subject: task.subject, dueDate: task.dueDate, startDateTime: nil,
+            endDateTime: nil, isAllDay: nil, location: nil, status: "Not Started", isOverdue: false,
+            assignedToName: assignee.name, relatedRecordId: claimId,
+            relatedRecordName: data.claimDetails[claimId]?.claimName, relatedRecordType: .claim
+        )
+        data.agenda = Agenda(items: data.agenda.items + [item], canCreateTasks: true)
         return id
     }
 

@@ -18,11 +18,52 @@ final class HomeUITests: XCTestCase {
 
     private var bell: XCUIElement { app.buttons["notificationsBell"] }
 
-    func testOpenClaimsTileFiltersList() {
-        app.buttons["tileOpenClaims"].tap()
-        XCTAssertTrue(app.buttons["claimCard-a23000000000001AAA"].waitForExistence(timeout: 5))
-        XCTAssertTrue(element(containing: "Open claims").exists)
-        XCTAssertFalse(app.buttons["claimCard-a23000000000003AAA"].exists, "The closed claim is hidden")
+    func testQuickActionsAreUnderTheWelcomeAndRenamed() {
+        let welcome = app.staticTexts["Welcome back, Alex!"]
+        let ask = app.buttons["quickAskQuestion"]
+        XCTAssertTrue(ask.waitForExistence(timeout: 5))
+        XCTAssertTrue(ask.label.contains("Ask Question"))
+        XCTAssertTrue(app.buttons["quickMyClaims"].label.contains("My Claims"))
+        XCTAssertTrue(app.buttons["quickNewTask"].exists, "Demo user can create tasks")
+        XCTAssertLessThan(welcome.frame.maxY, ask.frame.minY, "Quick actions sit under the welcome message")
+        XCTAssertFalse(app.buttons["tileOpenClaims"].exists, "KPI tiles are gone")
+    }
+
+    func testRecentClaimOpensClaim() {
+        let row = app.buttons["recentClaim-a23000000000001AAA"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        app.scrollIntoView(row)
+        row.tap()
+        XCTAssertTrue(element(containing: "Claim CLM-1234").waitForExistence(timeout: 5))
+        XCTAssertTrue(app.tabBars.buttons["Claims"].isSelected)
+    }
+
+    func testUpcomingEventOpensItsClaim() {
+        let event = app.buttons["agenda-00U000000000001AAA"]
+        XCTAssertTrue(event.waitForExistence(timeout: 5))
+        XCTAssertTrue(event.label.contains("Roof inspection"))
+        app.scrollIntoView(event)
+        event.tap()
+        XCTAssertTrue(element(containing: "Claim CLM-1234").waitForExistence(timeout: 5))
+    }
+
+    func testNewTaskAppearsInUpcoming() {
+        app.buttons["quickNewTask"].tap()
+        let save = app.buttons["newTaskSave"]
+        XCTAssertTrue(save.waitForExistence(timeout: 5))
+
+        // Saving empty shows the errors.
+        save.tap()
+        XCTAssertTrue(element(containing: "Enter a subject.").waitForExistence(timeout: 5))
+
+        app.buttons["newTaskClaim"].tap()
+        app.buttons["Smith - Roof"].tap()
+        let subject = app.textFields["newTaskSubject"]
+        subject.tap()
+        subject.typeText("Call the carrier")
+        save.tap()
+
+        XCTAssertTrue(element(containing: "Call the carrier").waitForExistence(timeout: 5))
     }
 
     func testStatusOverviewRowFiltersByStage() {
@@ -72,7 +113,7 @@ final class HomeUITests: XCTestCase {
         app.buttons["Cancel"].tap()
 
         app.tabBars.buttons["Home"].tap()
-        app.buttons["quickRequestAssistance"].tap()
+        app.buttons["quickAskQuestion"].tap()
         XCTAssertTrue(app.buttons["assistanceSubmit"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.tabBars.buttons["Support"].isSelected)
     }

@@ -206,7 +206,21 @@ Returns the cases where the user is the case contact. This includes every case t
 `POST /cases/{id}/replies` `{ "body": "..." }` → `204` (max 2,000 characters)
 `POST /cases` `{ "recordId": "<claim or lead id>", "comments": "..." }` → `{ "caseId": "..." }` (Request Assistance; max 5,000 characters; also emails the account manager)
 
-### 5.5 Device
+### 5.5 Agenda and tasks
+
+`GET /agenda` → `{ "items": [AgendaItem], "canCreateTasks": true }`: the user's own open tasks and upcoming events, plus upcoming events (not tasks) on the claims and leads they can see, earliest first (undated tasks last; up to 20). Overdue open tasks are included.
+```json
+{ "id": "00T...", "kind": "task" | "event", "subject": "...",
+  "dueDate": "2026-10-16", "startDateTime": "...", "endDateTime": "...", "isAllDay": false,
+  "location": "...", "status": "Not Started", "isOverdue": false, "assignedToName": "...",
+  "relatedRecordId": "a23...", "relatedRecordName": "...", "relatedRecordType": "Claim" | "Prospect" | null }
+```
+`canCreateTasks` is true for internal staff and portal adjusters (the `Edit_Claim_Status` custom permission), the same people who manage tasks in the portal.
+
+`GET /task-assignees` → `[{ "userId", "name" }]`: active users on the End User and Standard Platform User profiles. `404` unless `canCreateTasks`.
+`POST /claims/{id}/tasks` `{ "subject", "dueDate"?, "assignedToId", "description"? }` → `201` `{ "recordId" }`. Subject is required (max 255); the assignee must be on the list above (`400 invalid_assignee`). `404` unless `canCreateTasks`.
+
+### 5.6 Device
 
 **[new]** `POST /devices` `{ "apnsToken": "..." }`: only if the SDK's built-in push registration isn't used (§8). *Not built: the app uses the SDK's push registration.*
 
@@ -220,11 +234,14 @@ Returns the cases where the user is the case contact. This includes every case t
 
 ### 6.2 Home
 1. **Welcome header:** "Welcome back, {firstName}!" with the subtitle "We're here to help with your claim".
-2. **Summary tiles** (tap to go to a filtered list): *Open Claims*, *Open Leads*, *Completed* (claims with status `Closed` plus leads with status `Converted`), *Unread Updates*.
-3. **Status overview:** claim counts per lifecycle stage. Tapping a row opens the Claims list filtered to that stage.
-4. **Recent activity:** the latest 5 items from `GET /activity`. Unread items show a dot. Tapping one opens the **Update sheet** (title, date, rendered HTML, and an "Open {Claim|Lead}" button) and marks it read.
-5. **Quick actions:** *Submit a Lead*, *Request Assistance*, *View My Claims*.
-6. Pull to refresh.
+2. **Quick actions**, directly under the welcome: *Submit a Lead*, *Ask Question*, *My Claims*, and *New Task* (only when `canCreateTasks`). New Task opens a sheet: claim (required), subject (required), optional due date, assign to (defaults to the user when they're on the list), optional details.
+3. **Upcoming:** the next 5 items from `GET /agenda`, tasks with their due date (overdue ones in the warning colour) and events with day and time (or "All day", shown in UTC as Salesforce stores them), plus the related claim or lead and an event's location. Tapping an item with a related record opens it. Hidden when empty, unless the user can create tasks ("Nothing scheduled").
+4. **Recent claims:** the 3 most recently updated claims, with status; tap to open, "See all" opens Claims.
+5. **Status overview:** claim counts per lifecycle stage. Tapping a row opens the Claims list filtered to that stage.
+6. **Recent activity:** the latest 5 items from `GET /activity`. Unread items show a dot. Tapping one opens the **Update sheet** (title, date, rendered HTML, and an "Open {Claim|Lead}" button) and marks it read.
+7. Pull to refresh.
+
+*(Changed 2026-10-12: the KPI tiles were replaced by Upcoming and Recent claims, and "Request Assistance" is called "Ask Question" throughout the app.)*
 
 ### 6.3 Notifications (sheet from the bell icon)
 - An **Unread / All** segmented control over `GET /activity`.
@@ -273,7 +290,7 @@ Stages before the current one show as complete, the current stage is highlighted
 
 **Actions** (bottom bar):
 - **Add Comment**: a sheet titled "Regarding {claim name}" with a text editor (max 5,000 characters, with a counter). On success: "Your comment has been submitted. Your account manager has been notified."
-- **Request Assistance**: the same sheet, but it calls `POST /cases`. On success: "Your request has been submitted. We will follow up with you shortly." Offer to open the new case.
+- **Ask Question** (formerly Request Assistance): the same sheet, but it calls `POST /cases`. On success: "Your request has been submitted. We will follow up with you shortly." Offer to open the new case.
 
 ### 6.6 Leads list
 Same layout as the Claims list, with these differences:
@@ -321,7 +338,7 @@ A single scrolling form in 5 numbered sections, with a sticky **Submit** button:
 - Filter: **All / Open / Closed**.
 - Search across subject, description, related record and status.
 - Each row shows: case number, subject, status pill, related claim or lead (with an icon), account manager, and created date.
-- Intro text: "Use Request Assistance when you have a question about a claim or lead, such as a status update, a document request, or a follow-up on an inspection or estimate."
+- Intro text: "Use Ask Question when you have a question about a claim or lead, such as a status update, a document request, or a follow-up on an inspection or estimate."
 
 **Case detail**
 - Header: subject, case number, status, date filed, account manager, and the related record. Tapping the related record opens the claim or lead detail using `relatedRecordId`. Hide the related record row when `relatedRecordId` is null.
@@ -330,7 +347,7 @@ A single scrolling form in 5 numbered sections, with a sticky **Submit** button:
 - A reply composer at the bottom (max 2,000 characters).
 - Empty state: "No updates have been posted yet."
 
-**Request Assistance** (the toolbar button)
+**Ask Question** (the toolbar button; formerly Request Assistance)
 - Picker: "Claim or Lead" (required), listing the user's claims and leads.
 - Comments field (required, max 5,000 characters).
 
@@ -406,7 +423,7 @@ A single scrolling form in 5 numbered sections, with a sticky **Submit** button:
 ---
 
 ## 11. Out of scope for v1
-- Portal adjuster or staff tools (claim status edits, tasks, commissions)
+- Portal adjuster or staff tools (claim status edits, task editing, commissions). Creating a task and seeing your agenda on Home are in scope (§5.5, §6.2).
 - Payment image upload (an internal staff quick action)
 - Editing claim or lead fields after submission
 - Android and iPad-optimised layouts

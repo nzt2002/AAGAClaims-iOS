@@ -58,7 +58,7 @@ struct RecordActions: ViewModifier {
             Button {
                 composer = .assistance
             } label: {
-                Label("Request Assistance", systemImage: "questionmark.bubble")
+                Label("Ask Question", systemImage: "questionmark.bubble")
                     .foregroundStyle(Color.surface)
                     .frame(maxWidth: .infinity, minHeight: Theme.minTapTarget)
             }

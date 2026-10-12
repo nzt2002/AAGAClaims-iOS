@@ -128,6 +128,19 @@ public struct HTTPPortalAPI: PortalAPI {
         return response.caseId
     }
 
+    public func agenda() async throws -> Agenda {
+        try await get("/agenda")
+    }
+
+    public func taskAssignees() async throws -> [TaskAssignee] {
+        try await get("/task-assignees")
+    }
+
+    public func createTask(_ task: NewTask, onClaim claimId: String) async throws -> String {
+        let response: RecordIdResponse = try await post("/claims/\(escaped(claimId))/tasks", body: task)
+        return response.recordId
+    }
+
     public func fileContent(contentDocumentId: String) async throws -> Data {
         try await send(TransportRequest(method: .get, path: "/files/\(escaped(contentDocumentId))/content")).body
     }

@@ -110,6 +110,18 @@ public actor CachingPortalAPI: PortalAPI {
         try await read("\(record.collectionPath)/\(record.id)/files") { try await $0.files(for: record) }
     }
     public func activity() async throws -> [ActivityItem] { try await read("activity") { try await $0.activity() } }
+    public func agenda() async throws -> Agenda { try await read("agenda") { try await $0.agenda() } }
+
+    public func taskAssignees() async throws -> [TaskAssignee] {
+        try requireOnline()
+        return try await guarded { try await $0.taskAssignees() }
+    }
+
+    public func createTask(_ task: NewTask, onClaim claimId: String) async throws -> String {
+        try requireOnline()
+        return try await guarded { try await $0.createTask(task, onClaim: claimId) }
+    }
+
     public func cases() async throws -> [SupportCase] { try await read("cases") { try await $0.cases() } }
     public func supportCase(id: String) async throws -> SupportCaseDetail { try await read("cases/\(id)") { try await $0.supportCase(id: id) } }
 

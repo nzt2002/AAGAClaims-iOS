@@ -29,6 +29,8 @@ public final class HomeViewModel {
     }
 
     public private(set) var state: LoadState<Content> = .idle
+    /// Loaded separately, so a failing agenda doesn't take down the rest of Home.
+    public private(set) var agenda: LoadState<Agenda> = .idle
 
     private let api: PortalAPI
 
@@ -37,6 +39,12 @@ public final class HomeViewModel {
     }
 
     public func load() async {
+        async let content: Void = loadContent()
+        async let agenda: Void = loadAgenda()
+        _ = await (content, agenda)
+    }
+
+    private func loadContent() async {
         let api = self.api
         await PortalKit.load(self, \.state) {
             async let claims = api.claims()
@@ -44,6 +52,27 @@ public final class HomeViewModel {
             async let activity = api.activity()
             return try await Content(claims: claims, leads: leads, activity: activity)
         }
+    }
+
+    public func loadAgenda() async {
+        let api = self.api
+        await PortalKit.load(self, \.agenda) { try await api.agenda() }
+    }
+
+    /// Upcoming tasks and events, earliest first (the server orders them; undated tasks last).
+    public var upcoming: [AgendaItem] {
+        Array((agenda.value?.items ?? []).prefix(5))
+    }
+
+    public var canCreateTasks: Bool {
+        agenda.value?.canCreateTasks ?? false
+    }
+
+    /// The 3 most recently updated claims.
+    public var recentClaims: [ClaimSummary] {
+        Array((state.value?.claims ?? [])
+            .sorted { ($0.lastModifiedDate ?? .distantPast) > ($1.lastModifiedDate ?? .distantPast) }
+            .prefix(3))
     }
 
     public var summary: Summary? {

@@ -71,6 +71,11 @@ struct MainTabView: View {
         .sheet(isPresented: $router.showingNotifications) {
             NotificationsView(router: router)
         }
+        .sheet(isPresented: $router.showingNewTask) {
+            NewTaskSheet(api: session.api, currentUserName: user.fullName) {
+                Task { await router.home.loadAgenda() }
+            }
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 router.refreshStale()

@@ -73,12 +73,20 @@ public enum FileUploadRules {
         let ext = fileExtension(of: fileName)
         guard allowedExtensions.contains(ext), let mimeType = mimeTypes[ext] else { throw .unsupportedType }
 
-        let processed = ["jpg", "jpeg", "png", "heic"].contains(ext)
-            ? ImageDownscaler.downscale(data, maxPixels: maxPhotoPixels) ?? data
-            : data
-        guard processed.count <= maxBytes else { throw .tooLarge }
+        guard ["jpg", "jpeg", "png", "heic"].contains(ext) else {
+            guard data.count <= maxBytes else { throw .tooLarge }
+            return FileUpload(fileName: fileName, title: title, mimeType: mimeType, data: data)
+        }
 
-        return FileUpload(fileName: fileName, title: title, mimeType: mimeType, data: processed)
+        let downscaled = ImageDownscaler.downscale(data, maxPixels: maxPhotoPixels) ?? data
+        if downscaled.count <= maxBytes {
+            return FileUpload(fileName: fileName, title: title, mimeType: mimeType, data: downscaled)
+        }
+        // Still over the server's limit: shrink further. HEIC stays HEIC; JPEG and PNG become JPEG.
+        guard let fitted = ImageDownscaler.fit(data, maxBytes: maxBytes) else { throw .tooLarge }
+        let fittedExtension = fitted.isHEIC ? "heic" : "jpg"
+        let fittedName = (fileName as NSString).deletingPathExtension + "." + fittedExtension
+        return FileUpload(fileName: fittedName, title: title, mimeType: mimeTypes[fittedExtension]!, data: fitted.data)
     }
 
     /// A file extension for Quick Look, from the file's bytes, falling back to Salesforce's
@@ -134,5 +142,34 @@ public enum ImageDownscaler {
         CGImageDestinationAddImage(destination, image, destinationOptions as CFDictionary)
         guard CGImageDestinationFinalize(destination) else { return nil }
         return output as Data
+    }
+
+    /// Re-encodes a photo at decreasing sizes until it's at most `maxBytes`. HEIC stays HEIC;
+    /// anything else becomes JPEG (PNG can't compress a photo enough). Nil if it can't be read.
+    public static func fit(_ data: Data, maxBytes: Int) -> (data: Data, isHEIC: Bool)? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let type = CGImageSourceGetType(source) else { return nil }
+        let isHEIC = (type as String) == "public.heic"
+        let outputType = (isHEIC ? "public.heic" : "public.jpeg") as CFString
+
+        for (pixels, quality) in [(4_000, 0.8), (3_200, 0.75), (2_560, 0.75), (2_048, 0.7), (1_600, 0.7)] {
+            let options: [CFString: Any] = [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceCreateThumbnailWithTransform: true,
+                kCGImageSourceThumbnailMaxPixelSize: pixels
+            ]
+            guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+            let output = NSMutableData()
+            guard let destination = CGImageDestinationCreateWithData(output, outputType, 1, nil) else { return nil }
+            CGImageDestinationAddImage(destination, image, [
+                kCGImageDestinationLossyCompressionQuality: quality,
+                kCGImagePropertyOrientation: 1
+            ] as CFDictionary)
+            guard CGImageDestinationFinalize(destination) else { return nil }
+            if output.length <= maxBytes {
+                return (output as Data, isHEIC)
+            }
+        }
+        return nil
     }
 }

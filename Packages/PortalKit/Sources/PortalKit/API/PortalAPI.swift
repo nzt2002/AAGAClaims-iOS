@@ -31,6 +31,14 @@ public protocol PortalAPI: Sendable {
     /// Request Assistance. `recordId` is a claim or lead id. Returns the new case id.
     func requestAssistance(recordId: String, comments: String) async throws -> String
 
+    // Home agenda and tasks
+    /// `GET /agenda`: the user's open tasks and upcoming events, plus upcoming events on their records.
+    func agenda() async throws -> Agenda
+    /// `GET /task-assignees`: people a task can be assigned to. Staff and adjusters only.
+    func taskAssignees() async throws -> [TaskAssignee]
+    /// `POST /claims/{id}/tasks`. Returns the new task id. Staff and adjusters only.
+    func createTask(_ task: NewTask, onClaim claimId: String) async throws -> String
+
     // Files [new endpoints]
     /// `GET /files/{contentDocumentId}/content`: the file's bytes, for Quick Look.
     func fileContent(contentDocumentId: String) async throws -> Data

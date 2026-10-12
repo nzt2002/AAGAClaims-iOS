@@ -51,7 +51,7 @@ struct RequestAssistanceSheet: View {
                     }
                 }
             }
-            .navigationTitle("Request Assistance")
+            .navigationTitle("Ask Question")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

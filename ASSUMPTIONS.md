@@ -35,9 +35,9 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 27. **Request Assistance (Support tab)** lists claims first, then leads, each sorted by name, in a pop-up menu. Both fields are required. After submitting, the app opens the new case.
 28. **Case thread** is oldest first; staff messages are left-aligned with the author's name and yours are right-aligned as "You".
 
-29. **Home tiles:** Open Claims shows claims that aren't Closed; Open Leads shows leads that aren't Converted or Unqualified; Completed shows Closed claims (the spec counts Converted leads too, but one list can't show both; they're under Lead Status on the Leads tab); Unread Updates opens the Notifications sheet.
+29. ~~**Home tiles**~~ Replaced on 2026-10-12 by Upcoming and Recent claims (see 56).
 30. **Status overview** appears only when the user has claims, and lists all 7 stages including those with no claims.
-31. **Quick actions** sit above the status overview so they're visible without scrolling.
+31. **Quick actions** sit directly under the welcome message: Submit a Lead, Ask Question, My Claims, and New Task for staff and portal adjusters.
 32. **Opening an update** (from Home or Notifications) marks it read straight away, and "Open Claim / Open Lead" closes the sheets and opens the record in its tab.
 33. **App icon badge** is set to the unread count whenever it changes, but iOS only shows it after the user allows notifications, which is asked for with push in milestone 6.
 
@@ -65,6 +65,12 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 53. **Keychain entitlement:** `Config/AAGAClaims.entitlements` declares the app's keychain access group. Without it the Mobile SDK can't store tokens (errSecMissingEntitlement, -34018) and sign-in fails with "required parameters for the identity service were missing: access token". This happens on the simulator too, so build signed ("Sign to Run Locally" is enough), not with `CODE_SIGNING_ALLOWED=NO`.
 54. **Internal users** (staff) can use the app with the "Portal Mobile App (Staff)" permission set. They sign in through the portal login page. Their lists show the claims and leads they own or manage, and record access isn't restricted, the same as on internal record pages.
 55. **"Failed: DPoP Validation Error"** appears in Login History next to every successful app sign-in. The Mobile SDK tries DPoP token binding first and falls back; sign-in succeeds.
+
+56. **Home redesign (2026-10-12, at the business's request):** the KPI tiles are gone. *Upcoming* shows the next 5 items from `GET /agenda`: the user's own open tasks (overdue first, in amber) and upcoming events, plus upcoming events (not tasks) on their claims and leads. It's hidden when empty, unless the user can create tasks. *Recent claims* shows the 3 most recently updated claims. Status overview and Recent activity stay below.
+57. **New Task** is for staff and portal adjusters only (`canCreateTasks` from the server, same rule as the portal). A task is on a claim, assigned to someone on the End User or Standard Platform User profiles, defaulting to the user when they're on that list.
+58. **"Ask Question"** replaces "Request Assistance" everywhere in the app (Home, claim and lead detail, Support). The portal web pages still say Request Assistance; the case it creates is the same.
+59. **All-day events** are shown on their UTC date, because Salesforce stores them at midnight UTC.
+60. **Photos over 4 MB** after the 4,000 px downscale are re-encoded at smaller sizes (down to 1,600 px) until they fit. HEIC stays HEIC; JPEG and PNG become JPEG. Documents over 4 MB are still refused.
 
 ## Open questions
 
