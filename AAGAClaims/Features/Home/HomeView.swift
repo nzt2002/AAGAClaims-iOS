@@ -7,6 +7,7 @@ struct HomeView: View {
     let user: CurrentUser
 
     private var viewModel: HomeViewModel { router.home }
+    @Environment(\.isOffline) private var isOffline
 
     var body: some View {
         LoadingContainer(state: viewModel.state, subject: "your dashboard", retry: reload) { _ in
@@ -90,7 +91,9 @@ struct HomeView: View {
             SectionHeading("Quick actions")
             HStack(spacing: Theme.Spacing.s) {
                 quickAction("Submit a Lead", "person.badge.plus", id: "quickSubmitLead") { router.submitLead() }
+                    .disabledWhenOffline(isOffline)
                 quickAction("Request Assistance", "questionmark.bubble", id: "quickRequestAssistance") { router.requestAssistance() }
+                    .disabledWhenOffline(isOffline)
                 quickAction("View My Claims", "doc.text", id: "quickViewClaims") { router.showClaims() }
             }
         }

@@ -6,6 +6,7 @@ struct CaseDetailView: View {
     @State private var viewModel: CaseDetailViewModel
 
     @FocusState private var replyFocused: Bool
+    @Environment(\.isOffline) private var isOffline
 
     init(caseId: String, api: PortalAPI) {
         _viewModel = State(initialValue: CaseDetailViewModel(caseId: caseId, api: api))
@@ -86,6 +87,9 @@ struct CaseDetailView: View {
 
     private func composer(onSent: @escaping () -> Void) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            if isOffline {
+                OfflineHint()
+            }
             if viewModel.replyError != nil {
                 Label("We couldn't send your reply. Please try again.", systemImage: "exclamationmark.triangle")
                     .font(.caption)
@@ -102,6 +106,7 @@ struct CaseDetailView: View {
                         RoundedRectangle(cornerRadius: 20)
                             .stroke(viewModel.isReplyOverLimit ? Color.warning : Color.border, lineWidth: 1)
                     )
+                    .disabledWhenOffline(isOffline)
                     .accessibilityIdentifier("replyText")
 
                 Button {
@@ -122,7 +127,7 @@ struct CaseDetailView: View {
                     }
                     .frame(width: Theme.minTapTarget, height: Theme.minTapTarget)
                 }
-                .disabled(!viewModel.canSendReply)
+                .disabled(!viewModel.canSendReply || isOffline)
                 .accessibilityLabel("Send reply")
                 .accessibilityIdentifier("sendReply")
             }

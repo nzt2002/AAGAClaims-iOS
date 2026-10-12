@@ -11,6 +11,7 @@ struct RecordActions: ViewModifier {
     var onCommentSent: () -> Void = {}
 
     @Environment(\.openSupport) private var openSupport
+    @Environment(\.isOffline) private var isOffline
     @State private var composer: ComposerViewModel.Kind?
     @State private var confirmation: Confirmation?
 
@@ -30,6 +31,18 @@ struct RecordActions: ViewModifier {
     }
 
     private var bar: some View {
+        VStack(spacing: Theme.Spacing.xs) {
+            if isOffline {
+                OfflineHint()
+            }
+            buttons
+        }
+        .padding(.horizontal, Theme.Spacing.l)
+        .padding(.vertical, Theme.Spacing.s)
+        .background(.bar)
+    }
+
+    private var buttons: some View {
         HStack(spacing: Theme.Spacing.m) {
             Button {
                 composer = .comment
@@ -38,6 +51,7 @@ struct RecordActions: ViewModifier {
                     .frame(maxWidth: .infinity, minHeight: Theme.minTapTarget)
             }
             .buttonStyle(.bordered)
+            .disabledWhenOffline(isOffline)
             .accessibilityIdentifier("addComment")
 
             Button {
@@ -48,12 +62,10 @@ struct RecordActions: ViewModifier {
                     .frame(maxWidth: .infinity, minHeight: Theme.minTapTarget)
             }
             .buttonStyle(.borderedProminent)
+            .disabledWhenOffline(isOffline)
             .accessibilityIdentifier("requestAssistance")
         }
         .font(.subheadline.weight(.semibold))
-        .padding(.horizontal, Theme.Spacing.l)
-        .padding(.vertical, Theme.Spacing.s)
-        .background(.bar)
     }
 
     private func sheet(_ kind: ComposerViewModel.Kind) -> some View {

@@ -161,11 +161,16 @@ struct DemoBanner: View {
 }
 
 extension View {
-    /// Pins the demo banner under the navigation bar, so it never covers toolbar buttons.
-    func demoBanner(_ isDemo: Bool) -> some View {
+    /// Pins the demo and offline banners under the navigation bar, so they never cover toolbar buttons.
+    func statusBanners(_ session: AppSession) -> some View {
         safeAreaInset(edge: .top, spacing: 0) {
-            if isDemo {
-                DemoBanner()
+            VStack(spacing: 0) {
+                if session.offline.isOffline {
+                    OfflineBanner(showingDataFrom: session.offline.showingDataFrom)
+                }
+                if session.isDemo {
+                    DemoBanner()
+                }
             }
         }
     }

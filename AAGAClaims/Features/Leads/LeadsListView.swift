@@ -16,6 +16,8 @@ struct LeadsListView: View {
     let userEmail: String
     let openSupport: () -> Void
 
+    @Environment(\.isOffline) private var isOffline
+
     var body: some View {
         LoadingContainer(state: viewModel.state, subject: "leads", retry: reload) { _ in
             ScrollView {
@@ -68,6 +70,7 @@ struct LeadsListView: View {
                         .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
                 }
                 .accessibilityLabel("Submit a Lead")
+                .disabledWhenOffline(isOffline)
                 .accessibilityIdentifier("submitLead")
             }
         }

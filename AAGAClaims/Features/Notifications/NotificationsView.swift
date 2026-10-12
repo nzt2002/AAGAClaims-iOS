@@ -7,6 +7,7 @@ struct NotificationsView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var showUnreadOnly = true
+    @Environment(\.isOffline) private var isOffline
 
     private var viewModel: HomeViewModel { router.home }
 
@@ -55,6 +56,7 @@ struct NotificationsView: View {
                         Task { await viewModel.markAllRead() }
                     }
                     .disabled(viewModel.unreadCount == 0)
+                    .disabledWhenOffline(isOffline)
                     .accessibilityIdentifier("markAllRead")
                 }
             }

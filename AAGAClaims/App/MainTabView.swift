@@ -24,14 +24,14 @@ struct MainTabView: View {
             Tab("Home", systemImage: "house", value: .home) {
                 NavigationStack {
                     HomeView(router: router, user: user)
-                        .demoBanner(session.isDemo)
+                        .statusBanners(session)
                         .toolbar { bell }
                 }
             }
             Tab("Claims", systemImage: "doc.text", value: .claims) {
                 NavigationStack(path: $router.claimsPath) {
                     ClaimsListView(viewModel: router.claims, api: session.api, openSupport: { router.openSupport(caseId: nil) })
-                        .demoBanner(session.isDemo)
+                        .statusBanners(session)
                         .toolbar { bell }
                 }
             }
@@ -40,7 +40,7 @@ struct MainTabView: View {
                     LeadsListView(viewModel: router.leads, path: $router.leadsPath, showingSubmit: $router.showingSubmitLead,
                                   api: session.api, userEmail: user.email,
                                   openSupport: { router.openSupport(caseId: nil) })
-                        .demoBanner(session.isDemo)
+                        .statusBanners(session)
                         .toolbar { bell }
                 }
             }
@@ -48,17 +48,24 @@ struct MainTabView: View {
                 NavigationStack(path: $router.supportPath) {
                     SupportView(viewModel: router.cases, path: $router.supportPath,
                                 showingRequest: $router.showingRequestAssistance, api: session.api)
-                        .demoBanner(session.isDemo)
+                        .statusBanners(session)
                 }
             }
             Tab("Account", systemImage: "person.crop.circle", value: .account) {
                 NavigationStack {
                     AccountView(session: session, user: user, openSupport: { router.openSupport(caseId: nil) })
-                        .demoBanner(session.isDemo)
+                        .statusBanners(session)
                 }
             }
         }
         .environment(\.openSupport, OpenSupportAction { caseId in router.openSupport(caseId: caseId) })
+        .environment(\.isOffline, session.offline.isOffline)
+        .onChange(of: session.offline.isOffline) { wasOffline, isOffline in
+            // Back online: refresh the dashboard and badge.
+            if wasOffline && !isOffline {
+                Task { await router.home.load() }
+            }
+        }
         .opensWebLinksInSafari($safariLink)
         .sheet(isPresented: $router.showingNotifications) {
             NotificationsView(router: router)

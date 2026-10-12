@@ -18,6 +18,8 @@ struct SupportView: View {
     @Binding var showingRequest: Bool
     let api: PortalAPI
 
+    @Environment(\.isOffline) private var isOffline
+
     var body: some View {
         LoadingContainer(state: viewModel.state, subject: "your support cases", retry: reload) { _ in
             List {
@@ -62,6 +64,7 @@ struct SupportView: View {
                     Label("Request Assistance", systemImage: "plus.bubble")
                         .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
                 }
+                .disabledWhenOffline(isOffline)
                 .accessibilityIdentifier("supportRequestAssistance")
             }
         }
