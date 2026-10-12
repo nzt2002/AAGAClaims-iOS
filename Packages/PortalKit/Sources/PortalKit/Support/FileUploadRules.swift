@@ -8,8 +8,8 @@ public enum FileUploadRules {
     public static let allowedExtensions: Set<String> = ["pdf", "png", "jpg", "jpeg", "heic", "doc", "docx", "xls", "xlsx"]
     /// Longest side of an uploaded photo.
     public static let maxPhotoPixels = 4_000
-    /// Larger files are refused before upload. The server's limit is still to be confirmed (see ASSUMPTIONS.md).
-    public static let maxBytes = 25 * 1_024 * 1_024
+    /// The server's limit: Apex REST bodies count against its 6 MB heap (PortalApiV1.MAX_FILE_BYTES).
+    public static let maxBytes = 4 * 1_024 * 1_024
 
     public static let mimeTypes: [String: String] = [
         "pdf": "application/pdf",
@@ -36,7 +36,7 @@ public enum FileUploadRules {
         public var message: String {
             switch self {
             case .unsupportedType: "This file type can't be uploaded. Use PDF, photos (JPG, PNG, HEIC), Word or Excel."
-            case .tooLarge: "This file is too large to upload. Files must be under 25 MB."
+            case .tooLarge: "This file is too large to upload. Files must be under 4 MB."
             case .empty: "This file is empty."
             }
         }

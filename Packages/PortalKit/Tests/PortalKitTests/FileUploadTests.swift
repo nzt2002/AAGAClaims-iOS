@@ -102,8 +102,8 @@ private actor RecordingTransport: PortalTransport {
 @MainActor
 @Suite("File endpoints and upload queue")
 struct FileEndpointTests {
-    @Test("Upload is multipart with file and title")
-    func multipart() async throws {
+    @Test("Upload sends the file bytes, with fileName and title as query parameters")
+    func rawUpload() async throws {
         let transport = RecordingTransport()
         let file = try await HTTPPortalAPI(transport: transport).uploadFile(
             FileUpload(fileName: "roof.pdf", title: "Roof", mimeType: "application/pdf", data: Data("abc".utf8)),
@@ -113,13 +113,9 @@ struct FileEndpointTests {
 
         let request = try #require(await transport.requests.first)
         #expect(request.path == "/leads/a0r000000000001AAA/files")
-        let contentType = try #require(request.contentType)
-        #expect(contentType.hasPrefix("multipart/form-data; boundary="))
-        let body = String(decoding: try #require(request.body), as: UTF8.self)
-        #expect(body.contains(#"name="title""#) && body.contains("\r\n\r\nRoof\r\n"))
-        #expect(body.contains(#"name="file"; filename="roof.pdf""#))
-        #expect(body.contains("Content-Type: application/pdf\r\n\r\nabc\r\n"))
-        #expect(body.hasSuffix("--\r\n"))
+        #expect(request.contentType == "application/pdf")
+        #expect(request.body == Data("abc".utf8))
+        #expect(request.queryItems == [URLQueryItem(name: "fileName", value: "roof.pdf"), URLQueryItem(name: "title", value: "Roof")])
     }
 
     @Test("Download path")

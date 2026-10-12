@@ -49,7 +49,7 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 39. **Offline cache** is response JSON in files under Caches with complete file protection, not SmartStore or SwiftData: it's read-only and keyed by endpoint, so a database adds nothing. It's cleared on sign-out. 404s and server errors are never replaced by cached data. The banner shows the age of the oldest cached data on screen.
 40. **Offline writes:** Add Comment, Request Assistance, replies, Submit a Lead, Mark all read, uploads and opening files are disabled or refused with "Available when you're back online."
 41. **Upload progress** shows each file's state (Waiting, Uploading, Uploaded, or Failed with Retry) rather than a percentage: the Mobile SDK's REST client doesn't report upload progress.
-42. **Upload size:** files over 25 MB are refused on the device. See open question 5.
+42. **Upload size:** files over 4 MB are refused on the device, matching the server (Apex REST bodies count against the 6 MB heap). Files over 4 MB can't be previewed in the app either.
 43. **Photo library picks** have no file name without full photo-library access, so they're titled like camera photos ("Photo {yyyy-MM-dd HH:mm}", numbered when several are picked).
 44. **Camera photos** are saved as HEIC where the device supports it, otherwise JPEG, and downscaled like library photos.
 45. **Photo metadata** (including location) is kept on photos that don't need downscaling, and dropped from downscaled ones.
@@ -67,7 +67,7 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 2. **Privacy policy and terms URLs** for the Account screen (spec §6.11).
 3. **App icon and vector logo** from the designer.
 4. **Consumer key** from the "AAGA Claims iOS" External Client App, once it's deployed.
-5. **Upload size limit.** Apex REST request bodies are limited by heap size (about 6 MB synchronous), which a 4,000 px photo can exceed. The Salesforce team should confirm the limit for `POST /claims|leads/{id}/files`, or have it accept larger files another way. The app currently refuses files over 25 MB.
+5. **Files over 4 MB.** The Apex REST layer caps uploads and downloads at 4 MB. Larger files (big PDFs) need another route, e.g. the standard ContentVersion REST API once portal users have API access.
 6. **Push setup:** an Apple Developer team, an APNs key added to the External Client App's push settings, and the server-side trigger (spec §8).
 7. **Universal links:** the portal must serve `/.well-known/apple-app-site-association` for the app's team and bundle id, and the app needs the Associated Domains entitlement (`applinks:portal.accurateadjustmentsga.com`). Both need the Apple team id.
 8. **Should location metadata be stripped from all photos before upload?** It's currently only dropped when a photo is downscaled.

@@ -75,6 +75,8 @@ The Salesforce team will expose these as Apex REST endpoints under `/services/ap
 
 **Record types:** a lead is stored as a `Prospects__c` record. Wherever a response includes `relatedRecordType`, the value is `"Claim"` or `"Prospect"`; `"Prospect"` means a lead. Show it as "Lead" in the UI.
 
+**Built:** `PortalApiV1` (`@RestResource(urlMapping='/portal/v1/*')`). Errors are `{"error": "<code>"}` with codes `not_found`, `invalid_request`, `invalid_json`, `invalid_peril`, `too_large`, `unsupported_type` or `server_error`; exception messages are never returned. Successful POSTs that return a body use `201`. Portal users need the **Portal Mobile App** permission set (API Enabled and access to `PortalApiV1`).
+
 > **Notes for the Salesforce team building this layer:**
 > - The existing controllers throw `AuraHandledException` when access is denied. Map that to `404` and validation errors to `400`. Don't let them surface as `500`.
 > - Every method that takes a record ID must call `PortalRecordAccess.assertCanAccessClaim` or `assertCanAccessProspect`. The new file download endpoint must also check that the file is linked to a claim or lead the user can access.
@@ -131,8 +133,10 @@ Display labels: **Date of Notice**, **Net Deposit**, **Insured Payment**, **Tota
   "contentSize": 2048000, "createdDate": "...", "createdByName": "..." }
 ```
 
-**[new]** `GET /files/{contentDocumentId}/content` → binary download (for preview)
-**[new]** `POST /claims/{id}/files` → multipart upload (`file`, `title`) → `File`
+**[new]** `GET /files/{contentDocumentId}/content` → binary download (for preview). Only files linked to one of the user's claims or leads; otherwise `404`.
+**[new]** `POST /claims/{id}/files?fileName={name}&title={title}` → upload → `201` with `File`. The request body is the file's bytes, and `Content-Type` is its MIME type. (Apex can't parse multipart bodies, so this isn't multipart.) Allowed extensions: pdf, png, jpg, jpeg, heic, doc, docx, xls, xlsx; anything else is `400 unsupported_type`.
+
+**File size:** uploads and downloads are limited to **4 MB** (`400 too_large`), because Apex REST bodies count against the 6 MB heap. Photos downscaled to 4,000 px usually fit; large PDFs may not.
 
 `POST /claims/{id}/comments` `{ "text": "..." }` → `204`. Sends a private comment to the account manager. On claims, it is **not** shown back in the updates feed. Max 5,000 characters.
 
@@ -204,7 +208,7 @@ Returns the cases where the user is the case contact. This includes every case t
 
 ### 5.5 Device
 
-**[new]** `POST /devices` `{ "apnsToken": "..." }`: only if the SDK's built-in push registration isn't used (§8).
+**[new]** `POST /devices` `{ "apnsToken": "..." }`: only if the SDK's built-in push registration isn't used (§8). *Not built: the app uses the SDK's push registration.*
 
 ---
 

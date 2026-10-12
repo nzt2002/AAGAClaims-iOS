@@ -132,15 +132,18 @@ public struct HTTPPortalAPI: PortalAPI {
         try await send(TransportRequest(method: .get, path: "/files/\(escaped(contentDocumentId))/content")).body
     }
 
+    /// The body is the file's bytes; `fileName` and `title` are query parameters. (Apex can't
+    /// parse multipart bodies, so the server takes the raw file.)
     public func uploadFile(_ upload: FileUpload, to record: RecordRef) async throws -> PortalFile {
-        let form = MultipartForm()
-        form.addField(name: "title", value: upload.title)
-        form.addFile(name: "file", fileName: upload.fileName, mimeType: upload.mimeType, data: upload.data)
         let response = try await send(TransportRequest(
             method: .post,
             path: "/\(record.collectionPath)/\(escaped(record.id))/files",
-            body: form.encoded(),
-            contentType: form.contentType
+            queryItems: [
+                URLQueryItem(name: "fileName", value: upload.fileName),
+                URLQueryItem(name: "title", value: upload.title)
+            ],
+            body: upload.data,
+            contentType: upload.mimeType
         ))
         return try decode(response.body)
     }
