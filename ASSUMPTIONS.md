@@ -76,5 +76,5 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 6. **Push setup:** an Apple Developer team, an APNs key added to the External Client App's push settings, and the server-side trigger (spec §8).
 7. **Universal links:** the portal must serve `/.well-known/apple-app-site-association` for the app's team and bundle id, and the app needs the Associated Domains entitlement (`applinks:portal.accurateadjustmentsga.com`). Both need the Apple team id.
 8. **Should location metadata be stripped from all photos before upload?** It's currently only dropped when a photo is downscaled.
-10. **Should the API refuse internal users?** The spec only covers portal customers and partners.
 9. **Brand colours:** the designer should confirm the contrast-driven refinements in assumption 46, and supply dark-mode values (ours are placeholders).
+10. **Should the API refuse internal users?** The spec only covers portal customers and partners.
