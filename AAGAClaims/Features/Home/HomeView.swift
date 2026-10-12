@@ -1,8 +1,8 @@
 import PortalKit
 import SwiftUI
 
-/// Home: welcome, quick actions, upcoming tasks and events, recent claims, then status overview
-/// and recent activity.
+/// Home: welcome, quick actions, upcoming tasks and events, recent claims and recent activity
+/// (updates, plus Chatter posts for staff). Ask Question, Search and the bell are in the top bar.
 struct HomeView: View {
     @Bindable var router: AppRouter
     let user: CurrentUser
@@ -19,9 +19,6 @@ struct HomeView: View {
                     quickActions
                     upcoming
                     recentClaims
-                    if let summary = viewModel.summary, viewModel.hasClaims {
-                        statusOverview(summary)
-                    }
                     recentActivity
                 }
                 .padding(Theme.Spacing.l)
@@ -51,11 +48,14 @@ struct HomeView: View {
 
     private var quickActions: some View {
         let columns = Array(repeating: GridItem(.flexible(), spacing: Theme.Spacing.s), count: dynamicTypeSize.isAccessibilitySize ? 1 : 2)
+        // Two columns: New Event sits directly above New Task.
         return LazyVGrid(columns: columns, spacing: Theme.Spacing.s) {
             quickAction("Submit a Lead", "person.badge.plus", id: "quickSubmitLead") { router.submitLead() }
                 .disabledWhenOffline(isOffline)
-            quickAction("Ask Question", "questionmark.bubble", id: "quickAskQuestion") { router.requestAssistance() }
-                .disabledWhenOffline(isOffline)
+            if viewModel.canCreateTasks {
+                quickAction("New Event", "calendar.badge.plus", id: "quickNewEvent") { router.showingNewEvent = true }
+                    .disabledWhenOffline(isOffline)
+            }
             quickAction("My Claims", "doc.text", id: "quickMyClaims") { router.showClaims() }
             if viewModel.canCreateTasks {
                 quickAction("New Task", "checklist", id: "quickNewTask") { router.showingNewTask = true }
@@ -171,60 +171,47 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Status overview and activity
-
-    private func statusOverview(_ summary: HomeViewModel.Summary) -> some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-            SectionHeading("Status overview")
-            VStack(spacing: 0) {
-                ForEach(summary.claimsByStage, id: \.stage) { row in
-                    Button {
-                        router.showClaims(stage: row.stage)
-                    } label: {
-                        HStack {
-                            Text(row.stage)
-                                .foregroundStyle(Color.textPrimary)
-                            Spacer()
-                            Text("\(row.count)")
-                                .foregroundStyle(Color.textSecondary)
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(Color.textSecondary)
-                        }
-                        .frame(minHeight: Theme.minTapTarget)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("\(row.stage): \(row.count) \(row.count == 1 ? "claim" : "claims")")
-                    .accessibilityIdentifier("stage-\(row.stage)")
-                    if row.stage != summary.claimsByStage.last?.stage {
-                        Divider()
-                    }
-                }
-            }
-            .cardStyle()
-        }
-    }
+    // MARK: - Recent activity
 
     private var recentActivity: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
             SectionHeading("Recent activity")
-            if viewModel.recentActivity.isEmpty {
+            if viewModel.recentEntries.isEmpty {
                 Text("No updates yet. We'll let you know as soon as there's news.")
                     .foregroundStyle(Color.textSecondary)
                     .cardStyle()
             } else {
                 VStack(spacing: Theme.Spacing.s) {
-                    ForEach(viewModel.recentActivity) { item in
-                        Button {
-                            router.present(item, fromNotifications: false)
-                        } label: {
-                            ActivityRow(item: item)
-                                .cardStyle()
-                                .contentShape(Rectangle())
+                    ForEach(viewModel.recentEntries) { entry in
+                        switch entry {
+                        case .update(let item):
+                            Button {
+                                router.present(item, fromNotifications: false)
+                            } label: {
+                                ActivityRow(item: item)
+                                    .cardStyle()
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("activity-\(item.commentId)")
+                        case .post(let post):
+                            if let record = post.recordRef {
+                                Button {
+                                    router.open(record, name: post.parentName)
+                                } label: {
+                                    FeedPostRow(post: post)
+                                        .cardStyle()
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityHint("Opens the \(post.parentType?.displayName.lowercased() ?? "record")")
+                                .accessibilityIdentifier("post-\(post.id)")
+                            } else {
+                                FeedPostRow(post: post)
+                                    .cardStyle()
+                                    .accessibilityIdentifier("post-\(post.id)")
+                            }
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("activity-\(item.commentId)")
                     }
                 }
             }
@@ -348,6 +335,40 @@ struct RecentClaimRow: View {
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityHint("Opens claim details")
+    }
+}
+
+/// A Chatter post in Recent activity (staff).
+struct FeedPostRow: View {
+    let post: FeedPost
+
+    var body: some View {
+        HStack(alignment: .top, spacing: Theme.Spacing.m) {
+            Image(systemName: "bubble.left.and.text.bubble.right")
+                .font(.caption)
+                .foregroundStyle(Color.brandPrimary)
+                .frame(width: 8)
+                .padding(.top, 4)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                Text(PortalFormat.nonEmpty(post.authorName) ?? "Chatter")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.textPrimary)
+                Text(["Chatter", post.parentType?.displayName, post.parentName].compactMap { PortalFormat.nonEmpty($0) }.joined(separator: " · "))
+                    .font(.caption)
+                    .foregroundStyle(Color.textSecondary)
+                Text(post.text ?? "")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.textPrimary)
+                    .lineLimit(3)
+                    .multilineTextAlignment(.leading)
+                Text(PortalFormat.date(post.createdDate))
+                    .font(.caption)
+                    .foregroundStyle(Color.textSecondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 

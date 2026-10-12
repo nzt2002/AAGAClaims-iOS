@@ -1,0 +1,8 @@
+[
+  { "id": "0D5000000000001AAA", "authorName": "Jane Doe", "text": "Carrier called back: they'll send a re-inspection request this week.",
+    "createdDate": "2026-10-09T16:20:00.000Z", "parentId": "a23000000000001AAA", "parentName": "Smith - Roof", "parentType": "Claim" },
+  { "id": "0D5000000000002AAA", "authorName": "Sam Lee", "text": "Homeowner prefers calls after 5pm.",
+    "createdDate": "2026-10-07T13:05:00.000Z", "parentId": "a0r000000000001AAA", "parentName": "Jordan Reyes", "parentType": "Prospect" },
+  { "id": "0D5000000000003AAA", "authorName": "Marcus Hill", "text": "Reminder: team meeting moved to Thursday.",
+    "createdDate": "2026-10-06T11:00:00.000Z", "parentId": null, "parentName": "All Staff", "parentType": null }
+]

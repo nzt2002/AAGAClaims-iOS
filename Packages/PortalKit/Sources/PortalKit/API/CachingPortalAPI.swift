@@ -122,6 +122,18 @@ public actor CachingPortalAPI: PortalAPI {
         return try await guarded { try await $0.createTask(task, onClaim: claimId) }
     }
 
+    public func createEvent(_ event: NewEvent, onClaim claimId: String) async throws -> String {
+        try requireOnline()
+        return try await guarded { try await $0.createEvent(event, onClaim: claimId) }
+    }
+
+    public func search(_ query: String) async throws -> [SearchResult] {
+        try requireOnline()
+        return try await guarded { try await $0.search(query) }
+    }
+
+    public func feed() async throws -> [FeedPost] { try await read("feed") { try await $0.feed() } }
+
     public func cases() async throws -> [SupportCase] { try await read("cases") { try await $0.cases() } }
     public func supportCase(id: String) async throws -> SupportCaseDetail { try await read("cases/\(id)") { try await $0.supportCase(id: id) } }
 

@@ -23,6 +23,8 @@ final class AppRouter {
     var showingSubmitLead = false
     var showingRequestAssistance = false
     var showingNewTask = false
+    var showingNewEvent = false
+    var showingSearch = false
     /// The Update sheet opened from Home's recent activity.
     var homeUpdate: ActivityItem?
     /// The Update sheet opened from the Notifications sheet.
@@ -132,6 +134,15 @@ final class AppRouter {
                     await home.load()
                 }
             }
+        }
+    }
+
+    /// Opens a search result in its tab.
+    func open(_ result: SearchResult) {
+        switch result.type {
+        case .claim: open(.claim(result.id), name: result.title)
+        case .prospect: open(.lead(result.id), name: result.title)
+        case .supportCase: openSupport(caseId: result.id)
         }
     }
 

@@ -26,14 +26,14 @@ struct MainTabView: View {
                 NavigationStack {
                     HomeView(router: router, user: user)
                         .statusBanners(session)
-                        .toolbar { bell }
+                        .toolbar { topBarButtons(askQuestion: true) }
                 }
             }
             Tab("Claims", systemImage: "doc.text", value: .claims) {
                 NavigationStack(path: $router.claimsPath) {
                     ClaimsListView(viewModel: router.claims, api: session.api, openSupport: { router.openSupport(caseId: nil) })
                         .statusBanners(session)
-                        .toolbar { bell }
+                        .toolbar { topBarButtons(askQuestion: false) }
                 }
             }
             Tab("Leads", systemImage: "person.2", value: .leads) {
@@ -42,7 +42,7 @@ struct MainTabView: View {
                                   api: session.api, userEmail: user.email,
                                   openSupport: { router.openSupport(caseId: nil) })
                         .statusBanners(session)
-                        .toolbar { bell }
+                        .toolbar { topBarButtons(askQuestion: false) }
                 }
             }
             Tab("Support", systemImage: "questionmark.bubble", value: .support) {
@@ -70,6 +70,14 @@ struct MainTabView: View {
         .opensWebLinksInSafari($safariLink)
         .sheet(isPresented: $router.showingNotifications) {
             NotificationsView(router: router)
+        }
+        .sheet(isPresented: $router.showingSearch) {
+            SearchSheet(api: session.api) { result in router.open(result) }
+        }
+        .sheet(isPresented: $router.showingNewEvent) {
+            NewEventSheet(api: session.api, currentUserName: user.fullName) {
+                Task { await router.home.loadAgenda() }
+            }
         }
         .sheet(isPresented: $router.showingNewTask) {
             NewTaskSheet(api: session.api, currentUserName: user.fullName) {
@@ -107,8 +115,29 @@ struct MainTabView: View {
         }
     }
 
-    private var bell: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
+    /// Top right: Ask Question (Home only), Search and the notifications bell.
+    @ToolbarContentBuilder
+    private func topBarButtons(askQuestion: Bool) -> some ToolbarContent {
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            if askQuestion {
+                Button {
+                    router.requestAssistance()
+                } label: {
+                    Image(systemName: "questionmark.bubble")
+                        .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
+                }
+                .accessibilityLabel("Ask Question")
+                .disabledWhenOffline(session.offline.isOffline)
+                .accessibilityIdentifier("askQuestion")
+            }
+            Button {
+                router.showingSearch = true
+            } label: {
+                Image(systemName: "magnifyingglass")
+                    .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
+            }
+            .accessibilityLabel("Search")
+            .accessibilityIdentifier("search")
             Button {
                 router.showingNotifications = true
             } label: {

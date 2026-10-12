@@ -63,7 +63,7 @@ All users sign in with their **existing portal credentials**. They are Salesforc
 4. **Support**: support cases → case thread; "Request Assistance" button
 5. **Account**: profile, notification settings, Face ID toggle, sign out
 
-**Global:** a bell icon in the navigation bar of Home, Claims and Leads opens **Notifications**. It shows an unread badge count.
+**Global:** a search icon and a bell icon in the navigation bar of Home, Claims and Leads open **Search** and **Notifications**. The bell shows an unread badge count.
 
 **Empty-state rule:** if a user has no claims, the Claims tab still appears with a friendly empty state ("No claims yet") and a link to Support. The same applies to Leads.
 
@@ -220,7 +220,15 @@ Returns the cases where the user is the case contact. This includes every case t
 `GET /task-assignees` → `[{ "userId", "name" }]`: active users on the End User and Standard Platform User profiles. `404` unless `canCreateTasks`.
 `POST /claims/{id}/tasks` `{ "subject", "dueDate"?, "assignedToId", "description"? }` → `201` `{ "recordId" }`. Subject is required (max 255); the assignee must be on the list above (`400 invalid_assignee`). `404` unless `canCreateTasks`.
 
-### 5.6 Device
+`POST /claims/{id}/events` `{ "subject", "isAllDay", "date"? (all-day), "startDateTime"?, "endDateTime"?, "location"?, "assignedToId", "description"? }` → `201` `{ "recordId" }`. The end must not be before the start. Same permission and assignee rules as tasks. (A managed calendar package in the org rewrites event subjects and locations on save, as it does for events created in Salesforce.)
+
+### 5.6 Search and Chatter
+
+`GET /search?q=` (2+ characters) → `[{ "type": "Claim" | "Prospect" | "Case", "id", "title", "subtitle" }]`. Portal users: matches in their own claims, leads and cases (up to 20 of each). Staff: a SOSL search over claims and leads that respects their sharing (cases aren't included, because staff can't open cases in the app).
+
+`GET /feed` → `[{ "id", "authorName", "text", "createdDate", "parentId", "parentName", "parentType": "Claim" | "Prospect" | null }]`: the latest 20 posts in a staff member's Chatter news feed. Empty for portal users.
+
+### 5.7 Device
 
 **[new]** `POST /devices` `{ "apnsToken": "..." }`: only if the SDK's built-in push registration isn't used (§8). *Not built: the app uses the SDK's push registration.*
 
@@ -234,14 +242,14 @@ Returns the cases where the user is the case contact. This includes every case t
 
 ### 6.2 Home
 1. **Welcome header:** "Welcome back, {firstName}!" with the subtitle "We're here to help with your claim".
-2. **Quick actions**, directly under the welcome: *Submit a Lead*, *Ask Question*, *My Claims*, and *New Task* (only when `canCreateTasks`). New Task opens a sheet: claim (required), subject (required), optional due date, assign to (defaults to the user when they're on the list), optional details.
-3. **Upcoming:** the next 5 items from `GET /agenda`, tasks with their due date (overdue ones in the warning colour) and events with day and time (or "All day", shown in UTC as Salesforce stores them), plus the related claim or lead and an event's location. Tapping an item with a related record opens it. Hidden when empty, unless the user can create tasks ("Nothing scheduled").
-4. **Recent claims:** the 3 most recently updated claims, with status; tap to open, "See all" opens Claims.
-5. **Status overview:** claim counts per lifecycle stage. Tapping a row opens the Claims list filtered to that stage.
-6. **Recent activity:** the latest 5 items from `GET /activity`. Unread items show a dot. Tapping one opens the **Update sheet** (title, date, rendered HTML, and an "Open {Claim|Lead}" button) and marks it read.
+2. **Top bar:** *Ask Question* (icon), *Search* and the notifications bell. Search (also on Claims and Leads) opens a sheet over `GET /search`, starting at 2 characters with a 300 ms debounce, grouped into Claims, Leads and Support cases; tapping a result opens it.
+3. **Quick actions**, directly under the welcome, in two columns: *Submit a Lead* | *New Event*, then *My Claims* | *New Task*. New Event and New Task appear only when `canCreateTasks`. New Task: claim, subject, optional due date, assign to (defaults to the user), details. New Event: claim, subject, all day or start/end (defaults to the next hour, for an hour), optional location, assign to, details.
+4. **Upcoming:** the next 5 items from `GET /agenda`, tasks with their due date (overdue ones in the warning colour) and events with day and time (or "All day", shown in UTC as Salesforce stores them), plus the related claim or lead and an event's location. Tapping an item with a related record opens it. Hidden when empty, unless the user can create tasks ("Nothing scheduled").
+5. **Recent claims:** the 3 most recently updated claims, with status; tap to open, "See all" opens Claims.
+6. **Recent activity:** published updates from `GET /activity` and, for staff, Chatter posts from `GET /feed`, newest first (8 at most). Unread updates show a dot; tapping one opens the **Update sheet** (title, date, rendered HTML, and an "Open {Claim|Lead}" button) and marks it read. Tapping a Chatter post on a claim or lead opens that record.
 7. Pull to refresh.
 
-*(Changed 2026-10-12: the KPI tiles were replaced by Upcoming and Recent claims, and "Request Assistance" is called "Ask Question" throughout the app.)*
+*(Changed 2026-10-12: the KPI tiles were replaced by Upcoming and Recent claims; "Request Assistance" is called "Ask Question" throughout the app and moved to the top bar on Home; Search, New Event and staff Chatter posts were added; the status overview was removed.)*
 
 ### 6.3 Notifications (sheet from the bell icon)
 - An **Unread / All** segmented control over `GET /activity`.

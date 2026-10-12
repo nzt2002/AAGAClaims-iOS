@@ -18,6 +18,7 @@ public actor MockPortalAPI: PortalAPI {
         var perils: [String]
         var agenda: Agenda
         var assignees: [TaskAssignee]
+        var feed: [FeedPost]
 
         /// The fixtures bundled with PortalKit.
         public static func bundled() throws -> Fixtures {
@@ -35,7 +36,8 @@ public actor MockPortalAPI: PortalAPI {
                 insuranceCompanies: try load("insurance_companies"),
                 perils: try load("peril"),
                 agenda: try load("agenda"),
-                assignees: try load("task_assignees")
+                assignees: try load("task_assignees"),
+                feed: try load("feed")
             )
         }
 
@@ -44,7 +46,7 @@ public actor MockPortalAPI: PortalAPI {
             claims: [], claimDetails: [:], payments: [:], updates: [:], files: [:],
             leads: [], leadDetails: [:], activity: [], cases: [], caseDetails: [:],
             insuranceCompanies: [], perils: [],
-            agenda: Agenda(items: [], canCreateTasks: false), assignees: []
+            agenda: Agenda(items: [], canCreateTasks: false), assignees: [], feed: []
         )
 
         public static func load<T: Decodable>(_ name: String) throws -> T {
@@ -314,6 +316,65 @@ public actor MockPortalAPI: PortalAPI {
         )
         data.agenda = Agenda(items: data.agenda.items + [item], canCreateTasks: true)
         return id
+    }
+
+    public func createEvent(_ event: NewEvent, onClaim claimId: String) async throws -> String {
+        try await simulate()
+        guard data.agenda.canCreateTasks else { throw PortalAPIError.notFound }
+        try requireClaim(claimId)
+        guard !event.subject.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              let assignee = data.assignees.first(where: { $0.userId == event.assignedToId }) else {
+            throw PortalAPIError.invalidRequest
+        }
+        if !event.isAllDay, let start = event.startDateTime, let end = event.endDateTime, end < start {
+            throw PortalAPIError.invalidRequest
+        }
+        let id = makeId(prefix: "00U")
+        var start = event.startDateTime
+        var end = event.endDateTime
+        if event.isAllDay, let date = event.date {
+            var utc = Calendar(identifier: .gregorian)
+            utc.timeZone = TimeZone(identifier: "UTC")!
+            start = utc.date(from: DateComponents(year: date.year, month: date.month, day: date.day))
+            end = start?.addingTimeInterval(86_400)
+        }
+        let item = AgendaItem(
+            id: id, kind: .event, subject: event.subject, dueDate: nil, startDateTime: start, endDateTime: end,
+            isAllDay: event.isAllDay, location: event.location, status: nil, isOverdue: false,
+            assignedToName: assignee.name, relatedRecordId: claimId,
+            relatedRecordName: data.claimDetails[claimId]?.claimName, relatedRecordType: .claim
+        )
+        data.agenda = Agenda(items: data.agenda.items + [item], canCreateTasks: true)
+        return id
+    }
+
+    // MARK: - Search and Chatter
+
+    public func search(_ query: String) async throws -> [SearchResult] {
+        try await simulate()
+        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard needle.count >= 2 else { return [] }
+        func matches(_ values: String?...) -> Bool {
+            values.compactMap { $0 }.contains { $0.localizedCaseInsensitiveContains(needle) }
+        }
+        let claims = data.claims.filter { matches($0.recordName, $0.claimNumber, $0.lossAddress, $0.policyNumber) }.map {
+            SearchResult(type: .claim, id: $0.recordId, title: $0.recordName,
+                         subtitle: [$0.claimNumber, $0.claimStatus].compactMap { $0 }.joined(separator: " · "))
+        }
+        let leads = data.leads.filter { matches($0.recordName, $0.claimNumber, $0.lossAddress, $0.customerEmail) }.map {
+            SearchResult(type: .prospect, id: $0.recordId, title: $0.recordName,
+                         subtitle: [$0.prospectStatus, $0.peril].compactMap { $0 }.joined(separator: " · "))
+        }
+        let cases = data.cases.filter { matches($0.subject, $0.caseNumber, $0.relatedRecordName) }.map {
+            SearchResult(type: .supportCase, id: $0.caseId, title: $0.subject,
+                         subtitle: ["Case \($0.caseNumber ?? "")", $0.status ?? ""].joined(separator: " · "))
+        }
+        return claims + leads + cases
+    }
+
+    public func feed() async throws -> [FeedPost] {
+        try await simulate()
+        return data.feed
     }
 
     // MARK: - Files

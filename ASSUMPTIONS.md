@@ -72,6 +72,12 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 59. **All-day events** are shown on their UTC date, because Salesforce stores them at midnight UTC.
 60. **Photos over 4 MB** after the 4,000 px downscale are re-encoded at smaller sizes (down to 1,600 px) until they fit. HEIC stays HEIC; JPEG and PNG become JPEG. Documents over 4 MB are still refused.
 
+61. **Search** covers claims, leads and support cases for portal users (their own lists), and claims and leads for staff (Salesforce search with their sharing). Staff can't open cases in the app, so cases aren't searched for them. It's online only.
+62. **Chatter for staff:** Recent activity mixes in the latest posts from the staff member's Chatter news feed (`internal` community, News feed). Posts on a claim or lead open that record; others (on users or groups) are shown but not tappable. A failed feed just leaves posts out.
+63. **New Event** has the same permission and assignee rules as New Task. All-day events send a date; others send start and end times. The org's managed calendar package (okt_calendar) rewrites event subjects and locations on save, the same as for events created in Salesforce.
+64. **Ask Question** is an icon in Home's top bar (left of Search and the bell), not a quick action. Claim and lead detail and Support keep their Ask Question buttons.
+65. **Status overview** was removed from Home at the business's request.
+
 ## Open questions
 
 1. ~~**API access for Customer Community Login users**~~ **Resolved 2026-10-12:** the "Portal Mobile App" permission set (Customer Community Login licence, API Enabled, PortalApiV1 access) works. A portal user signed in through the app and loaded live data. Assign it to every portal user who uses the app.

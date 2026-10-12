@@ -39,6 +39,15 @@ public protocol PortalAPI: Sendable {
     /// `POST /claims/{id}/tasks`. Returns the new task id. Staff and adjusters only.
     func createTask(_ task: NewTask, onClaim claimId: String) async throws -> String
 
+    /// `POST /claims/{id}/events`. Returns the new event id. Staff and adjusters only.
+    func createEvent(_ event: NewEvent, onClaim claimId: String) async throws -> String
+
+    // Search and Chatter
+    /// `GET /search?q=`: claims, leads (and, for portal users, cases) the user can open.
+    func search(_ query: String) async throws -> [SearchResult]
+    /// `GET /feed`: Chatter posts from a staff member's news feed; empty for portal users.
+    func feed() async throws -> [FeedPost]
+
     // Files [new endpoints]
     /// `GET /files/{contentDocumentId}/content`: the file's bytes, for Quick Look.
     func fileContent(contentDocumentId: String) async throws -> Data

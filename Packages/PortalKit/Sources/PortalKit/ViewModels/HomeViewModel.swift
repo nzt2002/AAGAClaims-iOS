@@ -31,6 +31,28 @@ public final class HomeViewModel {
     public private(set) var state: LoadState<Content> = .idle
     /// Loaded separately, so a failing agenda doesn't take down the rest of Home.
     public private(set) var agenda: LoadState<Agenda> = .idle
+    /// Staff's Chatter posts. Loaded separately; empty for portal users.
+    public private(set) var feed: LoadState<[FeedPost]> = .idle
+
+    /// One entry in Recent activity: a published update, or (for staff) a Chatter post.
+    public enum ActivityEntry: Identifiable, Hashable, Sendable {
+        case update(ActivityItem)
+        case post(FeedPost)
+
+        public var id: String {
+            switch self {
+            case .update(let item): "u-" + item.commentId
+            case .post(let post): "p-" + post.id
+            }
+        }
+
+        public var date: Date? {
+            switch self {
+            case .update(let item): item.createdDate
+            case .post(let post): post.createdDate
+            }
+        }
+    }
 
     private let api: PortalAPI
 
@@ -41,7 +63,8 @@ public final class HomeViewModel {
     public func load() async {
         async let content: Void = loadContent()
         async let agenda: Void = loadAgenda()
-        _ = await (content, agenda)
+        async let feed: Void = loadFeed()
+        _ = await (content, agenda, feed)
     }
 
     private func loadContent() async {
@@ -52,6 +75,20 @@ public final class HomeViewModel {
             async let activity = api.activity()
             return try await Content(claims: claims, leads: leads, activity: activity)
         }
+    }
+
+    public func loadFeed() async {
+        let api = self.api
+        await PortalKit.load(self, \.feed) { try await api.feed() }
+    }
+
+    /// Updates and Chatter posts together, newest first (8 at most). A failed feed just leaves posts out.
+    public var recentEntries: [ActivityEntry] {
+        let updates = sortedActivity.map(ActivityEntry.update)
+        let posts = (feed.value ?? []).map(ActivityEntry.post)
+        return Array((updates + posts)
+            .sorted { ($0.date ?? .distantPast) > ($1.date ?? .distantPast) }
+            .prefix(8))
     }
 
     public func loadAgenda() async {

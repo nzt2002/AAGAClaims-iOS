@@ -141,6 +141,19 @@ public struct HTTPPortalAPI: PortalAPI {
         return response.recordId
     }
 
+    public func createEvent(_ event: NewEvent, onClaim claimId: String) async throws -> String {
+        let response: RecordIdResponse = try await post("/claims/\(escaped(claimId))/events", body: event)
+        return response.recordId
+    }
+
+    public func search(_ query: String) async throws -> [SearchResult] {
+        try await get("/search", query: [URLQueryItem(name: "q", value: query)])
+    }
+
+    public func feed() async throws -> [FeedPost] {
+        try await get("/feed")
+    }
+
     public func fileContent(contentDocumentId: String) async throws -> Data {
         try await send(TransportRequest(method: .get, path: "/files/\(escaped(contentDocumentId))/content")).body
     }
