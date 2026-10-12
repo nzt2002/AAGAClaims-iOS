@@ -53,8 +53,14 @@ public struct SupportCase: Codable, Hashable, Identifiable, Sendable {
 
     public var id: String { caseId }
 
+    /// Closed or Resolved, as on the portal.
     public var isClosed: Bool {
-        status?.lowercased() == "closed"
+        SupportCase.isClosedStatus(status)
+    }
+
+    public static func isClosedStatus(_ status: String?) -> Bool {
+        guard let status = status?.trimmingCharacters(in: .whitespaces).lowercased() else { return false }
+        return status == "closed" || status == "resolved"
     }
 
     public var recordRef: RecordRef? {

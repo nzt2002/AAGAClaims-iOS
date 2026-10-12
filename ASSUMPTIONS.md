@@ -16,7 +16,7 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 10. **Dark-mode colours** are our own equivalents of the portal palette (Assets.xcassets); the designer may refine them.
 11. **Update bodies** are rendered without WebKit by an allow-list (`HTMLText`): paragraphs, breaks, lists, headings, bold, italic, and links with http(s), mailto or tel URLs. Scripts, styles, iframes and other embedded content are dropped with their contents; `javascript:` and `data:` links are dropped. Web links open in `SFSafariViewController`.
 12. **Claim files** are listed, but opening them in Quick Look and uploading wait for the [new] file endpoints and milestone 6 (spec §6.10).
-13. **"View case"** after Request Assistance opens the Support tab with the new case at the top. Opening the case itself comes with case detail in milestone 4.
+13. **"View case"** after Request Assistance opens the Support tab straight into the new case.
 14. **Status filter** on the claims list offers the 7 lifecycle stages. Claims with any other status appear only when the filter is "All statuses".
 15. **Loss reason** (`lossReason`) only comes from `GET /claims`, so claim detail shows it from the list row it was opened from. Opened any other way (deep link, milestone 6), it's hidden.
 16. **Claim detail** leaves the navigation bar title empty because the header already shows the claim name.
@@ -29,6 +29,11 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 22. **Lead detail** also shows the referral (associated party) details in a "Referred by" card, so every `LeadDetail` field appears somewhere.
 23. **Submit a Lead** is the + button in the Leads toolbar, next to the notifications bell.
 24. **Keyboard Done button** on the Submit a Lead form, because number and phone pads have no return key.
+
+25. **Support list** follows the portal: it opens on the Open filter, treats "Closed" and "Resolved" as closed, shows a count on each filter, and search also covers the case number and account manager.
+26. **Replies on closed cases** are allowed, as on the portal.
+27. **Request Assistance (Support tab)** lists claims first, then leads, each sorted by name, in a pop-up menu. Both fields are required. After submitting, the app opens the new case.
+28. **Case thread** is oldest first; staff messages are left-aligned with the author's name and yours are right-aligned as "You".
 
 ## Open questions
 

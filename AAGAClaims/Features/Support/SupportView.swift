@@ -1,9 +1,23 @@
 import PortalKit
 import SwiftUI
 
-/// Support cases (spec §6.9). Search, case detail and Request Assistance come in milestone 4.
+struct CaseRoute: Hashable {
+    let id: String
+}
+
+/// A claim or lead opened from a support case.
+struct RelatedRecordRoute: Hashable {
+    let record: RecordRef
+    let name: String?
+}
+
+/// Support cases (spec §6.9).
 struct SupportView: View {
     @Bindable var viewModel: CasesListViewModel
+    @Binding var path: NavigationPath
+    let api: PortalAPI
+
+    @State private var showingRequest = false
 
     var body: some View {
         LoadingContainer(state: viewModel.state, subject: "your support cases", retry: reload) { _ in
@@ -15,7 +29,7 @@ struct SupportView: View {
 
                     Picker("Filter", selection: $viewModel.filter) {
                         ForEach(CasesListViewModel.Filter.allCases, id: \.self) { filter in
-                            Text(filter.rawValue).tag(filter)
+                            Text("\(filter.rawValue) (\(viewModel.count(for: filter)))").tag(filter)
                         }
                     }
                     .pickerStyle(.segmented)
@@ -23,11 +37,14 @@ struct SupportView: View {
                 .listRowSeparator(.hidden)
 
                 if viewModel.cases.isEmpty {
-                    ContentUnavailableView("No support cases", systemImage: "questionmark.bubble")
+                    emptyState
                         .listRowSeparator(.hidden)
                 } else {
                     ForEach(viewModel.cases) { supportCase in
-                        CaseRow(supportCase: supportCase)
+                        NavigationLink(value: CaseRoute(id: supportCase.caseId)) {
+                            CaseRow(supportCase: supportCase)
+                        }
+                        .accessibilityIdentifier("caseRow-\(supportCase.caseId)")
                     }
                 }
             }
@@ -37,10 +54,52 @@ struct SupportView: View {
         .background(Color.appBackground)
         .navigationTitle("Support")
         .navigationBarTitleDisplayMode(.inline)
+        .searchable(text: $viewModel.searchText, prompt: "Subject, case number, claim or lead")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showingRequest = true
+                } label: {
+                    Label("Request Assistance", systemImage: "plus.bubble")
+                        .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
+                }
+                .accessibilityIdentifier("supportRequestAssistance")
+            }
+        }
+        .navigationDestination(for: CaseRoute.self) { route in
+            CaseDetailView(caseId: route.id, api: api)
+        }
+        .navigationDestination(for: RelatedRecordRoute.self) { route in
+            switch route.record {
+            case .claim(let id): ClaimDetailView(claimId: id, summary: nil, api: api)
+            case .lead(let id): LeadDetailView(leadId: id, fallbackName: route.name, api: api)
+            }
+        }
+        .sheet(isPresented: $showingRequest) {
+            RequestAssistanceSheet(api: api) { caseId in
+                showingRequest = false
+                viewModel.filter = .open
+                Task { await viewModel.load() }
+                path.append(CaseRoute(id: caseId))
+            }
+        }
         .task {
             if viewModel.state.value == nil {
                 await viewModel.load()
             }
+        }
+    }
+
+    @ViewBuilder
+    private var emptyState: some View {
+        if !viewModel.searchText.isEmpty {
+            ContentUnavailableView.search(text: viewModel.searchText)
+        } else {
+            ContentUnavailableView(
+                viewModel.filter == .closed ? "No closed cases" : "No open cases",
+                systemImage: "questionmark.bubble",
+                description: Text("Need help with a claim or lead? Tap Request Assistance.")
+            )
         }
     }
 
@@ -85,7 +144,8 @@ struct CaseRow: View {
 }
 
 #Preview("Support") {
-    NavigationStack {
-        SupportView(viewModel: PreviewData.loadedCases())
+    @Previewable @State var path = NavigationPath()
+    NavigationStack(path: $path) {
+        SupportView(viewModel: PreviewData.loadedCases(), path: $path, api: PreviewData.api())
     }
 }

@@ -74,6 +74,7 @@ struct ViewModelTests {
     func caseFilter() async {
         let viewModel = CasesListViewModel(api: mock())
         await viewModel.load()
+        viewModel.filter = .all
         #expect(viewModel.cases.count == 2)
         viewModel.filter = .open
         #expect(viewModel.cases.map(\.caseNumber) == ["00012345"])

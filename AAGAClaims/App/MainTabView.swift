@@ -17,6 +17,7 @@ struct MainTabView: View {
     @State private var showingNotifications = false
     @State private var safariLink: SafariLink?
     @State private var leadsPath = NavigationPath()
+    @State private var supportPath = NavigationPath()
 
     init(session: AppSession, user: CurrentUser) {
         self.session = session
@@ -52,8 +53,8 @@ struct MainTabView: View {
                 }
             }
             Tab("Support", systemImage: "questionmark.bubble", value: .support) {
-                NavigationStack {
-                    SupportView(viewModel: cases)
+                NavigationStack(path: $supportPath) {
+                    SupportView(viewModel: cases, path: $supportPath, api: session.api)
                         .demoBanner(session.isDemo)
                 }
             }
@@ -64,9 +65,13 @@ struct MainTabView: View {
                 }
             }
         }
-        .environment(\.openSupport, OpenSupportAction { _ in
-            // Case detail arrives in milestone 4; for now show the refreshed list.
+        .environment(\.openSupport, OpenSupportAction { caseId in
             selection = .support
+            supportPath = NavigationPath()
+            if let caseId {
+                cases.filter = .open
+                supportPath.append(CaseRoute(id: caseId))
+            }
             Task { await cases.load() }
         })
         .opensWebLinksInSafari($safariLink)

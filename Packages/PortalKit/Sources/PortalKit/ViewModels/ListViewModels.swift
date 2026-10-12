@@ -162,7 +162,10 @@ public final class CasesListViewModel {
     }
 
     public private(set) var state: LoadState<[SupportCase]> = .idle
-    public var filter: Filter = .all
+    /// Open by default, as on the portal.
+    public var filter: Filter = .open
+    /// Matches subject, case number, description, status, related record and account manager.
+    public var searchText = ""
 
     private let api: PortalAPI
 
@@ -170,12 +173,33 @@ public final class CasesListViewModel {
         self.api = api
     }
 
+    /// Newest first, after filter and search (spec §6.9).
     public var cases: [SupportCase] {
-        let all = (state.value ?? []).sorted { ($0.createdDate ?? .distantPast) > ($1.createdDate ?? .distantPast) }
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (state.value ?? [])
+            .sorted { ($0.createdDate ?? .distantPast) > ($1.createdDate ?? .distantPast) }
+            .filter { supportCase in
+                switch filter {
+                case .all: break
+                case .open: if supportCase.isClosed { return false }
+                case .closed: if !supportCase.isClosed { return false }
+                }
+                guard !query.isEmpty else { return true }
+                return [
+                    supportCase.subject, supportCase.caseNumber, supportCase.description, supportCase.status,
+                    supportCase.relatedRecordName, supportCase.relatedRecordType?.displayName, supportCase.accountManager
+                ]
+                .compactMap { $0 }
+                .contains { $0.localizedCaseInsensitiveContains(query) }
+            }
+    }
+
+    public func count(for filter: Filter) -> Int {
+        let all = state.value ?? []
         switch filter {
-        case .all: return all
-        case .open: return all.filter { !$0.isClosed }
-        case .closed: return all.filter(\.isClosed)
+        case .all: return all.count
+        case .open: return all.filter { !$0.isClosed }.count
+        case .closed: return all.filter(\.isClosed).count
         }
     }
 
