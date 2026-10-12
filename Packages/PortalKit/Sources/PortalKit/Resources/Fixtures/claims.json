@@ -1,6 +1,6 @@
 [
   {
-    "recordId": "a0X000000000001AAA", "recordName": "Smith - Roof", "claimNumber": "CLM-1234",
+    "recordId": "a23000000000001AAA", "recordName": "Smith - Roof", "claimNumber": "CLM-1234",
     "policyNumber": "POL-5678", "claimStatus": "Inspection", "peril": "Wind",
     "lossAddress": "123 Main St, Atlanta, GA 30301", "lossDate": "2026-08-14",
     "lossReason": "Storm", "paymentCollected": 12500.00,
@@ -8,7 +8,7 @@
     "lastModifiedDate": "2026-10-01T14:22:00.000Z"
   },
   {
-    "recordId": "a0X000000000002AAA", "recordName": "Smith - Kitchen Water", "claimNumber": "CLM-2210",
+    "recordId": "a23000000000002AAA", "recordName": "Smith - Kitchen Water", "claimNumber": "CLM-2210",
     "policyNumber": "POL-5678", "claimStatus": "Negotiations", "peril": "Water",
     "lossAddress": "123 Main St, Atlanta, GA 30301", "lossDate": "2026-06-02",
     "lossReason": "Pipe burst", "paymentCollected": 0,
@@ -16,7 +16,7 @@
     "lastModifiedDate": "2026-10-08T09:05:00.000Z"
   },
   {
-    "recordId": "a0X000000000003AAA", "recordName": "Smith - Garage Fire", "claimNumber": "CLM-0981",
+    "recordId": "a23000000000003AAA", "recordName": "Smith - Garage Fire", "claimNumber": "CLM-0981",
     "policyNumber": "POL-1111", "claimStatus": "Closed", "peril": "Fire",
     "lossAddress": "45 Oak Ave, Decatur, GA 30030", "lossDate": "2025-11-20",
     "lossReason": "Electrical", "paymentCollected": 61200.50,
@@ -24,7 +24,7 @@
     "lastModifiedDate": "2026-03-15T17:40:00.000Z"
   },
   {
-    "recordId": "a0X000000000004AAA", "recordName": "Smith - Fence", "claimNumber": null,
+    "recordId": "a23000000000004AAA", "recordName": "Smith - Fence", "claimNumber": null,
     "policyNumber": null, "claimStatus": "On Hold", "peril": "Hail",
     "lossAddress": "45 Oak Ave, Decatur, GA 30030", "lossDate": null,
     "lossReason": null, "paymentCollected": 0,

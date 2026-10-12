@@ -17,7 +17,7 @@ final class LeadsUITests: XCTestCase {
     }
 
     func testLeadDetailShowsAgreementAndLifecycle() {
-        let card = app.buttons["leadCard-a0P000000000001AAA"]
+        let card = app.buttons["leadCard-a0r000000000001AAA"]
         XCTAssertTrue(card.waitForExistence(timeout: 10))
         card.tap()
 
@@ -31,7 +31,7 @@ final class LeadsUITests: XCTestCase {
     }
 
     func testLeadCommentAppearsInUpdates() {
-        let card = app.buttons["leadCard-a0P000000000001AAA"]
+        let card = app.buttons["leadCard-a0r000000000001AAA"]
         XCTAssertTrue(card.waitForExistence(timeout: 10))
         card.tap()
 
@@ -86,11 +86,11 @@ final class LeadsUITests: XCTestCase {
     }
 
     func testAgreementFilterViaSearch() {
-        XCTAssertTrue(app.buttons["leadCard-a0P000000000001AAA"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["leadCard-a0r000000000001AAA"].waitForExistence(timeout: 10))
         let search = app.searchFields.firstMatch
         search.tap()
         search.typeText("Marietta")
-        XCTAssertTrue(app.buttons["leadCard-a0P000000000002AAA"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["leadCard-a0P000000000001AAA"].exists)
+        XCTAssertTrue(app.buttons["leadCard-a0r000000000002AAA"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["leadCard-a0r000000000001AAA"].exists)
     }
 }

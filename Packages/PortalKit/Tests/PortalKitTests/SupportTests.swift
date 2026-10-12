@@ -84,7 +84,7 @@ struct SupportTests {
         #expect(viewModel.error(for: .record) != nil)
         #expect(viewModel.error(for: .comments) == "Enter your questions or comments.")
 
-        viewModel.selectedRecordId = "a0P000000000003AAA"
+        viewModel.selectedRecordId = "a0r000000000003AAA"
         viewModel.comments = "Has an adjuster been assigned?"
         #expect(await viewModel.submit())
         let caseId = try #require(viewModel.createdCaseId)
@@ -93,7 +93,7 @@ struct SupportTests {
 
     @Test("Preselected record")
     func preselected() {
-        let viewModel = RequestAssistanceViewModel(api: mock(), preselected: "a0X000000000001AAA")
-        #expect(viewModel.selectedRecordId == "a0X000000000001AAA")
+        let viewModel = RequestAssistanceViewModel(api: mock(), preselected: "a23000000000001AAA")
+        #expect(viewModel.selectedRecordId == "a23000000000001AAA")
     }
 }

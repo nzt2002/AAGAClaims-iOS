@@ -103,6 +103,29 @@ final class AppRouter {
         }
     }
 
+    /// Opens a deep link, universal link or push (spec §8).
+    func handle(_ link: DeepLink) {
+        switch link {
+        case .claim(let id):
+            open(.claim(id), name: nil)
+        case .lead(let id):
+            open(.lead(id), name: nil)
+        case .supportCase(let id):
+            homeUpdate = nil
+            notificationUpdate = nil
+            showingNotifications = false
+            openSupport(caseId: id)
+        case .update(let record, let commentId):
+            open(record, name: nil)
+            if let commentId {
+                Task {
+                    await home.markRead([commentId])
+                    await home.load()
+                }
+            }
+        }
+    }
+
     func openSupport(caseId: String?) {
         supportPath = NavigationPath()
         if let caseId {

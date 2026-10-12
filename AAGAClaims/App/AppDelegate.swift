@@ -1,8 +1,10 @@
+import PortalKit
 import SalesforceSDKCore
 import UIKit
+import UserNotifications
 
 @main
-final class AppDelegate: UIResponder, UIApplicationDelegate {
+final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     override init() {
         super.init()
         if AppEnvironment.current.auth == .salesforce {
@@ -14,7 +16,8 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        true
+        UNUserNotificationCenter.current().delegate = self
+        return true
     }
 
     func application(
@@ -23,5 +26,38 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         options: UIScene.ConnectionOptions
     ) -> UISceneConfiguration {
         UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
+    }
+
+    // MARK: - Push registration (Mobile SDK)
+
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        guard AppEnvironment.current.auth == .salesforce else { return }
+        // The SDK stores the token and registers it with Salesforce for the signed-in user.
+        PushNotificationManager.sharedInstance().didRegisterForRemoteNotifications(withDeviceToken: deviceToken)
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        // Nothing to show the user: push is optional. Don't log the error, it can include device details.
+    }
+
+    // MARK: - Notification taps
+
+    /// Tapping a push deep-links to the record and update (spec §8).
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        guard let link = DeepLink(pushPayload: response.notification.request.content.userInfo) else { return }
+        await MainActor.run {
+            DeepLinkInbox.shared.pending = link
+        }
+    }
+
+    /// Shows pushes that arrive while the app is open.
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        [.banner, .sound, .badge, .list]
     }
 }

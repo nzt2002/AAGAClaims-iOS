@@ -251,6 +251,6 @@ private struct LeadInsuranceSection: View {
 
 #Preview("Lead detail") {
     NavigationStack {
-        LeadDetailView(leadId: "a0P000000000001AAA", fallbackName: nil, api: PreviewData.api())
+        LeadDetailView(leadId: "a0r000000000001AAA", fallbackName: nil, api: PreviewData.api())
     }
 }

@@ -230,6 +230,6 @@ struct EmptyRecordsView: View {
 
 #Preview("Claim detail") {
     NavigationStack {
-        ClaimDetailView(claimId: "a0X000000000001AAA", summary: nil, api: PreviewData.api())
+        ClaimDetailView(claimId: "a23000000000001AAA", summary: nil, api: PreviewData.api())
     }
 }

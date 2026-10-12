@@ -89,22 +89,22 @@ struct MockAPITests {
     func commentVisibility() async throws {
         let api = MockPortalAPI(fixtures: try .bundled())
 
-        let leadBefore = try await api.updates(for: .lead("a0P000000000001AAA")).count
-        try await api.addComment(to: .lead("a0P000000000001AAA"), text: "Any news?")
-        let leadUpdates = try await api.updates(for: .lead("a0P000000000001AAA"))
+        let leadBefore = try await api.updates(for: .lead("a0r000000000001AAA")).count
+        try await api.addComment(to: .lead("a0r000000000001AAA"), text: "Any news?")
+        let leadUpdates = try await api.updates(for: .lead("a0r000000000001AAA"))
         #expect(leadUpdates.count == leadBefore + 1)
         #expect(leadUpdates.first?.title == "Customer Comment")
 
-        let claimBefore = try await api.updates(for: .claim("a0X000000000001AAA")).count
-        try await api.addComment(to: .claim("a0X000000000001AAA"), text: "Any news?")
-        #expect(try await api.updates(for: .claim("a0X000000000001AAA")).count == claimBefore)
+        let claimBefore = try await api.updates(for: .claim("a23000000000001AAA")).count
+        try await api.addComment(to: .claim("a23000000000001AAA"), text: "Any news?")
+        #expect(try await api.updates(for: .claim("a23000000000001AAA")).count == claimBefore)
     }
 
     @Test("Unknown records are 404")
     func notFound() async throws {
         let api = MockPortalAPI(fixtures: try .bundled())
         await #expect(throws: PortalAPIError.notFound) {
-            _ = try await api.claim(id: "a0Xnope")
+            _ = try await api.claim(id: "a23nope")
         }
     }
 
@@ -124,10 +124,10 @@ struct MockAPITests {
     @Test("Request Assistance creates a case linked to the record")
     func requestAssistance() async throws {
         let api = MockPortalAPI(fixtures: try .bundled())
-        let caseId = try await api.requestAssistance(recordId: "a0P000000000001AAA", comments: "Help")
+        let caseId = try await api.requestAssistance(recordId: "a0r000000000001AAA", comments: "Help")
         let detail = try await api.supportCase(id: caseId)
         #expect(detail.relatedRecordType == .prospect)
-        #expect(detail.relatedRecordId == "a0P000000000001AAA")
+        #expect(detail.relatedRecordId == "a0r000000000001AAA")
 
         try await api.replyToCase(id: caseId, body: "Thanks")
         #expect(try await api.supportCase(id: caseId).comments.last?.isOwn == true)

@@ -52,7 +52,7 @@ struct ClaimsTests {
 
     @Test("Detail loads every section; updates newest first")
     func detail() async throws {
-        let viewModel = ClaimDetailViewModel(claimId: "a0X000000000001AAA", api: MockPortalAPI(fixtures: try .bundled()))
+        let viewModel = ClaimDetailViewModel(claimId: "a23000000000001AAA", api: MockPortalAPI(fixtures: try .bundled()))
         await viewModel.load()
 
         #expect(viewModel.detail.value?.claimName == "Smith - Roof")
@@ -64,14 +64,14 @@ struct ClaimsTests {
 
     @Test("Detail for someone else's claim fails as not found")
     func detailNotFound() async throws {
-        let viewModel = ClaimDetailViewModel(claimId: "a0Xnope", api: MockPortalAPI(fixtures: try .bundled()))
+        let viewModel = ClaimDetailViewModel(claimId: "a23nope", api: MockPortalAPI(fixtures: try .bundled()))
         await viewModel.load()
         #expect(viewModel.detail.error == .notFound)
     }
 
     @Test("Composer enforces blank and length limits")
     func composerLimits() async throws {
-        let composer = ComposerViewModel(kind: .comment, record: .claim("a0X000000000001AAA"), api: MockPortalAPI(fixtures: try .bundled()))
+        let composer = ComposerViewModel(kind: .comment, record: .claim("a23000000000001AAA"), api: MockPortalAPI(fixtures: try .bundled()))
         #expect(!composer.canSubmit)
         composer.text = "   "
         #expect(!composer.canSubmit)
@@ -89,7 +89,7 @@ struct ClaimsTests {
     @Test("Request Assistance returns the new case")
     func composerAssistance() async throws {
         let api = MockPortalAPI(fixtures: try .bundled())
-        let composer = ComposerViewModel(kind: .assistance, record: .claim("a0X000000000002AAA"), api: api)
+        let composer = ComposerViewModel(kind: .assistance, record: .claim("a23000000000002AAA"), api: api)
         composer.text = "Can you call me?"
         await composer.submit()
 

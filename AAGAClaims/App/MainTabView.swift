@@ -65,6 +65,11 @@ struct MainTabView: View {
         .onChange(of: router.home.unreadCount, initial: true) { _, count in
             AppBadge.update(count)
         }
+        .onChange(of: DeepLinkInbox.shared.pending, initial: true) { _, link in
+            guard let link else { return }
+            DeepLinkInbox.shared.pending = nil
+            router.handle(link)
+        }
         .task {
             // Home also drives the bell badge, so load it up front.
             await router.home.load()

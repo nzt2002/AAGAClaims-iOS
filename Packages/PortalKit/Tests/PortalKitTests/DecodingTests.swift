@@ -52,8 +52,8 @@ struct DecodingTests {
     @Test("Agreement status COMPLETE means signed")
     func agreementSigned() throws {
         let fixtures = try MockPortalAPI.Fixtures.bundled()
-        let signed = try #require(fixtures.leadDetails["a0P000000000002AAA"]?.agreement)
-        let sent = try #require(fixtures.leadDetails["a0P000000000001AAA"]?.agreement)
+        let signed = try #require(fixtures.leadDetails["a0r000000000002AAA"]?.agreement)
+        let sent = try #require(fixtures.leadDetails["a0r000000000001AAA"]?.agreement)
         #expect(signed.isSigned)
         #expect(!sent.isSigned)
         #expect(sent.viewedDate == nil)

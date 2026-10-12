@@ -20,6 +20,14 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.makeKeyAndVisible()
         self.window = window
 
+        // Links that launched the app.
+        for context in connectionOptions.urlContexts {
+            DeepLinkInbox.shared.receive(context.url)
+        }
+        for activity in connectionOptions.userActivities {
+            receive(activity)
+        }
+
         switch self.session.environment.auth {
         case .demo:
             self.session.didSignIn(.demo)
@@ -31,6 +39,25 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 self?.session.didSignOut()
                 self?.signInIfNeeded(scene)
             }
+        }
+    }
+
+    // MARK: - Deep links (spec §8)
+
+    func scene(_ scene: UIScene, openURLContexts contexts: Set<UIOpenURLContext>) {
+        for context in contexts {
+            DeepLinkInbox.shared.receive(context.url)
+        }
+    }
+
+    func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+        receive(userActivity)
+    }
+
+    /// Portal universal links (https://portal.accurateadjustmentsga.com/s/...).
+    private func receive(_ activity: NSUserActivity) {
+        if activity.activityType == NSUserActivityTypeBrowsingWeb, let url = activity.webpageURL {
+            DeepLinkInbox.shared.receive(url)
         }
     }
 
@@ -46,6 +73,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         AuthHelper.loginIfRequired(scene) { [weak self] in
             guard let self, let user = Self.currentUser() else { return }
             self.session.didSignIn(user)
+            Task { await PushNotifications.registerIfAllowed(registerWithSalesforce: true) }
         }
     }
 

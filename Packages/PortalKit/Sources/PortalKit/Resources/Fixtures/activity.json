@@ -1,11 +1,11 @@
 [
-  { "commentId": "a1Y000000000010AAA", "relatedRecordId": "a0P000000000001AAA", "relatedRecordName": "Jordan Reyes",
+  { "commentId": "a1Y000000000010AAA", "relatedRecordId": "a0r000000000001AAA", "relatedRecordName": "Jordan Reyes",
     "relatedRecordType": "Prospect", "createdDate": "2026-10-05T11:00:00.000Z", "title": "Agreement sent",
     "text": "<p>We sent the public adjuster agreement to the homeowner.</p>", "isRead": false },
-  { "commentId": "a1Y000000000002AAA", "relatedRecordId": "a0X000000000001AAA", "relatedRecordName": "Smith - Roof",
+  { "commentId": "a1Y000000000002AAA", "relatedRecordId": "a23000000000001AAA", "relatedRecordName": "Smith - Roof",
     "relatedRecordType": "Claim", "createdDate": "2026-10-02T15:00:00.000Z", "title": "Carrier review update",
     "text": "<p>The carrier has received our estimate and assigned a field adjuster. <strong>Inspection is booked for October 9.</strong></p>", "isRead": false },
-  { "commentId": "a1Y000000000003AAA", "relatedRecordId": "a0X000000000003AAA", "relatedRecordName": "Smith - Garage Fire",
+  { "commentId": "a1Y000000000003AAA", "relatedRecordId": "a23000000000003AAA", "relatedRecordName": "Smith - Garage Fire",
     "relatedRecordType": "Claim", "createdDate": "2026-03-15T17:40:00.000Z", "title": "Claim closed",
     "text": "<p>Final payment received. Thank you for trusting us with your claim.</p>", "isRead": true }
 ]

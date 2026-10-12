@@ -50,7 +50,7 @@ struct LeadsTests {
     @Test("Detail loads; lead comments show up in updates after refresh")
     func detailAndComment() async throws {
         let api = mock()
-        let viewModel = LeadDetailViewModel(leadId: "a0P000000000001AAA", api: api)
+        let viewModel = LeadDetailViewModel(leadId: "a0r000000000001AAA", api: api)
         await viewModel.load()
         #expect(viewModel.detail.value?.prospectName == "Jordan Reyes")
         let before = try #require(viewModel.updates.value).count
@@ -65,16 +65,16 @@ struct LeadsTests {
     func agreementSteps() throws {
         let fixtures = try MockPortalAPI.Fixtures.bundled()
 
-        let sent = try #require(LeadDetailViewModel.agreementSteps(for: fixtures.leadDetails["a0P000000000001AAA"]?.agreement))
+        let sent = try #require(LeadDetailViewModel.agreementSteps(for: fixtures.leadDetails["a0r000000000001AAA"]?.agreement))
         #expect(sent.map(\.title) == ["Sent", "Signed"])
         #expect(sent.map(\.state) == [.current, .upcoming])
         #expect(sent[1].date == nil)
 
-        let signed = try #require(LeadDetailViewModel.agreementSteps(for: fixtures.leadDetails["a0P000000000002AAA"]?.agreement))
+        let signed = try #require(LeadDetailViewModel.agreementSteps(for: fixtures.leadDetails["a0r000000000002AAA"]?.agreement))
         #expect(signed.map(\.state) == [.complete, .current])
         #expect(signed[1].date != nil)
 
-        #expect(LeadDetailViewModel.agreementSteps(for: fixtures.leadDetails["a0P000000000003AAA"]?.agreement) == nil)
+        #expect(LeadDetailViewModel.agreementSteps(for: fixtures.leadDetails["a0r000000000003AAA"]?.agreement) == nil)
         #expect(LeadDetailViewModel.agreementSteps(for: nil) == nil)
     }
 

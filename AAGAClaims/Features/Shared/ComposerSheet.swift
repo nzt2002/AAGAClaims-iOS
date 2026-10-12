@@ -88,7 +88,7 @@ struct ComposerSheet: View {
 
 #Preview {
     ComposerSheet(
-        viewModel: ComposerViewModel(kind: .comment, record: .claim("a0X000000000001AAA"), api: PreviewData.api()),
+        viewModel: ComposerViewModel(kind: .comment, record: .claim("a23000000000001AAA"), api: PreviewData.api()),
         recordName: "Smith - Roof",
         onSuccess: { _ in }
     )

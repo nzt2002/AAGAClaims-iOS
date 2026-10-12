@@ -1,6 +1,6 @@
 [
   {
-    "recordId": "a0P000000000001AAA", "recordName": "Jordan Reyes", "prospectStatus": "Working",
+    "recordId": "a0r000000000001AAA", "recordName": "Jordan Reyes", "prospectStatus": "Working",
     "lossAddress": "88 Peachtree Rd\nAtlanta, GA, 30305", "lossDate": "2026-09-18", "peril": "Hail",
     "claimNumber": null, "policyNumber": "POL-7788",
     "customerEmail": "jordan.reyes@example.com", "associatedPartyName": "Taylor Brooks",
@@ -10,7 +10,7 @@
     "agreementSentDate": "2026-10-05T10:45:00.000Z", "agreementCompletedDate": null
   },
   {
-    "recordId": "a0P000000000002AAA", "recordName": "Morgan Chen", "prospectStatus": "Converted",
+    "recordId": "a0r000000000002AAA", "recordName": "Morgan Chen", "prospectStatus": "Converted",
     "lossAddress": "9 Elm St\nMarietta, GA, 30060", "lossDate": "2026-07-01", "peril": "Wind",
     "claimNumber": "CLM-3301", "policyNumber": "POL-9911",
     "customerEmail": "morgan.chen@example.com", "associatedPartyName": "Taylor Brooks",
@@ -20,7 +20,7 @@
     "agreementSentDate": "2026-07-03T14:00:00.000Z", "agreementCompletedDate": "2026-07-04T08:12:00.000Z"
   },
   {
-    "recordId": "a0P000000000003AAA", "recordName": "Riley Park", "prospectStatus": "New",
+    "recordId": "a0r000000000003AAA", "recordName": "Riley Park", "prospectStatus": "New",
     "lossAddress": "", "lossDate": null, "peril": "Water",
     "claimNumber": null, "policyNumber": null,
     "customerEmail": null, "associatedPartyName": "Taylor Brooks",

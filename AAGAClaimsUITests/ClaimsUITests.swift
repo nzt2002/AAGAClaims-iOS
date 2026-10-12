@@ -13,7 +13,7 @@ final class ClaimsUITests: XCTestCase {
     }
 
     private func openRoofClaim() {
-        let card = app.buttons["claimCard-a0X000000000001AAA"]
+        let card = app.buttons["claimCard-a23000000000001AAA"]
         XCTAssertTrue(card.waitForExistence(timeout: 10))
         card.tap()
         XCTAssertTrue(app.staticTexts["Claim CLM-1234"].waitForExistence(timeout: 5))
@@ -67,11 +67,11 @@ final class ClaimsUITests: XCTestCase {
     }
 
     func testSearchFiltersList() {
-        XCTAssertTrue(app.buttons["claimCard-a0X000000000001AAA"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["claimCard-a23000000000001AAA"].waitForExistence(timeout: 10))
         let search = app.searchFields.firstMatch
         search.tap()
         search.typeText("Kitchen")
-        XCTAssertTrue(app.buttons["claimCard-a0X000000000002AAA"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["claimCard-a0X000000000001AAA"].exists)
+        XCTAssertTrue(app.buttons["claimCard-a23000000000002AAA"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["claimCard-a23000000000001AAA"].exists)
     }
 }

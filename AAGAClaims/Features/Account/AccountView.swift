@@ -9,12 +9,21 @@ struct AccountView: View {
     let openSupport: () -> Void
 
     @State private var confirmingSignOut = false
+    @State private var notificationStatus: PushNotifications.Status = .notDetermined
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         List {
             Section("Profile") {
                 LabeledContent("Name", value: user.fullName)
                 LabeledContent("Email", value: user.email)
+            }
+
+            Section {
+                Toggle("Notifications", isOn: notificationsBinding)
+                    .accessibilityIdentifier("notificationsToggle")
+            } footer: {
+                Text(notificationFooter)
             }
 
             Section {
@@ -34,8 +43,37 @@ struct AccountView: View {
         }
         .navigationTitle("Account")
         .navigationBarTitleDisplayMode(.inline)
+        .task(id: scenePhase) {
+            // Re-check when returning from Settings.
+            notificationStatus = await PushNotifications.status()
+        }
         .confirmationDialog("Sign out of AAGA Claims?", isPresented: $confirmingSignOut, titleVisibility: .visible) {
             Button("Sign out", role: .destructive, action: signOut)
+        }
+    }
+
+    /// On when allowed. Turning it on asks for permission the first time; after that iOS only lets
+    /// the user change it in Settings, so the toggle opens Settings (spec §6.11).
+    private var notificationsBinding: Binding<Bool> {
+        Binding {
+            notificationStatus == .allowed
+        } set: { wantsOn in
+            if wantsOn, notificationStatus == .notDetermined {
+                Task {
+                    _ = await PushNotifications.requestPermission(registerWithSalesforce: !session.isDemo)
+                    notificationStatus = await PushNotifications.status()
+                }
+            } else {
+                PushNotifications.openSettings()
+            }
+        }
+    }
+
+    private var notificationFooter: String {
+        switch notificationStatus {
+        case .allowed: "We'll let you know when there's an update on your claim or lead, or a reply on a support case."
+        case .denied: "Notifications are off for AAGA Claims. Turn them on in Settings."
+        case .notDetermined: "Get notified about updates on your claims and leads, and replies on support cases."
         }
     }
 

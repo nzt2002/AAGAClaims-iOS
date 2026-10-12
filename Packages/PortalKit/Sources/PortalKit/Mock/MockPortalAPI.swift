@@ -108,7 +108,7 @@ public actor MockPortalAPI: PortalAPI {
         let hasContact = !(submission.email ?? "").isEmpty || !(submission.phone ?? "").isEmpty
         guard !name.isEmpty, hasContact else { throw PortalAPIError.invalidRequest }
 
-        let id = makeId(prefix: "a0P")
+        let id = makeId(prefix: "a0r")
         let now = Date()
         data.leads.insert(
             LeadSummary(

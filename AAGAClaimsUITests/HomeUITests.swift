@@ -32,17 +32,17 @@ final class HomeUITests: XCTestCase {
 
     func testOpenClaimsTileFiltersList() {
         app.buttons["tileOpenClaims"].tap()
-        XCTAssertTrue(app.buttons["claimCard-a0X000000000001AAA"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["claimCard-a23000000000001AAA"].waitForExistence(timeout: 5))
         XCTAssertTrue(element(containing: "Open claims").exists)
-        XCTAssertFalse(app.buttons["claimCard-a0X000000000003AAA"].exists, "The closed claim is hidden")
+        XCTAssertFalse(app.buttons["claimCard-a23000000000003AAA"].exists, "The closed claim is hidden")
     }
 
     func testStatusOverviewRowFiltersByStage() {
         let row = app.buttons["stage-Negotiations"]
         scrollIntoView(row)
         row.tap()
-        XCTAssertTrue(app.buttons["claimCard-a0X000000000002AAA"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["claimCard-a0X000000000001AAA"].exists)
+        XCTAssertTrue(app.buttons["claimCard-a23000000000002AAA"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["claimCard-a23000000000001AAA"].exists)
     }
 
     func testActivityOpensUpdateSheetMarksReadAndOpensClaim() {
