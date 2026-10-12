@@ -1,0 +1,12 @@
+[
+  { "caseId": "500000000000001AAA", "caseNumber": "00012345", "subject": "Assistance Requested - Smith - Roof",
+    "description": "When is the inspection? I need to arrange time off work.", "status": "New",
+    "createdDate": "2026-10-03T09:15:00.000Z", "relatedRecordId": "a0X000000000001AAA",
+    "relatedRecordName": "Smith - Roof", "relatedRecordType": "Claim", "relatedRecordStage": "Inspection",
+    "accountManager": "Sam Lee" },
+  { "caseId": "500000000000002AAA", "caseNumber": "00012001", "subject": "Assistance Requested - Jordan Reyes",
+    "description": "Has the homeowner signed yet?", "status": "Closed",
+    "createdDate": "2026-09-25T14:00:00.000Z", "relatedRecordId": "a0P000000000001AAA",
+    "relatedRecordName": "Jordan Reyes", "relatedRecordType": "Prospect", "relatedRecordStage": null,
+    "accountManager": "Sam Lee" }
+]

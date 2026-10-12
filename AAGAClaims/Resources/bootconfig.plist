@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Consumer key of the "AAGA Claims iOS" External Client App
+	     (Setup > External Client App Manager > AAGA Claims iOS > Settings > OAuth Settings).
+	     While this is the placeholder, the app runs in demo mode without signing in. -->
+	<key>remoteAccessConsumerKey</key>
+	<string>REPLACE_WITH_CONSUMER_KEY</string>
+	<key>oauthRedirectURI</key>
+	<string>aagaclaims-auth://oauth/done</string>
+	<key>oauthScopes</key>
+	<array>
+		<string>api</string>
+		<string>web</string>
+		<string>refresh_token</string>
+	</array>
+	<key>shouldAuthenticate</key>
+	<true/>
+</dict>
+</plist>

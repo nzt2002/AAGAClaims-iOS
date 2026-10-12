@@ -1,0 +1,50 @@
+{
+  "a0P000000000001AAA": {
+    "prospectName": "Jordan Reyes", "prospectStatus": "Working", "peril": "Hail",
+    "lossAddress": "88 Peachtree Rd\nAtlanta, GA, 30305", "email": "jordan.reyes@example.com",
+    "phone": "(404) 555-0177", "mobile": null,
+    "associatedPartyName": "Taylor Brooks", "associatedPartyCompany": "Brooks Roofing",
+    "associatedPartyEmail": "taylor@brooksroofing.example.com", "associatedPartyPhone": "(404) 555-0190",
+    "adjusterName": "Jane Doe", "adjusterEmail": "jane.doe@example.com", "adjusterPhone": "(404) 555-0100",
+    "deskAdjusterName": null, "deskAdjusterEmail": null,
+    "accountManagerName": "Sam Lee", "accountManagerEmail": "sam.lee@example.com", "accountManagerPhone": "(404) 555-0101",
+    "insuranceCompanyName": "USAA", "claimNumber": null, "policyNumber": "POL-7788", "didFileClaim": "No",
+    "adjusterFees": 10, "lossDate": "2026-09-18",
+    "lossDescription": "Hail damage to roof shingles and gutters.",
+    "documentsUrl": null,
+    "createdDate": "2026-09-19T08:00:00.000Z", "lastModifiedDate": "2026-10-05T11:00:00.000Z",
+    "agreement": { "hasAgreement": true, "agreementId": "a3S000000000001AAA", "agreementName": "Public Adjuster Agreement",
+      "agreementStatus": "SENT", "sentDate": "2026-10-05T10:45:00.000Z", "viewedDate": null, "completedDate": null }
+  },
+  "a0P000000000002AAA": {
+    "prospectName": "Morgan Chen", "prospectStatus": "Converted", "peril": "Wind",
+    "lossAddress": "9 Elm St\nMarietta, GA, 30060", "email": "morgan.chen@example.com",
+    "phone": null, "mobile": "(770) 555-0123",
+    "associatedPartyName": "Taylor Brooks", "associatedPartyCompany": "Brooks Roofing",
+    "associatedPartyEmail": "taylor@brooksroofing.example.com", "associatedPartyPhone": "(404) 555-0190",
+    "adjusterName": "Marcus Hill", "adjusterEmail": "marcus.hill@example.com", "adjusterPhone": "(404) 555-0102",
+    "deskAdjusterName": null, "deskAdjusterEmail": null,
+    "accountManagerName": "Sam Lee", "accountManagerEmail": "sam.lee@example.com", "accountManagerPhone": "(404) 555-0101",
+    "insuranceCompanyName": "Allstate", "claimNumber": "CLM-3301", "policyNumber": "POL-9911", "didFileClaim": "Yes",
+    "adjusterFees": 10, "lossDate": "2026-07-01",
+    "lossDescription": "Siding torn off the north wall.",
+    "documentsUrl": "https://example.com/docs/morgan-chen",
+    "createdDate": "2026-07-02T08:00:00.000Z", "lastModifiedDate": "2026-08-30T09:00:00.000Z",
+    "agreement": { "hasAgreement": true, "agreementId": "a3S000000000002AAA", "agreementName": "Public Adjuster Agreement",
+      "agreementStatus": "COMPLETE", "sentDate": "2026-07-03T14:00:00.000Z", "viewedDate": null, "completedDate": "2026-07-04T08:12:00.000Z" }
+  },
+  "a0P000000000003AAA": {
+    "prospectName": "Riley Park", "prospectStatus": "New", "peril": "Water",
+    "lossAddress": "", "email": null, "phone": "(678) 555-0111", "mobile": null,
+    "associatedPartyName": "Taylor Brooks", "associatedPartyCompany": "Brooks Roofing",
+    "associatedPartyEmail": "taylor@brooksroofing.example.com", "associatedPartyPhone": null,
+    "adjusterName": null, "adjusterEmail": null, "adjusterPhone": null,
+    "deskAdjusterName": null, "deskAdjusterEmail": null,
+    "accountManagerName": null, "accountManagerEmail": null, "accountManagerPhone": null,
+    "insuranceCompanyName": null, "claimNumber": null, "policyNumber": null, "didFileClaim": null,
+    "adjusterFees": null, "lossDate": null, "lossDescription": null, "documentsUrl": null,
+    "createdDate": "2026-10-10T19:30:00.000Z", "lastModifiedDate": "2026-10-10T19:30:00.000Z",
+    "agreement": { "hasAgreement": false, "agreementId": null, "agreementName": null,
+      "agreementStatus": null, "sentDate": null, "viewedDate": null, "completedDate": null }
+  }
+}
