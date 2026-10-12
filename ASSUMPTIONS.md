@@ -35,6 +35,12 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 27. **Request Assistance (Support tab)** lists claims first, then leads, each sorted by name, in a pop-up menu. Both fields are required. After submitting, the app opens the new case.
 28. **Case thread** is oldest first; staff messages are left-aligned with the author's name and yours are right-aligned as "You".
 
+29. **Home tiles:** Open Claims shows claims that aren't Closed; Open Leads shows leads that aren't Converted or Unqualified; Completed shows Closed claims (the spec counts Converted leads too, but one list can't show both; they're under Lead Status on the Leads tab); Unread Updates opens the Notifications sheet.
+30. **Status overview** appears only when the user has claims, and lists all 7 stages including those with no claims.
+31. **Quick actions** sit above the status overview so they're visible without scrolling.
+32. **Opening an update** (from Home or Notifications) marks it read straight away, and "Open Claim / Open Lead" closes the sheets and opens the record in its tab.
+33. **App icon badge** is set to the unread count whenever it changes, but iOS only shows it after the user allows notifications, which is asked for with push in milestone 6.
+
 ## Open questions
 
 1. **API access for Customer Community Login users** (spec §3 blocking prerequisite). The portal profile currently has API Enabled = false. Until this is resolved, live mode can't work.

@@ -15,9 +15,8 @@ struct RelatedRecordRoute: Hashable {
 struct SupportView: View {
     @Bindable var viewModel: CasesListViewModel
     @Binding var path: NavigationPath
+    @Binding var showingRequest: Bool
     let api: PortalAPI
-
-    @State private var showingRequest = false
 
     var body: some View {
         LoadingContainer(state: viewModel.state, subject: "your support cases", retry: reload) { _ in
@@ -146,6 +145,6 @@ struct CaseRow: View {
 #Preview("Support") {
     @Previewable @State var path = NavigationPath()
     NavigationStack(path: $path) {
-        SupportView(viewModel: PreviewData.loadedCases(), path: $path, api: PreviewData.api())
+        SupportView(viewModel: PreviewData.loadedCases(), path: $path, showingRequest: .constant(false), api: PreviewData.api())
     }
 }

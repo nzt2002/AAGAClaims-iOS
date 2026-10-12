@@ -51,6 +51,10 @@ struct ClaimsListView: View {
         .navigationDestination(for: ClaimSummary.self) { claim in
             ClaimDetailView(claimId: claim.recordId, summary: claim, api: api)
         }
+        .navigationDestination(for: ClaimRoute.self) { route in
+            // Opened from an update or a case: use the list row if it's loaded, for loss reason.
+            ClaimDetailView(claimId: route.id, summary: viewModel.claims.first { $0.recordId == route.id }, api: api)
+        }
         .task {
             if viewModel.state.value == nil {
                 await viewModel.load()
@@ -111,6 +115,7 @@ struct ClaimsListView: View {
 
     private var activeFilterSummary: String {
         var parts: [String] = []
+        if viewModel.openOnly { parts.append("Open claims") }
         if let status = viewModel.statusFilter { parts.append(status) }
         if viewModel.paymentFilter != .any { parts.append(viewModel.paymentFilter.rawValue) }
         if let peril = viewModel.perilFilter { parts.append(peril) }

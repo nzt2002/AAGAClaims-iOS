@@ -19,6 +19,8 @@ public final class ClaimsListViewModel {
     public var paymentFilter: PaymentFilter = .any
     /// A peril value from the data, or nil for all.
     public var perilFilter: String?
+    /// Hides Closed claims. Set from the Home "Open Claims" tile.
+    public var openOnly = false
 
     private let api: PortalAPI
 
@@ -35,6 +37,9 @@ public final class ClaimsListViewModel {
     public var filteredClaims: [ClaimSummary] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         return claims.filter { claim in
+            if openOnly, claim.claimStatus?.caseInsensitiveCompare("Closed") == .orderedSame {
+                return false
+            }
             if let statusFilter, claim.claimStatus?.caseInsensitiveCompare(statusFilter) != .orderedSame {
                 return false
             }
@@ -63,10 +68,11 @@ public final class ClaimsListViewModel {
     }
 
     public var hasActiveFilters: Bool {
-        statusFilter != nil || perilFilter != nil || paymentFilter != .any
+        openOnly || statusFilter != nil || perilFilter != nil || paymentFilter != .any
     }
 
     public func clearFilters() {
+        openOnly = false
         statusFilter = nil
         perilFilter = nil
         paymentFilter = .any
@@ -94,6 +100,8 @@ public final class LeadsListViewModel {
     public var statusFilter: String?
     public var agreementFilter: AgreementFilter = .any
     public var perilFilter: String?
+    /// Hides Converted and Unqualified leads. Set from the Home "Open Leads" tile.
+    public var openOnly = false
 
     private let api: PortalAPI
 
@@ -110,6 +118,9 @@ public final class LeadsListViewModel {
     public var filteredLeads: [LeadSummary] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         return leads.filter { lead in
+            if openOnly, LeadsListViewModel.isFinished(lead.prospectStatus) {
+                return false
+            }
             if let statusFilter, lead.prospectStatus?.caseInsensitiveCompare(statusFilter) != .orderedSame {
                 return false
             }
@@ -138,13 +149,21 @@ public final class LeadsListViewModel {
     }
 
     public var hasActiveFilters: Bool {
-        statusFilter != nil || perilFilter != nil || agreementFilter != .any
+        openOnly || statusFilter != nil || perilFilter != nil || agreementFilter != .any
     }
 
     public func clearFilters() {
+        openOnly = false
         statusFilter = nil
         perilFilter = nil
         agreementFilter = .any
+    }
+
+    /// Converted or Unqualified: not counted as an open lead.
+    public nonisolated static func isFinished(_ status: String?) -> Bool {
+        guard let status = status?.trimmingCharacters(in: .whitespaces) else { return false }
+        return status.caseInsensitiveCompare("Converted") == .orderedSame
+            || status.caseInsensitiveCompare("Unqualified") == .orderedSame
     }
 
     public func load() async {

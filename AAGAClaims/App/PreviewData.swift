@@ -8,6 +8,12 @@ enum PreviewData {
         MockPortalAPI.standard(latency: .zero)
     }
 
+    static func router() -> AppRouter {
+        let router = AppRouter(api: api())
+        Task { await router.home.load() }
+        return router
+    }
+
     static func loadedHome() -> HomeViewModel {
         let viewModel = HomeViewModel(api: api())
         Task { await viewModel.load() }

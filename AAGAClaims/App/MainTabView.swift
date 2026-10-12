@@ -9,91 +9,100 @@ struct MainTabView: View {
     let session: AppSession
     let user: CurrentUser
 
-    @State private var selection: AppTab = .home
-    @State private var home: HomeViewModel
-    @State private var claims: ClaimsListViewModel
-    @State private var leads: LeadsListViewModel
-    @State private var cases: CasesListViewModel
-    @State private var showingNotifications = false
+    @State private var router: AppRouter
     @State private var safariLink: SafariLink?
-    @State private var leadsPath = NavigationPath()
-    @State private var supportPath = NavigationPath()
 
     init(session: AppSession, user: CurrentUser) {
         self.session = session
         self.user = user
-        _home = State(initialValue: HomeViewModel(api: session.api))
-        _claims = State(initialValue: ClaimsListViewModel(api: session.api))
-        _leads = State(initialValue: LeadsListViewModel(api: session.api))
-        _cases = State(initialValue: CasesListViewModel(api: session.api))
+        _router = State(initialValue: AppRouter(api: session.api))
     }
 
     var body: some View {
-        TabView(selection: $selection) {
+        TabView(selection: $router.selection) {
             Tab("Home", systemImage: "house", value: .home) {
                 NavigationStack {
-                    HomeView(viewModel: home, user: user, selectTab: { selection = $0 })
+                    HomeView(router: router, user: user)
                         .demoBanner(session.isDemo)
                         .toolbar { bell }
                 }
             }
             Tab("Claims", systemImage: "doc.text", value: .claims) {
-                NavigationStack {
-                    ClaimsListView(viewModel: claims, api: session.api, openSupport: { selection = .support })
+                NavigationStack(path: $router.claimsPath) {
+                    ClaimsListView(viewModel: router.claims, api: session.api, openSupport: { router.openSupport(caseId: nil) })
                         .demoBanner(session.isDemo)
                         .toolbar { bell }
                 }
             }
             Tab("Leads", systemImage: "person.2", value: .leads) {
-                NavigationStack(path: $leadsPath) {
-                    LeadsListView(viewModel: leads, path: $leadsPath, api: session.api, userEmail: user.email,
-                                  openSupport: { selection = .support })
+                NavigationStack(path: $router.leadsPath) {
+                    LeadsListView(viewModel: router.leads, path: $router.leadsPath, showingSubmit: $router.showingSubmitLead,
+                                  api: session.api, userEmail: user.email,
+                                  openSupport: { router.openSupport(caseId: nil) })
                         .demoBanner(session.isDemo)
                         .toolbar { bell }
                 }
             }
             Tab("Support", systemImage: "questionmark.bubble", value: .support) {
-                NavigationStack(path: $supportPath) {
-                    SupportView(viewModel: cases, path: $supportPath, api: session.api)
+                NavigationStack(path: $router.supportPath) {
+                    SupportView(viewModel: router.cases, path: $router.supportPath,
+                                showingRequest: $router.showingRequestAssistance, api: session.api)
                         .demoBanner(session.isDemo)
                 }
             }
             Tab("Account", systemImage: "person.crop.circle", value: .account) {
                 NavigationStack {
-                    AccountView(session: session, user: user, openSupport: { selection = .support })
+                    AccountView(session: session, user: user, openSupport: { router.openSupport(caseId: nil) })
                         .demoBanner(session.isDemo)
                 }
             }
         }
-        .environment(\.openSupport, OpenSupportAction { caseId in
-            selection = .support
-            supportPath = NavigationPath()
-            if let caseId {
-                cases.filter = .open
-                supportPath.append(CaseRoute(id: caseId))
-            }
-            Task { await cases.load() }
-        })
+        .environment(\.openSupport, OpenSupportAction { caseId in router.openSupport(caseId: caseId) })
         .opensWebLinksInSafari($safariLink)
-        .sheet(isPresented: $showingNotifications) {
-            NotificationsView(viewModel: home)
+        .sheet(isPresented: $router.showingNotifications) {
+            NotificationsView(router: router)
+        }
+        .onChange(of: router.home.unreadCount, initial: true) { _, count in
+            AppBadge.update(count)
         }
         .task {
             // Home also drives the bell badge, so load it up front.
-            await home.load()
+            await router.home.load()
         }
     }
 
     private var bell: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
             Button {
-                showingNotifications = true
+                router.showingNotifications = true
             } label: {
-                Image(systemName: home.unreadCount > 0 ? "bell.badge" : "bell")
+                Image(systemName: "bell")
                     .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
+                    .overlay(alignment: .topTrailing) {
+                        if router.home.unreadCount > 0 {
+                            UnreadBadge(count: router.home.unreadCount)
+                        }
+                    }
             }
-            .accessibilityLabel(home.unreadCount > 0 ? "Notifications, \(home.unreadCount) unread" : "Notifications")
+            .accessibilityLabel(router.home.unreadCount > 0 ? "Notifications, \(router.home.unreadCount) unread" : "Notifications")
             .accessibilityIdentifier("notificationsBell")
         }
+    }
+}
+
+/// Unread count on the bell (spec §4).
+struct UnreadBadge: View {
+    let count: Int
+
+    var body: some View {
+        Text(count > 99 ? "99+" : "\(count)")
+            .font(.caption2.bold())
+            .monospacedDigit()
+            .foregroundStyle(Color.white)
+            .padding(.horizontal, 5)
+            .frame(minWidth: 18, minHeight: 18)
+            .background(Color.red, in: Capsule())
+            .offset(x: 4, y: 2)
+            .accessibilityHidden(true)
     }
 }

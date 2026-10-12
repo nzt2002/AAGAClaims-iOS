@@ -1,12 +1,14 @@
 import PortalKit
 import SwiftUI
 
-/// Bell sheet (spec §6.3). Opening an item's Update sheet comes in milestone 5.
+/// Bell sheet (spec §6.3).
 struct NotificationsView: View {
-    let viewModel: HomeViewModel
+    @Bindable var router: AppRouter
 
     @Environment(\.dismiss) private var dismiss
     @State private var showUnreadOnly = true
+
+    private var viewModel: HomeViewModel { router.home }
 
     private var items: [ActivityItem] {
         viewModel.sortedActivity.filter { !showUnreadOnly || !$0.isRead }
@@ -30,11 +32,18 @@ struct NotificationsView: View {
                     .listRowSeparator(.hidden)
                 } else {
                     ForEach(items) { item in
-                        ActivityRow(item: item)
+                        Button {
+                            router.present(item, fromNotifications: true)
+                        } label: {
+                            ActivityRow(item: item)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("notification-\(item.commentId)")
                     }
                 }
             }
             .listStyle(.plain)
+            .refreshable { await viewModel.load() }
             .navigationTitle("Notifications")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -46,12 +55,16 @@ struct NotificationsView: View {
                         Task { await viewModel.markAllRead() }
                     }
                     .disabled(viewModel.unreadCount == 0)
+                    .accessibilityIdentifier("markAllRead")
                 }
+            }
+            .sheet(item: $router.notificationUpdate) { item in
+                UpdateSheet(item: item) { record, name in router.open(record, name: name) }
             }
         }
     }
 }
 
 #Preview {
-    NotificationsView(viewModel: PreviewData.loadedHome())
+    NotificationsView(router: PreviewData.router())
 }

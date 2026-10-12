@@ -40,6 +40,6 @@ If package resolution fails with `cannot use bare repository`, your git config h
 - [x] 2. Claims
 - [x] 3. Leads and Submit a Lead
 - [x] 4. Support
-- [ ] 5. Home and notifications
+- [x] 5. Home and notifications
 - [ ] 6. Native features
 - [ ] 7. Hardening

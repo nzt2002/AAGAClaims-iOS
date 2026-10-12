@@ -109,3 +109,42 @@ struct ClaimsTests {
         #expect(composer.error == .server(status: 503))
     }
 }
+
+@MainActor
+@Suite("Home navigation filters")
+struct HomeFilterTests {
+    @Test("Open-only filters agree with the Home tile counts")
+    func openOnlyMatchesTiles() async throws {
+        let api = MockPortalAPI(fixtures: try .bundled())
+        let home = HomeViewModel(api: api)
+        let claims = ClaimsListViewModel(api: api)
+        let leads = LeadsListViewModel(api: api)
+        await home.load()
+        await claims.load()
+        await leads.load()
+        let summary = try #require(home.summary)
+
+        claims.openOnly = true
+        leads.openOnly = true
+        #expect(claims.filteredClaims.count == summary.openClaims)
+        #expect(leads.filteredLeads.count == summary.openLeads)
+        #expect(claims.hasActiveFilters && leads.hasActiveFilters)
+
+        claims.clearFilters()
+        leads.clearFilters()
+        #expect(!claims.openOnly && !leads.openOnly)
+    }
+
+    @Test("Status overview row counts match the stage filter")
+    func stageFilterMatchesOverview() async throws {
+        let api = MockPortalAPI(fixtures: try .bundled())
+        let home = HomeViewModel(api: api)
+        let claims = ClaimsListViewModel(api: api)
+        await home.load()
+        await claims.load()
+        for row in try #require(home.summary).claimsByStage {
+            claims.statusFilter = row.stage
+            #expect(claims.filteredClaims.count == row.count, "\(row.stage)")
+        }
+    }
+}

@@ -1,0 +1,125 @@
+import Observation
+import PortalKit
+import SwiftUI
+import UserNotifications
+
+/// A claim to open by id, e.g. from an update or a support case.
+struct ClaimRoute: Hashable {
+    let id: String
+    let name: String?
+}
+
+/// Cross-tab navigation: which tab is showing, each tab's stack, and the sheets other tabs can
+/// open (Home tiles and quick actions, the Update sheet's "Open Claim" button, "View case").
+@MainActor
+@Observable
+final class AppRouter {
+    var selection: AppTab = .home
+    var claimsPath = NavigationPath()
+    var leadsPath = NavigationPath()
+    var supportPath = NavigationPath()
+
+    var showingNotifications = false
+    var showingSubmitLead = false
+    var showingRequestAssistance = false
+    /// The Update sheet opened from Home's recent activity.
+    var homeUpdate: ActivityItem?
+    /// The Update sheet opened from the Notifications sheet.
+    var notificationUpdate: ActivityItem?
+
+    let home: HomeViewModel
+    let claims: ClaimsListViewModel
+    let leads: LeadsListViewModel
+    let cases: CasesListViewModel
+
+    init(api: PortalAPI) {
+        home = HomeViewModel(api: api)
+        claims = ClaimsListViewModel(api: api)
+        leads = LeadsListViewModel(api: api)
+        cases = CasesListViewModel(api: api)
+    }
+
+    // MARK: - Home tiles and status overview
+
+    func showClaims(stage: String? = nil, openOnly: Bool = false) {
+        claims.clearFilters()
+        claims.searchText = ""
+        claims.statusFilter = stage
+        claims.openOnly = openOnly
+        claimsPath = NavigationPath()
+        selection = .claims
+    }
+
+    func showLeads(openOnly: Bool = false) {
+        leads.clearFilters()
+        leads.searchText = ""
+        leads.openOnly = openOnly
+        leadsPath = NavigationPath()
+        selection = .leads
+    }
+
+    // MARK: - Quick actions
+
+    func submitLead() {
+        leadsPath = NavigationPath()
+        selection = .leads
+        showingSubmitLead = true
+    }
+
+    func requestAssistance() {
+        supportPath = NavigationPath()
+        selection = .support
+        showingRequestAssistance = true
+    }
+
+    // MARK: - Opening records
+
+    /// Opens an update: marks it read and shows the Update sheet.
+    func present(_ item: ActivityItem, fromNotifications: Bool) {
+        if fromNotifications {
+            notificationUpdate = item
+        } else {
+            homeUpdate = item
+        }
+        if !item.isRead {
+            Task { await home.markRead([item.commentId]) }
+        }
+    }
+
+    /// Closes any sheets and opens the claim or lead in its tab.
+    func open(_ record: RecordRef, name: String?) {
+        homeUpdate = nil
+        notificationUpdate = nil
+        showingNotifications = false
+        switch record {
+        case .claim(let id):
+            claimsPath = NavigationPath()
+            claimsPath.append(ClaimRoute(id: id, name: name))
+            selection = .claims
+        case .lead(let id):
+            leadsPath = NavigationPath()
+            leadsPath.append(LeadRoute(id: id, name: name))
+            selection = .leads
+        }
+    }
+
+    func openSupport(caseId: String?) {
+        supportPath = NavigationPath()
+        if let caseId {
+            cases.filter = .open
+            supportPath.append(CaseRoute(id: caseId))
+        }
+        selection = .support
+        Task { await cases.load() }
+    }
+}
+
+/// The app icon badge shows the unread update count (spec §8). It only appears once the user
+/// has allowed notifications, which is asked for with push in milestone 6.
+enum AppBadge {
+    static func update(_ count: Int) {
+        Task {
+            try? await UNUserNotificationCenter.current().setBadgeCount(count)
+        }
+    }
+}

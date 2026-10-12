@@ -11,11 +11,10 @@ struct LeadRoute: Hashable {
 struct LeadsListView: View {
     @Bindable var viewModel: LeadsListViewModel
     @Binding var path: NavigationPath
+    @Binding var showingSubmit: Bool
     let api: PortalAPI
     let userEmail: String
     let openSupport: () -> Void
-
-    @State private var showingSubmit = false
 
     var body: some View {
         LoadingContainer(state: viewModel.state, subject: "leads", retry: reload) { _ in
@@ -129,6 +128,7 @@ struct LeadsListView: View {
     private var activeFilters: some View {
         HStack {
             Text("Showing: " + [
+                viewModel.openOnly ? "Open leads" : nil,
                 viewModel.statusFilter,
                 viewModel.agreementFilter == .any ? nil : "Agreement \(viewModel.agreementFilter.rawValue.lowercased())",
                 viewModel.perilFilter
@@ -214,7 +214,7 @@ struct LeadCard: View {
 #Preview("Leads") {
     @Previewable @State var path = NavigationPath()
     NavigationStack(path: $path) {
-        LeadsListView(viewModel: PreviewData.loadedLeads(), path: $path, api: PreviewData.api(),
+        LeadsListView(viewModel: PreviewData.loadedLeads(), path: $path, showingSubmit: .constant(false), api: PreviewData.api(),
                       userEmail: "taylor@example.com", openSupport: {})
     }
 }

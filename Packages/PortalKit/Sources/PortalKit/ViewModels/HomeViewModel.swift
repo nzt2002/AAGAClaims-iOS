@@ -88,9 +88,7 @@ public final class HomeViewModel {
     nonisolated static func summarise(_ content: Content) -> Summary {
         let closedClaims = content.claims.filter { isStatus($0.claimStatus, "Closed") }.count
         let convertedLeads = content.leads.filter { isStatus($0.prospectStatus, "Converted") }.count
-        let finishedLeads = content.leads.filter {
-            isStatus($0.prospectStatus, "Converted") || isStatus($0.prospectStatus, "Unqualified")
-        }.count
+        let finishedLeads = content.leads.filter { LeadsListViewModel.isFinished($0.prospectStatus) }.count
 
         var counts = Dictionary(uniqueKeysWithValues: ClaimLifecycle.stages.map { ($0, 0) })
         for claim in content.claims {
