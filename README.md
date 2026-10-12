@@ -38,7 +38,7 @@ If package resolution fails with `cannot use bare repository`, your git config h
 
 - [x] 1. Foundation: project, SDK login, mock `PortalAPI` with fixtures, tab shell, design tokens
 - [x] 2. Claims
-- [ ] 3. Leads and Submit a Lead
+- [x] 3. Leads and Submit a Lead
 - [ ] 4. Support
 - [ ] 5. Home and notifications
 - [ ] 6. Native features

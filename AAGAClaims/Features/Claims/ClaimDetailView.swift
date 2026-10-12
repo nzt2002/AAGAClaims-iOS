@@ -8,16 +8,6 @@ struct ClaimDetailView: View {
     let summary: ClaimSummary?
     let api: PortalAPI
 
-    @Environment(\.openSupport) private var openSupport
-    @State private var composer: ComposerViewModel.Kind?
-    @State private var confirmation: Confirmation?
-
-    private struct Confirmation: Identifiable {
-        let message: String
-        let caseId: String?
-        var id: String { message + (caseId ?? "") }
-    }
-
     init(claimId: String, summary: ClaimSummary?, api: PortalAPI) {
         _viewModel = State(initialValue: ClaimDetailViewModel(claimId: claimId, api: api))
         self.summary = summary
@@ -25,14 +15,6 @@ struct ClaimDetailView: View {
     }
 
     var body: some View {
-        screen
-            .sheet(item: $composer, content: composerSheet)
-            .alert("Thank you", isPresented: showingConfirmation, presenting: confirmation, actions: confirmationActions) {
-                Text($0.message)
-            }
-    }
-
-    private var screen: some View {
         content
             .background(Color.appBackground)
             // The header shows the name; repeating it in the bar wastes space.
@@ -43,26 +25,6 @@ struct ClaimDetailView: View {
                     await viewModel.load()
                 }
             }
-    }
-
-    private func composerSheet(_ kind: ComposerViewModel.Kind) -> some View {
-        ComposerSheet(
-            viewModel: ComposerViewModel(kind: kind, record: viewModel.record, api: api),
-            recordName: recordName,
-            onSuccess: handle
-        )
-    }
-
-    private var showingConfirmation: Binding<Bool> {
-        Binding(get: { confirmation != nil }, set: { if !$0 { confirmation = nil } })
-    }
-
-    @ViewBuilder
-    private func confirmationActions(_ confirmation: Confirmation) -> some View {
-        if let caseId = confirmation.caseId {
-            Button("View case") { openSupport(caseId: caseId) }
-        }
-        Button("OK", role: .cancel) {}
     }
 
     @ViewBuilder
@@ -105,7 +67,7 @@ struct ClaimDetailView: View {
             .padding(Theme.Spacing.l)
         }
         .refreshable { await viewModel.load() }
-        .safeAreaInset(edge: .bottom) { actionBar }
+        .recordActions(record: viewModel.record, recordName: recordName, api: api)
     }
 
     @ViewBuilder
@@ -129,52 +91,6 @@ struct ClaimDetailView: View {
             }
         }
     }
-
-    private var actionBar: some View {
-        HStack(spacing: Theme.Spacing.m) {
-            Button {
-                composer = .comment
-            } label: {
-                Label("Add Comment", systemImage: "text.bubble")
-                    .frame(maxWidth: .infinity, minHeight: Theme.minTapTarget)
-            }
-            .buttonStyle(.bordered)
-            .accessibilityIdentifier("addComment")
-
-            Button {
-                composer = .assistance
-            } label: {
-                Label("Request Assistance", systemImage: "questionmark.bubble")
-                    .foregroundStyle(Color.surface)
-                    .frame(maxWidth: .infinity, minHeight: Theme.minTapTarget)
-            }
-            .buttonStyle(.borderedProminent)
-            .accessibilityIdentifier("requestAssistance")
-        }
-        .font(.subheadline.weight(.semibold))
-        .padding(.horizontal, Theme.Spacing.l)
-        .padding(.vertical, Theme.Spacing.s)
-        .background(.bar)
-    }
-
-    private func handle(_ outcome: ComposerViewModel.Outcome) {
-        switch outcome {
-        case .commentSent:
-            confirmation = Confirmation(
-                message: "Your comment has been submitted. Your account manager has been notified.",
-                caseId: nil
-            )
-        case .caseCreated(let caseId):
-            confirmation = Confirmation(
-                message: "Your request has been submitted. We will follow up with you shortly.",
-                caseId: caseId
-            )
-        }
-    }
-}
-
-extension ComposerViewModel.Kind: Identifiable {
-    public var id: Self { self }
 }
 
 // MARK: - Header, highlights, lifecycle

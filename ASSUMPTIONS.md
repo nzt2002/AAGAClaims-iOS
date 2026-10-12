@@ -21,6 +21,15 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 15. **Loss reason** (`lossReason`) only comes from `GET /claims`, so claim detail shows it from the list row it was opened from. Opened any other way (deep link, milestone 6), it's hidden.
 16. **Claim detail** leaves the navigation bar title empty because the header already shows the claim name.
 
+17. **Lead agreement filter:** "Sent" means sent and not yet signed; "Signed" means completed; "Not sent" means neither date is set.
+18. **Lead Status filter** offers New, Working, Qualified, Converted and Unqualified.
+19. **Submit a Lead validation** beyond the spec: email must look like an email, ZIP must be exactly 5 digits, and the photos link must be a full http(s) address. Peril, address and insurance fields are optional, as on the portal. "Has a claim been filed?" can be left unanswered ("Not sure").
+20. **Insurance typeahead** matches anywhere in the name (like the server's `LIKE '%term%'`), so "st" finds both Allstate and State Farm. Editing the text after picking a company clears the selection.
+21. **Supporting-files step** after Submit a Lead shows the confirmation and a Done button. Uploading from it arrives with milestone 6 (spec §6.10); until then it explains that and points to Add Comment for sharing a photo link.
+22. **Lead detail** also shows the referral (associated party) details in a "Referred by" card, so every `LeadDetail` field appears somewhere.
+23. **Submit a Lead** is the + button in the Leads toolbar, next to the notifications bell.
+24. **Keyboard Done button** on the Submit a Lead form, because number and phone pads have no return key.
+
 ## Open questions
 
 1. **API access for Customer Community Login users** (spec §3 blocking prerequisite). The portal profile currently has API Enabled = false. Until this is resolved, live mode can't work.

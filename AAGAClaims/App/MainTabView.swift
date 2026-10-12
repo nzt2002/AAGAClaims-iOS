@@ -16,6 +16,7 @@ struct MainTabView: View {
     @State private var cases: CasesListViewModel
     @State private var showingNotifications = false
     @State private var safariLink: SafariLink?
+    @State private var leadsPath = NavigationPath()
 
     init(session: AppSession, user: CurrentUser) {
         self.session = session
@@ -43,8 +44,9 @@ struct MainTabView: View {
                 }
             }
             Tab("Leads", systemImage: "person.2", value: .leads) {
-                NavigationStack {
-                    LeadsListView(viewModel: leads, openSupport: { selection = .support })
+                NavigationStack(path: $leadsPath) {
+                    LeadsListView(viewModel: leads, path: $leadsPath, api: session.api, userEmail: user.email,
+                                  openSupport: { selection = .support })
                         .demoBanner(session.isDemo)
                         .toolbar { bell }
                 }
