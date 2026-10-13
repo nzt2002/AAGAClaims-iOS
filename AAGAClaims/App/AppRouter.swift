@@ -23,6 +23,8 @@ final class AppRouter {
     var showingSubmitLead = false
     var showingRequestAssistance = false
     var showingNewTask = false
+    /// New Claim (staff only).
+    var showingNewClaim = false
     var showingNewEvent = false
     var showingSearch = false
     /// The Update sheet opened from Home's recent activity.

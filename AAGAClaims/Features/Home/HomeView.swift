@@ -103,13 +103,19 @@ struct HomeView: View {
         let columns = Array(repeating: GridItem(.flexible(), spacing: Theme.Spacing.s), count: dynamicTypeSize.isAccessibilitySize ? 1 : 2)
         // Two columns: New Event sits directly above New Task.
         return LazyVGrid(columns: columns, spacing: Theme.Spacing.s) {
-            quickAction("Submit a Lead", "person.badge.plus", id: "quickSubmitLead") { router.submitLead() }
+            quickAction("New Lead", "person.badge.plus", id: "quickSubmitLead") { router.submitLead() }
                 .disabledWhenOffline(isOffline)
             if viewModel.canCreateTasks {
                 quickAction("New Event", "calendar.badge.plus", id: "quickNewEvent") { router.showingNewEvent = true }
                     .disabledWhenOffline(isOffline)
             }
-            quickAction("My Claims", "doc.text", id: "quickMyClaims") { router.showClaims() }
+            // Staff create claims here; portal users can't, so they keep My Claims.
+            if user.isInternal {
+                quickAction("New Claim", "doc.badge.plus", id: "quickNewClaim") { router.showingNewClaim = true }
+                    .disabledWhenOffline(isOffline)
+            } else {
+                quickAction("My Claims", "doc.text", id: "quickMyClaims") { router.showClaims() }
+            }
             if viewModel.canCreateTasks {
                 quickAction("New Task", "checklist", id: "quickNewTask") { router.showingNewTask = true }
                     .disabledWhenOffline(isOffline)

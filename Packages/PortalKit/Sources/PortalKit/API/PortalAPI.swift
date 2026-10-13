@@ -42,6 +42,22 @@ public protocol PortalAPI: Sendable {
     /// `POST /claims/{id}/events`. Returns the new event id. Staff and adjusters only.
     func createEvent(_ event: NewEvent, on record: RecordRef) async throws -> String
 
+    // New Claim (staff): the Prospect Conversion Guided Process without a Prospect
+    /// `GET /new-claim/options`: picklists and internal users.
+    func newClaimOptions() async throws -> NewClaimOptions
+    /// `GET /new-claim/accounts?q=`: accounts by name (Commercial only for partner accounts).
+    func searchAccounts(_ query: String, commercialOnly: Bool) async throws -> [AccountMatch]
+    /// `GET /new-claim/account-matches`: Residential accounts with the same email, or the same first and last name.
+    func matchingAccounts(firstName: String?, lastName: String, email: String?) async throws -> [AccountMatch]
+    /// `GET /new-claim/partner-matches?name=`: Commercial accounts with exactly this name.
+    func matchingPartnerAccounts(name: String) async throws -> [AccountMatch]
+    /// `GET /new-claim/contacts?q=`: contacts by name or email.
+    func searchContacts(_ query: String) async throws -> [ContactMatch]
+    /// `GET /new-claim/contact-matches`: contacts with the same email, or the same first and last name.
+    func matchingContacts(firstName: String?, lastName: String, email: String?) async throws -> [ContactMatch]
+    /// `POST /new-claim`. Returns the new claim id. Throws `.duplicate` when a match must be used instead.
+    func createClaim(_ request: NewClaimRequest) async throws -> String
+
     // Search and Chatter
     /// `GET /search?q=`: claims, leads (and, for portal users, cases) the user can open.
     func search(_ query: String) async throws -> [SearchResult]
@@ -83,10 +99,12 @@ public enum PortalAPIError: Error, Equatable, Sendable {
     case server(status: Int)
     /// The response didn't match the expected shape.
     case decoding(String)
+    /// 409 from New Claim: matching records exist, and the user must pick one instead.
+    case duplicate(DuplicateMatches)
 
     public var isRetryable: Bool {
         switch self {
-        case .sessionExpired, .notFound, .invalidRequest, .decoding: false
+        case .sessionExpired, .notFound, .invalidRequest, .decoding, .duplicate: false
         case .offline, .server: true
         }
     }

@@ -19,10 +19,13 @@ public actor MockPortalAPI: PortalAPI {
         var agenda: Agenda
         var assignees: [TaskAssignee]
         var feed: [FeedPost]
+        var accounts: [AccountMatch] = []
+        var contacts: [ContactMatch] = []
+        var newClaimOptions: NewClaimOptions?
 
         /// The fixtures bundled with PortalKit.
         public static func bundled() throws -> Fixtures {
-            Fixtures(
+            var fixtures = Fixtures(
                 claims: try load("claims"),
                 claimDetails: try load("claim_details"),
                 payments: try load("payments"),
@@ -39,6 +42,10 @@ public actor MockPortalAPI: PortalAPI {
                 assignees: try load("task_assignees"),
                 feed: try load("feed")
             )
+            fixtures.accounts = try load("new_claim_accounts")
+            fixtures.contacts = try load("new_claim_contacts")
+            fixtures.newClaimOptions = try load("new_claim_options")
+            return fixtures
         }
 
         /// No claims, leads, activity or cases: for empty-state previews and tests.
@@ -444,6 +451,130 @@ public actor MockPortalAPI: PortalAPI {
         switch record {
         case .claim(let id): try requireClaim(id)
         case .lead(let id): guard data.leadDetails[id] != nil else { throw PortalAPIError.notFound }
+        }
+    }
+
+    // MARK: - New Claim
+
+    public func newClaimOptions() async throws -> NewClaimOptions {
+        try await simulate()
+        // Staff only, like the server (the demo user is staff).
+        guard let options = data.newClaimOptions else { throw PortalAPIError.notFound }
+        return options
+    }
+
+    public func searchAccounts(_ query: String, commercialOnly: Bool) async throws -> [AccountMatch] {
+        try await simulate()
+        let q = query.trimmingCharacters(in: .whitespaces)
+        guard q.count >= 2 else { return [] }
+        return data.accounts.filter {
+            ($0.name ?? "").localizedCaseInsensitiveContains(q) && (!commercialOnly || $0.kind == "Business")
+        }
+    }
+
+    public func matchingAccounts(firstName: String?, lastName: String, email: String?) async throws -> [AccountMatch] {
+        try await simulate()
+        return personMatches(firstName: firstName, lastName: lastName, email: email)
+    }
+
+    public func matchingPartnerAccounts(name: String) async throws -> [AccountMatch] {
+        try await simulate()
+        return partnerMatches(name)
+    }
+
+    public func searchContacts(_ query: String) async throws -> [ContactMatch] {
+        try await simulate()
+        let q = query.trimmingCharacters(in: .whitespaces)
+        guard q.count >= 2 else { return [] }
+        return data.contacts.filter {
+            ($0.name ?? "").localizedCaseInsensitiveContains(q) || ($0.email ?? "").localizedCaseInsensitiveContains(q)
+        }
+    }
+
+    public func matchingContacts(firstName: String?, lastName: String, email: String?) async throws -> [ContactMatch] {
+        try await simulate()
+        return contactMatches(firstName: firstName, lastName: lastName, email: email)
+    }
+
+    /// Mirrors the server: duplicates are refused, and everything is created together or not at all.
+    public func createClaim(_ request: NewClaimRequest) async throws -> String {
+        try await simulate()
+        guard data.newClaimOptions != nil else { throw PortalAPIError.notFound }
+        guard !request.claim.name.trimmingCharacters(in: .whitespaces).isEmpty else { throw PortalAPIError.invalidRequest }
+
+        var newAccount: AccountMatch?
+        switch request.account {
+        case .existing(let id):
+            guard data.accounts.contains(where: { $0.id == id }) else { throw PortalAPIError.invalidRequest }
+        case .new(let details):
+            let matches = personMatches(firstName: details.firstName, lastName: details.lastName, email: details.email)
+            if !matches.isEmpty { throw PortalAPIError.duplicate(DuplicateMatches(kind: .account, accounts: matches)) }
+            let name = [details.firstName, details.lastName].compactMap { PortalFormat.nonEmpty($0) }.joined(separator: " ")
+            newAccount = AccountMatch(id: makeId(prefix: "001"), name: name, email: details.email, phone: details.phone,
+                                      city: request.claim.city, state: request.claim.state, kind: "Person")
+        }
+
+        var newPartner: AccountMatch?
+        var newContact: ContactMatch?
+        if case .new(let details, _, let partner) = request.contact {
+            if case .new(let name) = partner {
+                let matches = partnerMatches(name)
+                if !matches.isEmpty { throw PortalAPIError.duplicate(DuplicateMatches(kind: .partnerAccount, accounts: matches)) }
+                newPartner = AccountMatch(id: makeId(prefix: "001"), name: name, kind: "Business")
+            }
+            // The mock's "duplicate rule": same email.
+            if let email = PortalFormat.nonEmpty(details.email),
+               case let duplicates = data.contacts.filter({ $0.email?.caseInsensitiveCompare(email) == .orderedSame }),
+               !duplicates.isEmpty {
+                throw PortalAPIError.duplicate(DuplicateMatches(kind: .contact, contacts: duplicates))
+            }
+            let name = [details.firstName, details.lastName].compactMap { PortalFormat.nonEmpty($0) }.joined(separator: " ")
+            newContact = ContactMatch(id: makeId(prefix: "003"), name: name, email: details.email, phone: details.phone, accountName: details.company)
+        }
+
+        if let newAccount { data.accounts.append(newAccount) }
+        if let newPartner { data.accounts.append(newPartner) }
+        if let newContact { data.contacts.append(newContact) }
+
+        let id = makeId(prefix: "a23")
+        let c = request.claim
+        let address = [c.street, [c.city, [c.state, c.postalCode].compactMap { $0 }.joined(separator: " ")].compactMap { PortalFormat.nonEmpty($0) }.joined(separator: ", ")]
+            .compactMap { PortalFormat.nonEmpty($0) }.joined(separator: ", ")
+        let adjuster = data.newClaimOptions?.users.first { $0.userId == (c.ownerId ?? data.newClaimOptions?.currentUserId) }?.name
+        let fields: [String: Any?] = [
+            "recordId": id, "recordName": c.name, "claimName": c.name, "claimNumber": c.claimNumber,
+            "policyNumber": c.policyNumber, "claimStatus": "Preparation", "peril": c.peril,
+            "lossAddress": address.isEmpty ? nil : address, "lossReason": c.lossDescription,
+            "lossDescription": c.lossDescription, "email": c.email, "mainPhone": c.phone,
+            "adjusterName": adjuster, "lastModifiedDate": ISO8601DateFormatter().string(from: Date()),
+            "lossDate": c.lossDate.map { String(format: "%04d-%02d-%02d", $0.year, $0.month, $0.day) }
+        ]
+        let json = try JSONSerialization.data(withJSONObject: fields.compactMapValues { $0 })
+        let decoder = PortalJSON.makeDecoder()
+        data.claims.append(try decoder.decode(ClaimSummary.self, from: json))
+        data.claimDetails[id] = try decoder.decode(ClaimDetail.self, from: json)
+        return id
+    }
+
+    private func personMatches(firstName: String?, lastName: String, email: String?) -> [AccountMatch] {
+        let fullName = [firstName, lastName].compactMap { PortalFormat.nonEmpty($0) }.joined(separator: " ")
+        return data.accounts.filter { account in
+            guard account.kind == "Person" else { return false }
+            if let email = PortalFormat.nonEmpty(email), account.email?.caseInsensitiveCompare(email) == .orderedSame { return true }
+            return !lastName.isEmpty && account.name?.caseInsensitiveCompare(fullName) == .orderedSame
+        }
+    }
+
+    private func partnerMatches(_ name: String) -> [AccountMatch] {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        return data.accounts.filter { $0.kind == "Business" && $0.name?.caseInsensitiveCompare(trimmed) == .orderedSame }
+    }
+
+    private func contactMatches(firstName: String?, lastName: String, email: String?) -> [ContactMatch] {
+        let fullName = [firstName, lastName].compactMap { PortalFormat.nonEmpty($0) }.joined(separator: " ")
+        return data.contacts.filter { contact in
+            if let email = PortalFormat.nonEmpty(email), contact.email?.caseInsensitiveCompare(email) == .orderedSame { return true }
+            return !lastName.isEmpty && contact.name?.caseInsensitiveCompare(fullName) == .orderedSame
         }
     }
 

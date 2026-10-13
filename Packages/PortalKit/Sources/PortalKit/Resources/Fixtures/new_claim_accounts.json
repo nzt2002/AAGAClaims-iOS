@@ -1,0 +1,5 @@
+[
+  { "id": "001000000000001AAA", "name": "Alex Smith", "email": "alex.smith@example.com", "phone": "(404) 555-0134", "city": "Atlanta", "state": "GA", "kind": "Person" },
+  { "id": "001000000000002AAA", "name": "Jordan Reyes", "email": "jordan.reyes@example.com", "phone": "(404) 555-0177", "city": "Atlanta", "state": "GA", "kind": "Person" },
+  { "id": "001000000000003AAA", "name": "Peachtree Roofing LLC", "email": null, "phone": "(404) 555-0190", "city": "Decatur", "state": "GA", "kind": "Business" }
+]

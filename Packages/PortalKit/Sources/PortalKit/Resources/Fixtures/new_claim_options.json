@@ -1,0 +1,13 @@
+{
+  "perils": ["Fire and Smoke Damage", "Theft and Vandalism", "Windstorm /Tree", "Windstorm or Hail", "Hurricane", "Lightning Strikes", "Water Damage", "Weight of Ice, Snow, or Sleet", "Vehicle Damage", "All Other Perils"],
+  "states": ["GA", "SC"],
+  "sources": ["Web Lead", "Prior Client", "Social Media", "Advertisement", "Customer Event", "Employee Referral", "External Referral", "Google AdWords", "Other", "Partner Web Referral", "Purchased List", "Trade Show", "Webinar"],
+  "defaultSource": "Web Lead",
+  "contactRoles": ["Property Contact", "Sub-Contractor", "Adjuster", "Other"],
+  "users": [
+    { "userId": "005000000000001AAA", "name": "Alex Smith" },
+    { "userId": "005000000000002AAA", "name": "Jane Doe" },
+    { "userId": "005000000000003AAA", "name": "Sam Lee" }
+  ],
+  "currentUserId": "005000000000001AAA"
+}

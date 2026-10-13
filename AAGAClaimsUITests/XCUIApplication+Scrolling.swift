@@ -14,3 +14,14 @@ extension XCUIApplication {
         }
     }
 }
+
+extension XCUIApplication {
+    /// Accepts a system permission alert (e.g. notifications after a fresh install), which
+    /// otherwise covers the app and makes elements unhittable.
+    func dismissSystemAlerts() {
+        let alert = XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.firstMatch
+        guard alert.waitForExistence(timeout: 1) else { return }
+        let allow = alert.buttons["Allow"]
+        if allow.exists { allow.tap() } else { alert.buttons.firstMatch.tap() }
+    }
+}

@@ -63,7 +63,7 @@ final class AccessibilityAuditUITests: XCTestCase {
             // Checked in screenshots at accessibility sizes: these scale correctly.
             // The Home quick actions (text and icon both scale; one column at accessibility sizes).
             let verified = ["Face ID", "Ask for Face ID", "You · ", "Sam Lee · ", "Assistance Requested",
-                            "Submit a Lead", "New Event", "My Claims", "New Task"]
+                            "New Lead", "New Event", "New Claim", "New Task"]
             return verified.contains { label.hasPrefix($0) }
         default:
             return false

@@ -127,6 +127,42 @@ public actor CachingPortalAPI: PortalAPI {
         return try await guarded { try await $0.createEvent(event, on: record) }
     }
 
+    // New Claim is online only, and never cached.
+    public func newClaimOptions() async throws -> NewClaimOptions {
+        try requireOnline()
+        return try await guarded { try await $0.newClaimOptions() }
+    }
+
+    public func searchAccounts(_ query: String, commercialOnly: Bool) async throws -> [AccountMatch] {
+        try requireOnline()
+        return try await guarded { try await $0.searchAccounts(query, commercialOnly: commercialOnly) }
+    }
+
+    public func matchingAccounts(firstName: String?, lastName: String, email: String?) async throws -> [AccountMatch] {
+        try requireOnline()
+        return try await guarded { try await $0.matchingAccounts(firstName: firstName, lastName: lastName, email: email) }
+    }
+
+    public func matchingPartnerAccounts(name: String) async throws -> [AccountMatch] {
+        try requireOnline()
+        return try await guarded { try await $0.matchingPartnerAccounts(name: name) }
+    }
+
+    public func searchContacts(_ query: String) async throws -> [ContactMatch] {
+        try requireOnline()
+        return try await guarded { try await $0.searchContacts(query) }
+    }
+
+    public func matchingContacts(firstName: String?, lastName: String, email: String?) async throws -> [ContactMatch] {
+        try requireOnline()
+        return try await guarded { try await $0.matchingContacts(firstName: firstName, lastName: lastName, email: email) }
+    }
+
+    public func createClaim(_ request: NewClaimRequest) async throws -> String {
+        try requireOnline()
+        return try await guarded { try await $0.createClaim(request) }
+    }
+
     public func search(_ query: String) async throws -> [SearchResult] {
         try requireOnline()
         return try await guarded { try await $0.search(query) }

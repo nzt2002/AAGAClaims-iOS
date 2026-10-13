@@ -228,7 +228,21 @@ Returns the cases where the user is the case contact. This includes every case t
 
 `GET /feed` → `[{ "id", "authorName", "text", "createdDate", "parentId", "parentName", "parentType": "Claim" | "Prospect" | null }]`: the latest 20 posts in a staff member's Chatter news feed. Empty for portal users.
 
-### 5.7 Device
+### 5.7 New Claim (staff)
+
+The Prospect Conversion Guided Process (`Prospect_Conversion_Guided_Process` flow) without a Prospect, in `PortalNewClaimService`. Every route returns `404` unless the user is internal (user type Standard).
+
+- `GET /new-claim/options` → `{ perils, states, sources, defaultSource, contactRoles, users: [{userId, name}], currentUserId }`. `users` are active internal users, for Adjuster (the claim owner) and Account Manager.
+- `GET /new-claim/accounts?q=&type=commercial?` → accounts whose name contains `q` (2+ characters, 20 at most): `[{ id, name, email, phone, city, state, kind: "Person"|"Business" }]`.
+- `GET /new-claim/account-matches?firstName=&lastName=&email=` → Residential (record type Name `Residential1`) accounts with the same email, **or** the same first and last name (the flow's `Get_Matching_Person_Accounts`), plus anything the active Account duplicate rules match.
+- `GET /new-claim/partner-matches?name=` → Commercial accounts with exactly this name (`Get_Matching_Partner_Accounts`).
+- `GET /new-claim/contacts?q=` and `GET /new-claim/contact-matches?firstName=&lastName=&email=` → `[{ id, name, email, phone, accountName }]`; matches are the same email, or the same first and last name (`Get_Matching_Contacts`).
+- `POST /new-claim` `{ account: {id} | {new: {firstName?, lastName, email?, phone?}}, claim: {name, street?, city?, state?, postalCode?, lossDate?, peril?, lossDescription?, claimNumber?, policyNumber?, insuranceCompanyId?, email?, phone?, source?, adjusterFees?, ownerId?, accountManagerId?}, contact?: {id, role} | {new: {firstName?, lastName, email?, phone?, company?}, role, partnerAccount?: {id} | {name}} }` → `201 { recordId, accountId }`.
+  - One transaction: the person account (with the flow's `Create_Person_Account` fields: billing address = loss address, claim and policy numbers, description of loss, insurance company, email, phone, lead source), then the claim (`Create_Claim` fields, with the account), then the partner account and contact if new, then the `Claim_s_Contacts__c` link with the role. Any failure rolls everything back.
+  - **Duplicates are always checked on the server**, whatever the app did: a new account with matches → `409 {"error":"duplicate_account","matches":[accounts]}`; a new partner account whose name exists → `409 duplicate_partner_account`; a new contact the active duplicate rules match → `409 duplicate_contact` with the contacts (as `CreateAssociatedPartyContactAction`). Nothing is created.
+  - A new subcontractor (`Sub-Contractor`) contact needs `partnerAccount` (`400` otherwise). Owner defaults to the user; the source defaults to the picklist default. Picklist values, users, accounts, contacts and the insurance company are all checked (`400`).
+
+### 5.8 Device
 
 **[new]** `POST /devices` `{ "apnsToken": "..." }`: only if the SDK's built-in push registration isn't used (§8). *Not built: the app uses the SDK's push registration.*
 
@@ -252,13 +266,19 @@ Returns the cases where the user is the case contact. This includes every case t
    - When nothing matches, the sheet says so and suggests what else to try. If the current scope is empty but other scopes have results, it offers "Show all {n} results".
    - A search is saved to recents when it is submitted or a result is opened. Recents are stored on the device and cleared at sign-out.
    - Offline, the sheet says search needs a connection.
-3. **Quick actions**, directly under the welcome, in two columns: *Submit a Lead* | *New Event*, then *My Claims* | *New Task*. New Event and New Task appear only when `canCreateTasks`. Both forms start with *Related to*: a Claim | Lead switch, then a picker of the user's claims or leads. New Task: related record, subject, optional due date, assign to (defaults to the user), details. New Event: related record, subject, all day or start/end (defaults to the next hour, for an hour), optional location, assign to, details.
+3. **Quick actions**, directly under the welcome, in two columns: *New Lead* | *New Event*, then *New Claim* (staff) or *My Claims* (portal users) | *New Task*. New Lead opens Submit a Lead. New Event and New Task appear only when `canCreateTasks`. Both forms start with *Related to*: a Claim | Lead switch, then a picker of the user's claims or leads. New Task: related record, subject, optional due date, assign to (defaults to the user), details. New Event: related record, subject, all day or start/end (defaults to the next hour, for an hour), optional location, assign to, details.
+   **New Claim** (staff) opens a sheet that follows the Prospect Conversion Guided Process:
+   1. *Who is this claim for?* **Existing account** (search by name) or **New account**.
+   2. New account: first name, last name (required), email, phone. Before anything is created the app asks for matches (§5.7). If there are any, the user **must choose one of them**; there's no way to create the new account while a match exists (as in the flow, where the matches table requires a selection). To change the person, go back and edit the details.
+   3. Claim details: claim name (prefilled from the account), peril, loss date, description, loss address, insurance company (type-ahead), policy and claim numbers, homeowner email and phone (prefilled), adjuster (defaults to the user), account manager, source (picklist default), adjuster fees (0–100%).
+   4. Claim contact (optional): None, Existing (search by name or email) or New, with a role (Property Contact, Sub-Contractor, Adjuster, Other). A new contact is checked for matches first; the user picks a match or chooses "None of these are a match". A new Sub-Contractor needs a company (Commercial) account: if one has the contact's company name, it must be chosen; otherwise pick an existing one or create it.
+   5. Review, then **Create Claim**. If the server finds a duplicate, the app goes to the matching step to pick it (for a contact: use the existing one or skip the contact). On success the sheet closes and the new claim opens.
 4. **Upcoming:** the next 5 items from `GET /agenda`, tasks with their due date (overdue ones in the warning colour) and events with day and time (or "All day", shown in UTC as Salesforce stores them), plus the related claim or lead and an event's location. Tapping an item with a related record opens it. Hidden when empty, unless the user can create tasks ("Nothing scheduled").
 5. **Recent claims:** the 3 most recently updated claims, with status; tap to open, "See all" opens Claims.
 6. **Recent activity:** published updates from `GET /activity` and, for staff, Chatter posts from `GET /feed`, newest first (8 at most). Staff (Salesforce user type Standard) get filter chips *Chatter* (the default), *Portal updates* and *All*. Portal users see portal updates only, with no filter, and the app doesn't call `GET /feed` for them. Each entry's header is its record: the type in regular weight and the name in bold ("Claim · **Smith - Roof**"), with a line under it saying what it is ("Portal update · {title}" or "Chatter · {author}"). Chatter posts not on a claim or lead show the group or user name as the header. Unread updates show a dot; tapping one opens the **Update sheet** (title, date, rendered HTML, and an "Open {Claim|Lead}" button) and marks it read. Tapping a Chatter post on a claim or lead opens that record.
 7. Pull to refresh.
 
-*(Changed 2026-10-12: the KPI tiles were replaced by Upcoming and Recent claims; "Request Assistance" is called "Ask Question" throughout the app (it's on claim and lead detail and Support; not on Home); Search, New Event, staff Chatter posts and the hero were added (search later moved from the top bar into the hero, replacing Next up and the unread chip); the status overview was removed; emails no longer appear in Upcoming; tasks and events can go on leads; Recent activity has record headers and a staff filter.)*
+*(Changed 2026-10-12: the KPI tiles were replaced by Upcoming and Recent claims; "Request Assistance" is called "Ask Question" throughout the app (it's on claim and lead detail and Support; not on Home); Search, New Event, staff Chatter posts and the hero were added (search later moved from the top bar into the hero, replacing Next up and the unread chip); the status overview was removed; emails no longer appear in Upcoming; tasks and events can go on leads; Recent activity has record headers and a staff filter; Submit a Lead is New Lead on Home, and staff get New Claim.)*
 
 ### 6.3 Notifications (sheet from the bell icon)
 - An **Unread / All** segmented control over `GET /activity`.

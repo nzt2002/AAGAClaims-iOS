@@ -146,6 +146,42 @@ public struct HTTPPortalAPI: PortalAPI {
         return response.recordId
     }
 
+    public func newClaimOptions() async throws -> NewClaimOptions {
+        try await get("/new-claim/options")
+    }
+
+    public func searchAccounts(_ query: String, commercialOnly: Bool) async throws -> [AccountMatch] {
+        var items = [URLQueryItem(name: "q", value: query)]
+        if commercialOnly { items.append(URLQueryItem(name: "type", value: "commercial")) }
+        return try await get("/new-claim/accounts", query: items)
+    }
+
+    public func matchingAccounts(firstName: String?, lastName: String, email: String?) async throws -> [AccountMatch] {
+        try await get("/new-claim/account-matches", query: personQuery(firstName, lastName, email))
+    }
+
+    public func matchingPartnerAccounts(name: String) async throws -> [AccountMatch] {
+        try await get("/new-claim/partner-matches", query: [URLQueryItem(name: "name", value: name)])
+    }
+
+    public func searchContacts(_ query: String) async throws -> [ContactMatch] {
+        try await get("/new-claim/contacts", query: [URLQueryItem(name: "q", value: query)])
+    }
+
+    public func matchingContacts(firstName: String?, lastName: String, email: String?) async throws -> [ContactMatch] {
+        try await get("/new-claim/contact-matches", query: personQuery(firstName, lastName, email))
+    }
+
+    public func createClaim(_ request: NewClaimRequest) async throws -> String {
+        let response: RecordIdResponse = try await post("/new-claim", body: request)
+        return response.recordId
+    }
+
+    private func personQuery(_ firstName: String?, _ lastName: String, _ email: String?) -> [URLQueryItem] {
+        [URLQueryItem(name: "firstName", value: firstName), URLQueryItem(name: "lastName", value: lastName),
+         URLQueryItem(name: "email", value: email)].filter { $0.value?.isEmpty == false }
+    }
+
     public func search(_ query: String) async throws -> [SearchResult] {
         try await get("/search", query: [URLQueryItem(name: "q", value: query)])
     }
@@ -202,8 +238,22 @@ public struct HTTPPortalAPI: PortalAPI {
         case 400: throw PortalAPIError.invalidRequest
         case 401: throw PortalAPIError.sessionExpired
         case 404: throw PortalAPIError.notFound
+        case 409: throw PortalAPIError.duplicate(Self.duplicateMatches(response.body))
         default: throw PortalAPIError.server(status: response.statusCode)
         }
+    }
+
+    /// `{"error": "duplicate_account", "matches": [...]}`.
+    static func duplicateMatches(_ body: Data) -> DuplicateMatches {
+        struct Body<M: Decodable>: Decodable { let error: String; let matches: [M]? }
+        let decoder = PortalJSON.makeDecoder()
+        let code = (try? decoder.decode(Body<AccountMatch>.self, from: body).error)
+            ?? (try? decoder.decode(Body<ContactMatch>.self, from: body).error)
+        let kind = code.flatMap(DuplicateMatches.Kind.init(rawValue:)) ?? .account
+        if kind == .contact {
+            return DuplicateMatches(kind: kind, contacts: (try? decoder.decode(Body<ContactMatch>.self, from: body).matches) ?? [])
+        }
+        return DuplicateMatches(kind: kind, accounts: (try? decoder.decode(Body<AccountMatch>.self, from: body).matches) ?? [])
     }
 
     private func decode<T: Decodable>(_ data: Data) throws -> T {

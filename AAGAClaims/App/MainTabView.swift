@@ -75,6 +75,13 @@ struct MainTabView: View {
         .sheet(isPresented: $router.showingSearch) {
             SearchSheet(api: session.api, close: { router.showingSearch = false }) { result in router.open(result) }
         }
+        .sheet(isPresented: $router.showingNewClaim) {
+            NewClaimSheet(api: session.api, close: { router.showingNewClaim = false }) { claimId, name in
+                router.showingNewClaim = false
+                Task { await router.claims.load() }
+                router.open(.claim(claimId), name: name)
+            }
+        }
         .sheet(isPresented: $router.showingNewEvent) {
             NewEventSheet(api: session.api, currentUserName: user.fullName) {
                 Task { await router.home.loadAgenda() }
