@@ -9,6 +9,8 @@ struct SubmitLeadView: View {
     let onDone: (_ leadId: String, _ name: String) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    /// The Submit bar steps aside while address suggestions show, so it doesn't cover them.
+    @State private var showingAddressSuggestions = false
 
     init(api: PortalAPI, userEmail: String, onDone: @escaping (String, String) -> Void) {
         _viewModel = State(initialValue: SubmitLeadViewModel(api: api, userEmail: userEmail))
@@ -51,7 +53,10 @@ struct SubmitLeadView: View {
             referralSection
         }
         .scrollDismissesKeyboard(.interactively)
-        .safeAreaInset(edge: .bottom) { submitBar }
+        .safeAreaInset(edge: .bottom) {
+            if !showingAddressSuggestions { submitBar }
+        }
+        .onPreferenceChange(AddressSuggestionsShowing.self) { showingAddressSuggestions = $0 }
         .toolbar {
             // Number and phone pads have no return key.
             ToolbarItemGroup(placement: .keyboard) {
@@ -91,8 +96,14 @@ struct SubmitLeadView: View {
 
     private var addressSection: some View {
         Section("2. Property address") {
-            TextField("Street", text: $viewModel.street)
-                .textContentType(.fullStreetAddress)
+            StreetAddressField(street: $viewModel.street) { address in
+                viewModel.street = address.street
+                viewModel.city = address.city
+                if SubmitLeadViewModel.usStates.contains(where: { $0.code == address.state }) {
+                    viewModel.stateCode = address.state
+                }
+                viewModel.postalCode = address.postalCode
+            }
             TextField("City", text: $viewModel.city)
                 .textContentType(.addressCity)
             Picker("State", selection: $viewModel.stateCode) {

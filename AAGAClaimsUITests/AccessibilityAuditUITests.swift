@@ -11,6 +11,7 @@ final class AccessibilityAuditUITests: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = ["-UITestDemo", "YES", "-PortalDataSource", "mock"]
         app.launch()
+        app.dismissSystemAlerts()
         XCTAssertTrue(app.staticTexts["Welcome back, Alex!"].waitForExistence(timeout: 10))
     }
 

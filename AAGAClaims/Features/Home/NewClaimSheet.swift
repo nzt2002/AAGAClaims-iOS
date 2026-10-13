@@ -368,8 +368,13 @@ private struct ClaimDetailsStep: View {
                 }
 
                 Section("Loss address") {
-                    TextField("Street", text: $viewModel.street)
-                        .textContentType(.streetAddressLine1)
+                    StreetAddressField(street: $viewModel.street) { address in
+                        viewModel.street = address.street
+                        viewModel.city = address.city
+                        // Claims only take the states in the picklist (GA, SC).
+                        viewModel.state = options.states.contains(address.state) ? address.state : nil
+                        viewModel.postalCode = address.postalCode
+                    }
                     TextField("City", text: $viewModel.city)
                         .textContentType(.addressCity)
                     Picker("State", selection: $viewModel.state) {
