@@ -10,12 +10,13 @@ struct HomeView: View {
     private var viewModel: HomeViewModel { router.home }
     @Environment(\.isOffline) private var isOffline
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         LoadingContainer(state: viewModel.state, subject: "your dashboard", retry: reload) { _ in
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
-                    header
+                    hero
                     quickActions
                     upcoming
                     recentClaims
@@ -33,15 +34,67 @@ struct HomeView: View {
         }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-            Text("Welcome back, \(user.firstName ?? user.fullName)!")
-                .font(.title2.bold())
-                .foregroundStyle(Color.textPrimary)
-            Text("We're here to help with your claim")
-                .foregroundStyle(Color.textSecondary)
+    /// Greeting on the brand gradient, with the global search bar.
+    private var hero: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                Text(Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day()).uppercased())
+                    .font(.caption.weight(.semibold))
+                    .tracking(0.8)
+                    .foregroundStyle(.white)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Welcome back, \(user.firstName ?? user.fullName)!")
+                    .font(.title.bold())
+                    .foregroundStyle(.white)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("We're here to help with your claim")
+                    .font(.subheadline)
+                    .foregroundStyle(.white)
+            }
+            .accessibilityElement(children: .combine)
+
+            // Global search: everything the user can open.
+            Button {
+                router.showingSearch = true
+            } label: {
+                HStack(spacing: Theme.Spacing.s) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.headline)
+                        .foregroundStyle(Color(red: 0x0B / 255, green: 0x5C / 255, blue: 0xAB / 255))
+                    Text("Search claims, leads and cases")
+                        .font(.subheadline)
+                        .foregroundStyle(Color(red: 0x54 / 255, green: 0x60 / 255, blue: 0x6E / 255))
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, Theme.Spacing.l)
+                .frame(maxWidth: .infinity, minHeight: 52)
+                // White in both modes, so the text colours above are fixed (6.4:1 and better).
+                .background {
+                    Capsule().fill(.white).shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+                }
+                .contentShape(Capsule())
+            }
+            .buttonStyle(QuickActionPressStyle())
+            .accessibilityLabel("Search claims, leads and cases")
+            .accessibilityIdentifier("homeSearch")
         }
-        .accessibilityElement(children: .combine)
+        .padding(Theme.Spacing.xl)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            // Shadow on the shape only, so the text stays crisp.
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(BrandGradient.hero(colorScheme))
+                .overlay(alignment: .topTrailing) {
+                    // Decorative ring, kept to the top-right corner, away from the text.
+                    Circle()
+                        .stroke(.white.opacity(0.12), lineWidth: 18)
+                        .frame(width: 140, height: 140)
+                        .offset(x: 50, y: -50)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .shadow(color: Color.brandBright.opacity(colorScheme == .dark ? 0 : 0.28), radius: 18, x: 0, y: 10)
+                .accessibilityHidden(true)
+        }
     }
 
     // MARK: - Quick actions
@@ -67,10 +120,7 @@ struct HomeView: View {
     private func quickAction(_ title: String, _ icon: String, id: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: Theme.Spacing.s) {
-                Image(systemName: icon)
-                    .font(.headline)
-                    .foregroundStyle(Color.brandPrimary)
-                    .frame(width: 24)
+                IconBadge(systemName: icon, size: 32, filled: true)
                 Text(title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.textPrimary)
@@ -78,12 +128,17 @@ struct HomeView: View {
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, Theme.Spacing.m)
-            .frame(maxWidth: .infinity, minHeight: 56)
-            .background(Color.surfaceTinted, in: RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.border, lineWidth: 1))
+            .padding(.vertical, Theme.Spacing.s)
+            .frame(maxWidth: .infinity, minHeight: 60)
+            .background {
+                RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+                    .fill(Color.surface)
+                    .shadow(color: .black.opacity(colorScheme == .dark ? 0 : 0.05), radius: 8, x: 0, y: 3)
+            }
+            .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous).stroke(Color.border.opacity(0.7), lineWidth: 1))
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(QuickActionPressStyle())
         .accessibilityIdentifier(id)
     }
 
@@ -96,7 +151,7 @@ struct HomeView: View {
             EmptyView()
         case .failed:
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-                SectionHeading("Upcoming")
+                SectionHeader("Upcoming")
                 HStack {
                     Text("Unable to load your tasks and events.")
                         .foregroundStyle(Color.textSecondary)
@@ -110,7 +165,7 @@ struct HomeView: View {
             // Homeowners usually have nothing scheduled; only show an empty section to people who manage tasks.
             if !viewModel.upcoming.isEmpty || agenda.canCreateTasks {
                 VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-                    SectionHeading("Upcoming")
+                    SectionHeader("Upcoming")
                     if viewModel.upcoming.isEmpty {
                         Text("Nothing scheduled. You're all caught up.")
                             .foregroundStyle(Color.textSecondary)
@@ -139,9 +194,7 @@ struct HomeView: View {
     private var recentClaims: some View {
         if !viewModel.recentClaims.isEmpty {
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-                HStack {
-                    SectionHeading("Recent claims")
-                    Spacer()
+                SectionHeader("Recent claims") {
                     Button {
                         router.showClaims()
                     } label: {
@@ -175,7 +228,7 @@ struct HomeView: View {
 
     private var recentActivity: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-            SectionHeading("Recent activity")
+            SectionHeader("Recent activity")
             if viewModel.recentEntries.isEmpty {
                 Text("No updates yet. We'll let you know as soon as there's news.")
                     .foregroundStyle(Color.textSecondary)
@@ -249,10 +302,11 @@ struct AgendaRow: View {
 
     private var row: some View {
             HStack(alignment: .top, spacing: Theme.Spacing.m) {
-                Image(systemName: item.kind == .event ? "calendar" : "checklist")
-                    .foregroundStyle(item.isOverdue == true ? Color.warning : Color.brandPrimary)
-                    .frame(width: 24)
-                    .padding(.top, 2)
+                IconBadge(
+                    systemName: item.kind == .event ? "calendar" : "checklist",
+                    tint: item.isOverdue == true ? .warning : .brandPrimary,
+                    size: 32
+                )
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.subject ?? (item.kind == .event ? "Event" : "Task"))
                         .font(.subheadline.weight(.semibold))
@@ -283,12 +337,42 @@ struct AgendaRow: View {
             .contentShape(Rectangle())
     }
 
+    /// "Today", "Tomorrow", a weekday this week, or a date. For the hero's Next up.
+    static func relativeWhen(_ item: AgendaItem) -> String {
+        let calendar = Calendar.current
+        let day: Date?
+        if item.kind == .task, let due = item.dueDate {
+            day = due.date(in: calendar)
+        } else {
+            day = item.startDateTime
+        }
+        guard let day else { return "" }
+        if item.kind == .task && item.isOverdue == true { return "Overdue" }
+        if calendar.isDateInToday(day) {
+            if item.kind == .event, item.isAllDay != true, let start = item.startDateTime {
+                return start.formatted(date: .omitted, time: .shortened)
+            }
+            return "Today"
+        }
+        if calendar.isDateInTomorrow(day) { return "Tomorrow" }
+        if let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: .now), to: calendar.startOfDay(for: day)).day, days > 0, days < 7 {
+            return day.formatted(.dateTime.weekday(.wide))
+        }
+        return day.formatted(.dateTime.month(.abbreviated).day())
+    }
+
     private var when: String {
         switch item.kind {
         case .task:
             guard let due = item.dueDate else { return "No due date" }
             let date = PortalFormat.date(due)
-            return item.isOverdue == true ? "Overdue · Due \(date)" : "Due \(date)"
+            if item.isOverdue == true { return "Overdue · Due \(date)" }
+            let calendar = Calendar.current
+            if let day = due.date(in: calendar) {
+                if calendar.isDateInToday(day) { return "Due today" }
+                if calendar.isDateInTomorrow(day) { return "Due tomorrow" }
+            }
+            return "Due \(date)"
         case .event:
             guard let start = item.startDateTime else { return "" }
             if item.isAllDay == true {
@@ -339,6 +423,16 @@ struct RecentClaimRow: View {
 }
 
 /// A Chatter post in Recent activity (staff).
+/// A gentle press effect for quick actions.
+struct QuickActionPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .opacity(configuration.isPressed ? 0.9 : 1)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
 struct FeedPostRow: View {
     let post: FeedPost
 

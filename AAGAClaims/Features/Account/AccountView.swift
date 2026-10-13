@@ -50,6 +50,8 @@ struct AccountView: View {
                 LabeledContent("Version", value: Self.versionString)
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
         .navigationTitle("Account")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: scenePhase) {

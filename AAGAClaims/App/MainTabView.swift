@@ -26,14 +26,14 @@ struct MainTabView: View {
                 NavigationStack {
                     HomeView(router: router, user: user)
                         .statusBanners(session)
-                        .toolbar { topBarButtons(askQuestion: true) }
+                        .toolbar { topBarButtons() }
                 }
             }
             Tab("Claims", systemImage: "doc.text", value: .claims) {
                 NavigationStack(path: $router.claimsPath) {
                     ClaimsListView(viewModel: router.claims, api: session.api, openSupport: { router.openSupport(caseId: nil) })
                         .statusBanners(session)
-                        .toolbar { topBarButtons(askQuestion: false) }
+                        .toolbar { topBarButtons() }
                 }
             }
             Tab("Leads", systemImage: "person.2", value: .leads) {
@@ -42,7 +42,7 @@ struct MainTabView: View {
                                   api: session.api, userEmail: user.email,
                                   openSupport: { router.openSupport(caseId: nil) })
                         .statusBanners(session)
-                        .toolbar { topBarButtons(askQuestion: false) }
+                        .toolbar { topBarButtons() }
                 }
             }
             Tab("Support", systemImage: "questionmark.bubble", value: .support) {
@@ -59,6 +59,7 @@ struct MainTabView: View {
                 }
             }
         }
+        .buttonBorderShape(.capsule)
         .environment(\.openSupport, OpenSupportAction { caseId in router.openSupport(caseId: caseId) })
         .environment(\.isOffline, session.offline.isOffline)
         .onChange(of: session.offline.isOffline) { wasOffline, isOffline in
@@ -115,29 +116,10 @@ struct MainTabView: View {
         }
     }
 
-    /// Top right: Ask Question (Home only), Search and the notifications bell.
+    /// Top right: the notifications bell. (Search is the bar in Home's hero.)
     @ToolbarContentBuilder
-    private func topBarButtons(askQuestion: Bool) -> some ToolbarContent {
+    private func topBarButtons() -> some ToolbarContent {
         ToolbarItemGroup(placement: .topBarTrailing) {
-            if askQuestion {
-                Button {
-                    router.requestAssistance()
-                } label: {
-                    Image(systemName: "questionmark.bubble")
-                        .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
-                }
-                .accessibilityLabel("Ask Question")
-                .disabledWhenOffline(session.offline.isOffline)
-                .accessibilityIdentifier("askQuestion")
-            }
-            Button {
-                router.showingSearch = true
-            } label: {
-                Image(systemName: "magnifyingglass")
-                    .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
-            }
-            .accessibilityLabel("Search")
-            .accessibilityIdentifier("search")
             Button {
                 router.showingNotifications = true
             } label: {

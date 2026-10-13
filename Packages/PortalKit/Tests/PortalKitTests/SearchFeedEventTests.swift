@@ -27,6 +27,49 @@ struct SearchFeedEventTests {
         #expect(search.state == .results([]))
     }
 
+    @Test("Scope chips filter results and show counts")
+    func scopes() async {
+        let search = SearchViewModel(api: mock(), debounce: .zero)
+        search.query = "Smith"
+        await search.awaitSearch()
+        #expect(search.count(for: .all) == 5)
+        #expect(search.count(for: .claims) == 4)
+        #expect(search.count(for: .leads) == 0)
+        search.scope = .cases
+        #expect(search.sections.map(\.kind) == [.supportCase])
+        search.scope = .leads
+        #expect(!search.hasResultsInScope)
+    }
+
+    @Test("Recent searches: newest first, no duplicates, capped, clearable, persisted")
+    func recents() {
+        let store = MemoryRecentSearchStore(["roof"])
+        let search = SearchViewModel(api: mock(), store: store, debounce: .zero)
+        #expect(search.recentSearches == ["roof"])
+
+        search.query = "x"
+        search.commitSearch()
+        #expect(search.recentSearches == ["roof"], "Too short to remember")
+
+        for term in ["Kitchen", "Jordan", "ROOF", "a1", "b2", "c3", "d4"] {
+            search.query = term
+            search.commitSearch()
+        }
+        #expect(search.recentSearches == ["d4", "c3", "b2", "a1", "ROOF", "Jordan"])
+        #expect(store.load() == search.recentSearches)
+
+        search.clearRecents()
+        #expect(search.recentSearches.isEmpty && store.load().isEmpty)
+    }
+
+    @Test("Highlights every match, ignoring case")
+    func highlight() {
+        let search = SearchViewModel(api: mock(), debounce: .zero)
+        search.query = "smith"
+        let text = "Smith - Roof (Smith family)"
+        #expect(search.highlightRanges(in: text).map { String(text[$0]) } == ["Smith", "Smith"])
+    }
+
     @Test("Search failures are reported")
     func searchFailure() async {
         let search = SearchViewModel(api: MockPortalAPI(fixtures: .empty, failure: .server(status: 500)), debounce: .zero)

@@ -63,7 +63,7 @@ All users sign in with their **existing portal credentials**. They are Salesforc
 4. **Support**: support cases → case thread; "Request Assistance" button
 5. **Account**: profile, notification settings, Face ID toggle, sign out
 
-**Global:** a search icon and a bell icon in the navigation bar of Home, Claims and Leads open **Search** and **Notifications**. The bell shows an unread badge count.
+**Global:** a bell icon in the navigation bar of Home, Claims and Leads opens **Notifications** and shows an unread badge count. Global **Search** opens from the search bar in the Home hero.
 
 **Empty-state rule:** if a user has no claims, the Claims tab still appears with a friendly empty state ("No claims yet") and a link to Support. The same applies to Leads.
 
@@ -208,7 +208,7 @@ Returns the cases where the user is the case contact. This includes every case t
 
 ### 5.5 Agenda and tasks
 
-`GET /agenda` → `{ "items": [AgendaItem], "canCreateTasks": true }`: the user's own open tasks and upcoming events, plus upcoming events (not tasks) on the claims and leads they can see, earliest first (undated tasks last; up to 20). Overdue open tasks are included.
+`GET /agenda` → `{ "items": [AgendaItem], "canCreateTasks": true }`: the user's own open tasks (excluding logged or synced emails: Task Subtype Email or List Email, or a subject starting "Email:") and upcoming events, plus upcoming events (not tasks) on the claims and leads they can see, earliest first (undated tasks last; up to 20). Overdue open tasks are included.
 ```json
 { "id": "00T...", "kind": "task" | "event", "subject": "...",
   "dueDate": "2026-10-16", "startDateTime": "...", "endDateTime": "...", "isAllDay": false,
@@ -241,15 +241,23 @@ Returns the cases where the user is the case contact. This includes every case t
 - After the first successful login, offer **Face ID** (§8).
 
 ### 6.2 Home
-1. **Welcome header:** "Welcome back, {firstName}!" with the subtitle "We're here to help with your claim".
-2. **Top bar:** *Ask Question* (icon), *Search* and the notifications bell. Search (also on Claims and Leads) opens a sheet over `GET /search`, starting at 2 characters with a 300 ms debounce, grouped into Claims, Leads and Support cases; tapping a result opens it.
+1. **Hero:** a Salesforce-blue gradient card with today's date, "Welcome back, {firstName}!", the subtitle "We're here to help with your claim", and a white search bar, "Search claims, leads and cases", that opens global Search.
+2. **Top bar:** the notifications bell only.
+   **Search sheet** (over `GET /search`, starting at 2 characters with a 300 ms debounce):
+   - The field is focused and the keyboard is up as soon as the sheet opens.
+   - Scope chips: All, Claims, Leads and Cases, each with its result count. Filtering by scope happens on the device; it doesn't search again.
+   - Before typing: up to 6 recent searches (newest first; tap one to run it again; *Clear* removes them). With no recents, tips show what can be found: a claim name or number, an address, a lead's name or email, and a case subject or number.
+   - Results are grouped by type, with a count per group. The matching text is bold and blue. Tapping a result opens it.
+   - When nothing matches, the sheet says so and suggests what else to try. If the current scope is empty but other scopes have results, it offers "Show all {n} results".
+   - A search is saved to recents when it is submitted or a result is opened. Recents are stored on the device and cleared at sign-out.
+   - Offline, the sheet says search needs a connection.
 3. **Quick actions**, directly under the welcome, in two columns: *Submit a Lead* | *New Event*, then *My Claims* | *New Task*. New Event and New Task appear only when `canCreateTasks`. New Task: claim, subject, optional due date, assign to (defaults to the user), details. New Event: claim, subject, all day or start/end (defaults to the next hour, for an hour), optional location, assign to, details.
 4. **Upcoming:** the next 5 items from `GET /agenda`, tasks with their due date (overdue ones in the warning colour) and events with day and time (or "All day", shown in UTC as Salesforce stores them), plus the related claim or lead and an event's location. Tapping an item with a related record opens it. Hidden when empty, unless the user can create tasks ("Nothing scheduled").
 5. **Recent claims:** the 3 most recently updated claims, with status; tap to open, "See all" opens Claims.
 6. **Recent activity:** published updates from `GET /activity` and, for staff, Chatter posts from `GET /feed`, newest first (8 at most). Unread updates show a dot; tapping one opens the **Update sheet** (title, date, rendered HTML, and an "Open {Claim|Lead}" button) and marks it read. Tapping a Chatter post on a claim or lead opens that record.
 7. Pull to refresh.
 
-*(Changed 2026-10-12: the KPI tiles were replaced by Upcoming and Recent claims; "Request Assistance" is called "Ask Question" throughout the app and moved to the top bar on Home; Search, New Event and staff Chatter posts were added; the status overview was removed.)*
+*(Changed 2026-10-12: the KPI tiles were replaced by Upcoming and Recent claims; "Request Assistance" is called "Ask Question" throughout the app (it's on claim and lead detail and Support; not on Home); Search, New Event, staff Chatter posts and the hero were added (search later moved from the top bar into the hero, replacing Next up and the unread chip); the status overview was removed; emails no longer appear in Upcoming.)*
 
 ### 6.3 Notifications (sheet from the bell icon)
 - An **Unread / All** segmented control over `GET /activity`.
@@ -404,13 +412,13 @@ A single scrolling form in 5 numbered sections, with a sticky **Submit** button:
 
 ## 9. Brand and visual design
 - **Logo:** `https://portal.accurateadjustmentsga.com/cms/delivery/media/MC7US4WNGSA5GEPDGQS3GZYNFDTQ`. The designer will supply the app icon and vector logo.
-- **Colours** (from the current portal; the designer may refine them):
-  - Primary `#1A73E8`, with a darker variant `#1D4ED8`
-  - Text `#202124`; secondary text `#5F6368`
-  - Border `#DADCE0`
-  - Surface `#FFFFFF`; tinted surface `#F8FBFF` / `#E8F0FE`
-  - Success `#137333`; warning `#B06000`
-  - Provide dark-mode equivalents.
+- **Theme (2026-10-12): Salesforce blue and white, premium and modern.** Every text colour passes WCAG AA (4.5:1) on every background it's used on.
+  - Brand blue (text, links, icons, buttons) `#0B5CAB`; Salesforce bright blue `#0176D3` for gradients and accents; navy `#014486`
+  - Text `#181818`; secondary text `#54606E`; border `#E1E6EE`
+  - Background `#F4F7FB`; surface `#FFFFFF`; tinted surfaces `#EEF4FF` / `#DCEAFE`
+  - Success `#22683E`; warning `#8C4B02`
+  - Dark mode: blues `#78B0FD` / `#59A7FF` / `#AACBFF`, text `#F3F3F3` / `#A5AEBB`, surfaces `#161B24` / `#0B0F17` / `#152238`
+  - Cards: white, 16 pt continuous corners, soft shadow (light mode). Buttons: capsules. Hero and splash: `#0176D3` → `#014486` gradient with white text.
 - **Typography:** SF Pro, the system font. The portal uses Google Sans, so don't bundle it.
 - **Tone:** warm, reassuring and plain-English. Customers are often stressed after a loss. Use "your claim", "your account manager" and "we'll follow up". Avoid insurance jargon in UI copy. Field names like RCV can stay, with a help (ⓘ) tip: "Replacement Cost Value: the full cost to repair or replace damaged property."
 - **Design source of truth:** Figma files from the designer. Where they differ from this spec, the Figma layout wins and the data and behaviour in this spec win.

@@ -32,6 +32,8 @@ nonisolated struct AppEnvironment: Sendable {
         let dataSource = DataSource(rawValue: sourceName ?? "") ?? .mock
 
         let auth: Auth = isUITest || !BootConfigCheck.hasConsumerKey ? .demo : .salesforce
+        // Each UI test starts with no recent searches.
+        if isUITest { UserDefaultsRecentSearchStore.clear() }
 
         return AppEnvironment(
             // Live data needs a real session.
