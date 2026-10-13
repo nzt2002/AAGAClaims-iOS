@@ -22,6 +22,7 @@ public actor MockPortalAPI: PortalAPI {
         var accounts: [AccountMatch] = []
         var contacts: [ContactMatch] = []
         var newClaimOptions: NewClaimOptions?
+        var people: [String: PeopleFixture] = [:]
 
         /// The fixtures bundled with PortalKit.
         public static func bundled() throws -> Fixtures {
@@ -45,6 +46,7 @@ public actor MockPortalAPI: PortalAPI {
             fixtures.accounts = try load("new_claim_accounts")
             fixtures.contacts = try load("new_claim_contacts")
             fixtures.newClaimOptions = try load("new_claim_options")
+            fixtures.people = try load("people")
             return fixtures
         }
 
@@ -357,7 +359,7 @@ public actor MockPortalAPI: PortalAPI {
 
     // MARK: - Search and Chatter
 
-    public func search(_ query: String) async throws -> [SearchResult] {
+    public func search(_ query: String, includePeople: Bool) async throws -> [SearchResult] {
         try await simulate()
         let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard needle.count >= 2 else { return [] }
@@ -376,7 +378,53 @@ public actor MockPortalAPI: PortalAPI {
             SearchResult(type: .supportCase, id: $0.caseId, title: $0.subject,
                          subtitle: ["Case \($0.caseNumber ?? "")", $0.status ?? ""].joined(separator: " · "))
         }
-        return claims + leads + cases
+        let people = !includePeople ? [] : data.people.values.map(\.person).filter { matches($0.name) }
+            .sorted { ($0.name ?? "") < ($1.name ?? "") }
+            .map { SearchResult(type: .user, id: $0.id, title: $0.name,
+                                subtitle: [$0.title, $0.department].compactMap { $0 }.joined(separator: " · ")) }
+        return claims + leads + cases + people
+    }
+
+    public func person(id: String) async throws -> Person {
+        try await simulate()
+        return try found(data.people[id]?.person)
+    }
+
+    public func personFeed(id: String) async throws -> [ChatterPost] {
+        try await simulate()
+        return try found(data.people[id]).feed
+    }
+
+    public func addReply(toPost postId: String, text: String) async throws -> ChatterReply {
+        try await simulate()
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw PortalAPIError.invalidRequest }
+        let reply = ChatterReply(id: makeId(prefix: "0D7"), authorName: "Alex Smith", text: text, createdDate: Date(), isMine: true)
+        for (userId, var fixture) in data.people {
+            if let index = fixture.feed.firstIndex(where: { $0.id == postId }) {
+                fixture.feed[index].replies.append(reply)
+                fixture.feed[index].totalReplies = (fixture.feed[index].totalReplies ?? 0) + 1
+                data.people[userId] = fixture
+                return reply
+            }
+        }
+        throw PortalAPIError.notFound
+    }
+
+    public func editReply(id: String, text: String) async throws -> ChatterReply {
+        try await simulate()
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw PortalAPIError.invalidRequest }
+        for (userId, var fixture) in data.people {
+            for p in fixture.feed.indices {
+                if let r = fixture.feed[p].replies.firstIndex(where: { $0.id == id }) {
+                    // As in Chatter: only your own replies.
+                    guard fixture.feed[p].replies[r].isMine == true else { throw PortalAPIError.invalidRequest }
+                    fixture.feed[p].replies[r].text = text
+                    data.people[userId] = fixture
+                    return fixture.feed[p].replies[r]
+                }
+            }
+        }
+        throw PortalAPIError.notFound
     }
 
     public func feed() async throws -> [FeedPost] {

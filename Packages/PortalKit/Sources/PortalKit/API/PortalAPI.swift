@@ -60,7 +60,16 @@ public protocol PortalAPI: Sendable {
 
     // Search and Chatter
     /// `GET /search?q=`: claims, leads (and, for portal users, cases) the user can open.
-    func search(_ query: String) async throws -> [SearchResult]
+    func search(_ query: String, includePeople: Bool) async throws -> [SearchResult]
+    // People (staff only)
+    /// `GET /people/{id}`.
+    func person(id: String) async throws -> Person
+    /// `GET /people/{id}/feed`: their Chatter profile feed.
+    func personFeed(id: String) async throws -> [ChatterPost]
+    /// `POST /chatter/posts/{id}/replies`.
+    func addReply(toPost postId: String, text: String) async throws -> ChatterReply
+    /// `POST /chatter/replies/{id}`: edit your own reply.
+    func editReply(id: String, text: String) async throws -> ChatterReply
     /// `GET /feed`: Chatter posts from a staff member's news feed; empty for portal users.
     func feed() async throws -> [FeedPost]
 

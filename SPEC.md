@@ -228,6 +228,17 @@ Returns the cases where the user is the case contact. This includes every case t
 
 `GET /feed` → `[{ "id", "authorName", "text", "createdDate", "parentId", "parentName", "parentType": "Claim" | "Prospect" | null }]`: the latest 20 posts in a staff member's Chatter news feed. Empty for portal users.
 
+### 5.6a People and Chatter (staff)
+
+All return `404` unless the user is internal (user type Standard), and only for active internal users.
+
+- `GET /search?q=&includeUsers=true` also returns `{ "type": "User", "id", "title": name, "subtitle": "Title · Department" }` (SOSL on name fields, 20 at most). Without `includeUsers`, no people are returned, so older app builds never see the "User" type.
+- `GET /people/{id}` → `{ id, name, title, department, email, phone, mobilePhone, aboutMe, city, state, managerName, isMe }`.
+- `GET /people/{id}/feed` → their Chatter profile feed (ConnectApi, `UserProfile`, 20 newest): `[{ id, authorName, text, createdDate, parentName?, totalReplies, replies: [{ id, authorName, text, createdDate, isMine }] }]`. Posts without text are skipped. `parentName` is set when the post is on something other than their profile.
+- `POST /chatter/posts/{postId}/replies` `{ text }` → `201` the reply.
+- `POST /chatter/replies/{replyId}` `{ text }` → `201` the edited reply. Chatter decides who may edit (normally only the author, and only if comment editing is on); otherwise `400 edit_not_allowed`.
+- Text is required and at most 10,000 characters. Everything runs through ConnectApi as the user, so Chatter's own visibility rules apply.
+
 ### 5.7 New Claim (staff)
 
 The Prospect Conversion Guided Process (`Prospect_Conversion_Guided_Process` flow) without a Prospect, in `PortalNewClaimService`. Every route returns `404` unless the user is internal (user type Standard).
@@ -256,23 +267,24 @@ The Prospect Conversion Guided Process (`Prospect_Conversion_Guided_Process` flo
 
 ### 6.2 Home
 1. **Hero:** a Salesforce-blue gradient card with today's date, "Welcome back, {firstName}!", the subtitle "We're here to help with your claim", and a white search bar, "Search claims, leads and cases", that opens global Search.
-2. **Top bar:** the notifications bell only.
+2. **Top bar:** the notifications bell only, 15% smaller than a standard bar button (14.5 pt icon, 38 pt button, both scaling with Dynamic Type).
    **Search sheet** (over `GET /search`, starting at 2 characters with a 300 ms debounce):
    - The field is focused and the keyboard is up as soon as the sheet opens.
    - The X at the top left always closes the sheet, even while typing. (The field is the app's own, not the system search bar, whose X only cancels the search.)
-   - Scope chips: All, Claims, Leads and Cases, each with its result count. Filtering by scope happens on the device; it doesn't search again.
+   - Scope chips: All, Claims, Leads and Cases, each with its result count, plus People for staff (§5.6a). People come first in the results.
+   - Tapping a person opens their page inside the sheet: profile (photo initials, title and department, location, email and phone links, manager, About) and their Chatter feed. Each post has an inline reply box, and the user's own replies have an Edit button that edits the text in place (Save / Cancel). Filtering by scope happens on the device; it doesn't search again.
    - Before typing: up to 6 recent searches (newest first; tap one to run it again; *Clear* removes them). With no recents, tips show what can be found: a claim name or number, an address, a lead's name or email, and a case subject or number.
    - Results are grouped by type, with a count per group. The matching text is bold and blue. Tapping a result opens it.
    - When nothing matches, the sheet says so and suggests what else to try. If the current scope is empty but other scopes have results, it offers "Show all {n} results".
    - A search is saved to recents when it is submitted or a result is opened. Recents are stored on the device and cleared at sign-out.
    - Offline, the sheet says search needs a connection.
-3. **Quick actions**, directly under the welcome, in two columns: *New Lead* | *New Event*, then *New Claim* (staff) or *My Claims* (portal users) | *New Task*. New Lead opens Submit a Lead. New Event and New Task appear only when `canCreateTasks`. Both forms start with *Related to*: a Claim | Lead switch, then a picker of the user's claims or leads. New Task: related record, subject, optional due date, assign to (defaults to the user), details. New Event: related record, subject, all day or start/end (defaults to the next hour, for an hour), optional location, assign to, details.
+3. **Quick actions**, directly under the welcome, in two columns: *New Lead* | *New Event*, then *New Claim* (staff) or *My Claims* (portal users) | *New Task*. New Lead opens Submit a Lead. New Event and New Task appear only when `canCreateTasks`. Both forms start with *Related to*: a Claim | Lead switch, then a lookup that opens a searchable list of the user's claims or leads (search by name or address). Each row shows the name, **loss address** and status, and the chosen record's address shows on the form, so the right one is easy to confirm. New Task: related record, subject, optional due date, assign to (defaults to the user), details. New Event: related record, subject, all day or start/end (defaults to the next hour, for an hour), optional location, assign to, details.
    **New Claim** (staff) opens a sheet that follows the Prospect Conversion Guided Process:
    1. *Who is this claim for?* **Existing account** (search by name) or **New account**.
    2. New account: first name, last name (required), email, phone. Before anything is created the app asks for matches (§5.7). If there are any, the user **must choose one of them**; there's no way to create the new account while a match exists (as in the flow, where the matches table requires a selection). To change the person, go back and edit the details.
    3. Claim details: claim name (prefilled from the account), peril, loss date, description, loss address, insurance company (type-ahead), policy and claim numbers, homeowner email and phone (prefilled), adjuster (defaults to the user), account manager, source (picklist default), adjuster fees (0–100%).
    4. Claim contact (optional): None, Existing (search by name or email) or New, with a role (Property Contact, Sub-Contractor, Adjuster, Other). A new contact is checked for matches first; the user picks a match or chooses "None of these are a match". A new Sub-Contractor needs a company (Commercial) account: if one has the contact's company name, it must be chosen; otherwise pick an existing one or create it.
-   5. Review, then **Create Claim**. If the server finds a duplicate, the app goes to the matching step to pick it (for a contact: use the existing one or skip the contact). On success the sheet closes and the new claim opens.
+   5. Review, then **Create Claim**. If the server finds a duplicate, the app goes to the matching step to pick it (for a contact: use the existing one or skip the contact). On success the claim is saved, the sheet closes, and the app switches to the Claims tab and opens the new claim's detail page (after the sheet has finished closing, so the navigation isn't lost).
 4. **Upcoming:** the next 5 items from `GET /agenda`, tasks with their due date (overdue ones in the warning colour) and events with day and time (or "All day", shown in UTC as Salesforce stores them), plus the related claim or lead and an event's location. Tapping an item with a related record opens it. Hidden when empty, unless the user can create tasks ("Nothing scheduled").
 5. **Recent claims:** the 3 most recently updated claims, with status; tap to open, "See all" opens Claims.
 6. **Recent activity:** published updates from `GET /activity` and, for staff, Chatter posts from `GET /feed`, newest first (8 at most). Staff (Salesforce user type Standard) get filter chips *Chatter* (the default), *Portal updates* and *All*. Portal users see portal updates only, with no filter, and the app doesn't call `GET /feed` for them. Each entry's header is its record: the type in regular weight and the name in bold ("Claim · **Smith - Roof**"), with a line under it saying what it is ("Portal update · {title}" or "Chatter · {author}"). Chatter posts not on a claim or lead show the group or user name as the header. Unread updates show a dot; tapping one opens the **Update sheet** (title, date, rendered HTML, and an "Open {Claim|Lead}" button) and marks it read. Tapping a Chatter post on a claim or lead opens that record.

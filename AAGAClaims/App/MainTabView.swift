@@ -12,7 +12,11 @@ struct MainTabView: View {
     @State private var router: AppRouter
     @State private var safariLink: SafariLink?
     @State private var offeringLock = false
+    /// Set by New Claim; opened when its sheet has closed.
+    @State private var createdClaim: (id: String, name: String)?
     @Environment(\.scenePhase) private var scenePhase
+    @ScaledMetric(relativeTo: .body) private var bellSize: CGFloat = 14.5
+    @ScaledMetric(relativeTo: .body) private var bellButtonSize: CGFloat = 38
 
     init(session: AppSession, user: CurrentUser) {
         self.session = session
@@ -73,13 +77,14 @@ struct MainTabView: View {
             NotificationsView(router: router)
         }
         .sheet(isPresented: $router.showingSearch) {
-            SearchSheet(api: session.api, close: { router.showingSearch = false }) { result in router.open(result) }
+            SearchSheet(api: session.api, includePeople: user.isInternal, close: { router.showingSearch = false }) { result in router.open(result) }
         }
-        .sheet(isPresented: $router.showingNewClaim) {
+        // The new claim opens once the sheet has finished closing: navigation changes made while
+        // a sheet animates away can be dropped.
+        .sheet(isPresented: $router.showingNewClaim, onDismiss: openCreatedClaim) {
             NewClaimSheet(api: session.api, close: { router.showingNewClaim = false }) { claimId, name in
+                createdClaim = (claimId, name)
                 router.showingNewClaim = false
-                Task { await router.claims.load() }
-                router.open(.claim(claimId), name: name)
             }
         }
         .sheet(isPresented: $router.showingNewEvent) {
@@ -125,13 +130,22 @@ struct MainTabView: View {
 
     /// Top right: the notifications bell. (Search is the bar in Home's hero.)
     @ToolbarContentBuilder
+    private func openCreatedClaim() {
+        guard let claim = createdClaim else { return }
+        createdClaim = nil
+        Task { await router.claims.load() }
+        router.open(.claim(claim.id), name: claim.name)
+    }
+
     private func topBarButtons() -> some ToolbarContent {
         ToolbarItemGroup(placement: .topBarTrailing) {
             Button {
                 router.showingNotifications = true
             } label: {
+                // 15% smaller than a standard bar icon and button (17 pt and 44 pt).
                 Image(systemName: "bell")
-                    .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
+                    .font(.system(size: bellSize))
+                    .frame(minWidth: bellButtonSize, minHeight: bellButtonSize)
                     .overlay(alignment: .topTrailing) {
                         if router.home.unreadCount > 0 {
                             UnreadBadge(count: router.home.unreadCount)

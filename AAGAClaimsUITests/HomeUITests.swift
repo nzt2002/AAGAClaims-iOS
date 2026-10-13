@@ -23,6 +23,19 @@ final class HomeUITests: XCTestCase {
 
     private var bell: XCUIElement { app.buttons["notificationsBell"] }
 
+    /// Opens a Claim/Lead lookup, searches by name and picks the record (its row shows the loss address).
+    private func chooseRecord(_ lookup: String, search: String, option id: String) {
+        app.buttons[lookup].tap()
+        let field = app.textFields["recordSearchField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText(search)
+        let option = app.buttons["recordOption-\(id)"]
+        XCTAssertTrue(option.waitForExistence(timeout: 5))
+        option.tap()
+        XCTAssertTrue(app.buttons[lookup].waitForExistence(timeout: 5), "Back on the form")
+    }
+
     func testHomeLayout() {
         let welcome = app.staticTexts["Welcome back, Alex!"]
         let submit = app.buttons["quickSubmitLead"]
@@ -78,8 +91,7 @@ final class HomeUITests: XCTestCase {
         app.buttons["quickNewEvent"].tap()
         let save = app.buttons["newEventSave"]
         XCTAssertTrue(save.waitForExistence(timeout: 5))
-        app.buttons["newEventClaim"].tap()
-        app.buttons["Smith - Roof"].tap()
+        chooseRecord("newEventClaim", search: "Roof", option: "a23000000000001AAA")
         let subject = app.textFields["newEventSubject"]
         subject.tap()
         subject.typeText("Re-inspection")
@@ -126,14 +138,66 @@ final class HomeUITests: XCTestCase {
         let save = app.buttons["newTaskSave"]
         XCTAssertTrue(save.waitForExistence(timeout: 5))
         app.segmentedControls["newTaskRelatedKind"].buttons["Lead"].tap()
-        app.buttons["newTaskLead"].tap()
-        app.buttons["Jordan Reyes"].tap()
+        chooseRecord("newTaskLead", search: "Jordan", option: "a0r000000000001AAA")
         let subject = app.textFields["newTaskSubject"]
         subject.tap()
         subject.typeText("Resend the agreement")
         save.tap()
         XCTAssertTrue(element(containing: "Lead · Jordan Reyes").waitForExistence(timeout: 5))
         XCTAssertTrue(element(containing: "Resend the agreement").exists)
+    }
+
+    func testClaimLookupShowsLossAddress() {
+        app.buttons["quickNewTask"].tap()
+        let lookup = app.buttons["newTaskClaim"]
+        XCTAssertTrue(lookup.waitForExistence(timeout: 5))
+        lookup.tap()
+        let field = app.textFields["recordSearchField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText("Kitchen")
+        let kitchen = app.buttons["recordOption-a23000000000002AAA"]
+        XCTAssertTrue(kitchen.waitForExistence(timeout: 5))
+        XCTAssertTrue(kitchen.label.contains("Smith - Kitchen Water"), kitchen.label)
+        XCTAssertFalse(app.buttons["recordOption-a23000000000001AAA"].exists, "Filtered by name")
+        kitchen.tap()
+        XCTAssertTrue(app.buttons["newTaskClaim"].label.contains("Smith - Kitchen Water"))
+    }
+
+    func testSearchPersonReplyAndEdit() {
+        app.buttons["homeSearch"].tap()
+        let field = app.textFields["searchField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["searchScope-People"].exists, "Staff can search people")
+        field.typeText("Jane")
+        let jane = app.buttons["searchResult-005000000000002AAA"]
+        XCTAssertTrue(jane.waitForExistence(timeout: 5))
+        jane.tap()
+
+        XCTAssertTrue(element(containing: "Senior Field Adjuster").waitForExistence(timeout: 5))
+        XCTAssertTrue(element(containing: "Heading to the Smith roof inspection").exists)
+
+        // Reply inline.
+        let reply = app.descendants(matching: .any)["replyField-0D5000000000011AAA"]
+        app.scrollIntoView(reply)
+        reply.tap()
+        reply.typeText("Photos are uploaded.")
+        app.buttons["sendReply-0D5000000000011AAA"].tap()
+        XCTAssertTrue(element(containing: "Photos are uploaded.").waitForExistence(timeout: 5))
+
+        // Edit my own reply inline; others' replies have no Edit.
+        XCTAssertFalse(app.buttons["editReply-0D7000000000011AAA"].exists)
+        let edit = app.buttons["editReply-0D7000000000012AAA"]
+        app.scrollIntoView(edit)
+        edit.tap()
+        let editField = app.descendants(matching: .any)["editReplyField"]
+        XCTAssertTrue(editField.waitForExistence(timeout: 5))
+        // Edit focuses the field with the cursor at the end.
+        sleep(1)
+        app.typeText(" Done.")
+        app.buttons["saveReply"].tap()
+        XCTAssertTrue(element(containing: "I'll update the claim after. Done.").waitForExistence(timeout: 5))
+        XCTAssertFalse(app.descendants(matching: .any)["editReplyField"].exists)
     }
 
     func testSearchCloses() {
@@ -155,8 +219,7 @@ final class HomeUITests: XCTestCase {
         save.tap()
         XCTAssertTrue(element(containing: "Enter a subject.").waitForExistence(timeout: 5))
 
-        app.buttons["newTaskClaim"].tap()
-        app.buttons["Smith - Roof"].tap()
+        chooseRecord("newTaskClaim", search: "Roof", option: "a23000000000001AAA")
         let subject = app.textFields["newTaskSubject"]
         subject.tap()
         subject.typeText("Call the carrier")

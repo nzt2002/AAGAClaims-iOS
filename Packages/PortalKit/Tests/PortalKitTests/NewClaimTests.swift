@@ -164,3 +164,80 @@ struct NewClaimTests {
         #expect(accounts.accounts.first?.id == "001X")
     }
 }
+
+@MainActor
+@Suite("People")
+struct PeopleTests {
+    private func mock() throws -> MockPortalAPI {
+        MockPortalAPI(fixtures: try .bundled(), latency: .zero)
+    }
+
+    @Test("Staff search finds people; others don't, and don't get the People scope")
+    func search() async throws {
+        let api = try mock()
+        let staff = SearchViewModel(api: api, debounce: .zero, includePeople: true)
+        #expect(staff.scopes.contains(.people))
+        staff.query = "Jane"
+        await staff.awaitSearch()
+        #expect(staff.allResults.contains { $0.type == .user && $0.id == "005000000000002AAA" })
+        #expect(staff.sections.first?.kind == .user, "People come first")
+        staff.scope = .people
+        #expect(staff.sections.map(\.kind) == [.user])
+
+        let portal = SearchViewModel(api: api, debounce: .zero)
+        #expect(!portal.scopes.contains(.people))
+        portal.query = "Jane"
+        await portal.awaitSearch()
+        #expect(!portal.allResults.contains { $0.type == .user })
+    }
+
+    @Test("Profile and feed load; replies are added and own replies edited in place")
+    func profileAndReplies() async throws {
+        let api = try mock()
+        let model = PersonViewModel(api: api, personId: "005000000000002AAA")
+        await model.load()
+        #expect(model.person.value?.name == "Jane Doe")
+        #expect(model.person.value?.initials == "JD")
+        let post = try #require(model.feed.value?.first)
+        #expect(post.replies.count == 2)
+
+        #expect(!model.canSend(post.id))
+        model.drafts[post.id] = "  Photos are in the claim now.  "
+        #expect(await model.sendReply(to: post.id))
+        #expect(model.feed.value?.first?.replies.last?.text == "Photos are in the claim now.")
+        #expect(model.feed.value?.first?.totalReplies == 3)
+        #expect(model.drafts[post.id] == nil)
+
+        // Someone else's reply can't be edited.
+        let theirs = post.replies[0]
+        model.startEditing(theirs)
+        #expect(model.editingReplyId == nil)
+
+        let mine = post.replies[1]
+        model.startEditing(mine)
+        #expect(model.editingReplyId == mine.id)
+        #expect(model.editText == "I'll update the claim after.")
+        model.editText = "Claim updated."
+        #expect(await model.saveEdit())
+        #expect(model.editingReplyId == nil)
+        #expect(model.feed.value?.first?.replies.first { $0.id == mine.id }?.text == "Claim updated.")
+        let reloaded = try await api.personFeed(id: "005000000000002AAA")
+        #expect(reloaded.first?.replies.first { $0.id == mine.id }?.text == "Claim updated.")
+    }
+
+    @Test("Search asks the server for people only when allowed")
+    func httpQuery() async throws {
+        actor Recorder: PortalTransport {
+            var request: TransportRequest?
+            func send(_ request: TransportRequest) async throws -> TransportResponse {
+                self.request = request
+                return TransportResponse(statusCode: 200, body: Data("[]".utf8))
+            }
+        }
+        let recorder = Recorder()
+        _ = try await HTTPPortalAPI(transport: recorder).search("Jane", includePeople: true)
+        #expect(await recorder.request?.queryItems.contains(URLQueryItem(name: "includeUsers", value: "true")) == true)
+        _ = try await HTTPPortalAPI(transport: recorder).search("Jane", includePeople: false)
+        #expect(await recorder.request?.queryItems.contains { $0.name == "includeUsers" } == false)
+    }
+}

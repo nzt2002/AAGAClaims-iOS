@@ -182,8 +182,28 @@ public struct HTTPPortalAPI: PortalAPI {
          URLQueryItem(name: "email", value: email)].filter { $0.value?.isEmpty == false }
     }
 
-    public func search(_ query: String) async throws -> [SearchResult] {
-        try await get("/search", query: [URLQueryItem(name: "q", value: query)])
+    public func search(_ query: String, includePeople: Bool) async throws -> [SearchResult] {
+        var items = [URLQueryItem(name: "q", value: query)]
+        if includePeople { items.append(URLQueryItem(name: "includeUsers", value: "true")) }
+        return try await get("/search", query: items)
+    }
+
+    public func person(id: String) async throws -> Person {
+        try await get("/people/\(escaped(id))")
+    }
+
+    public func personFeed(id: String) async throws -> [ChatterPost] {
+        try await get("/people/\(escaped(id))/feed")
+    }
+
+    private struct ReplyBody: Encodable { let text: String }
+
+    public func addReply(toPost postId: String, text: String) async throws -> ChatterReply {
+        try await post("/chatter/posts/\(escaped(postId))/replies", body: ReplyBody(text: text))
+    }
+
+    public func editReply(id: String, text: String) async throws -> ChatterReply {
+        try await post("/chatter/replies/\(escaped(id))", body: ReplyBody(text: text))
     }
 
     public func feed() async throws -> [FeedPost] {

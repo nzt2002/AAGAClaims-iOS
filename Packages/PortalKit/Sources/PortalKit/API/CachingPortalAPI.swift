@@ -163,9 +163,30 @@ public actor CachingPortalAPI: PortalAPI {
         return try await guarded { try await $0.createClaim(request) }
     }
 
-    public func search(_ query: String) async throws -> [SearchResult] {
+    public func search(_ query: String, includePeople: Bool) async throws -> [SearchResult] {
         try requireOnline()
-        return try await guarded { try await $0.search(query) }
+        return try await guarded { try await $0.search(query, includePeople: includePeople) }
+    }
+
+    // People and Chatter are online only.
+    public func person(id: String) async throws -> Person {
+        try requireOnline()
+        return try await guarded { try await $0.person(id: id) }
+    }
+
+    public func personFeed(id: String) async throws -> [ChatterPost] {
+        try requireOnline()
+        return try await guarded { try await $0.personFeed(id: id) }
+    }
+
+    public func addReply(toPost postId: String, text: String) async throws -> ChatterReply {
+        try requireOnline()
+        return try await guarded { try await $0.addReply(toPost: postId, text: text) }
+    }
+
+    public func editReply(id: String, text: String) async throws -> ChatterReply {
+        try requireOnline()
+        return try await guarded { try await $0.editReply(id: id, text: text) }
     }
 
     public func feed() async throws -> [FeedPost] { try await read("feed") { try await $0.feed() } }

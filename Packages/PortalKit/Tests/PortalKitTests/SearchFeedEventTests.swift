@@ -88,7 +88,7 @@ struct SearchFeedEventTests {
             }
         }
         let recorder = Recorder()
-        let results = try await HTTPPortalAPI(transport: recorder).search("roof")
+        let results = try await HTTPPortalAPI(transport: recorder).search("roof", includePeople: false)
         #expect(results.first?.type == .supportCase)
         #expect(await recorder.request?.path == "/search")
         #expect(await recorder.request?.queryItems == [URLQueryItem(name: "q", value: "roof")])

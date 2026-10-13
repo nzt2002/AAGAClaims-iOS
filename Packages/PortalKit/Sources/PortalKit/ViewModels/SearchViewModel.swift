@@ -55,6 +55,7 @@ public final class SearchViewModel {
         case claims = "Claims"
         case leads = "Leads"
         case cases = "Cases"
+        case people = "People"
 
         var kind: SearchResult.Kind? {
             switch self {
@@ -62,6 +63,7 @@ public final class SearchViewModel {
             case .claims: .claim
             case .leads: .prospect
             case .cases: .supportCase
+            case .people: .user
             }
         }
     }
@@ -80,11 +82,21 @@ public final class SearchViewModel {
     private let store: RecentSearchStore
     private var task: Task<Void, Never>?
 
-    public init(api: PortalAPI, store: RecentSearchStore = MemoryRecentSearchStore(), debounce: Duration = .milliseconds(300)) {
+    /// Staff also search internal users.
+    public let includePeople: Bool
+
+    public init(api: PortalAPI, store: RecentSearchStore = MemoryRecentSearchStore(),
+                debounce: Duration = .milliseconds(300), includePeople: Bool = false) {
         self.api = api
+        self.includePeople = includePeople
         self.store = store
         self.debounce = debounce
         self.recentSearches = store.load()
+    }
+
+    /// The scope chips to show: People only for staff.
+    public var scopes: [Scope] {
+        Scope.allCases.filter { $0 != .people || includePeople }
     }
 
     /// All results of the current search, before the scope is applied.
@@ -101,7 +113,7 @@ public final class SearchViewModel {
 
     /// Results grouped by type (claims, leads, cases), within the chosen scope.
     public var sections: [(kind: SearchResult.Kind, results: [SearchResult])] {
-        [SearchResult.Kind.claim, .prospect, .supportCase].compactMap { kind in
+        [SearchResult.Kind.user, .claim, .prospect, .supportCase].compactMap { kind in
             if let only = scope.kind, only != kind { return nil }
             let matching = allResults.filter { $0.type == kind }
             return matching.isEmpty ? nil : (kind, matching)
@@ -148,7 +160,7 @@ public final class SearchViewModel {
             state = .idle
             return
         }
-        let api = self.api, debounce = self.debounce
+        let api = self.api, debounce = self.debounce, includePeople = self.includePeople
         task = Task { [weak self] in
             if debounce > .zero {
                 try? await Task.sleep(for: debounce)
@@ -156,7 +168,7 @@ public final class SearchViewModel {
             guard !Task.isCancelled else { return }
             self?.state = .searching
             do {
-                let results = try await api.search(trimmed)
+                let results = try await api.search(trimmed, includePeople: includePeople)
                 guard !Task.isCancelled else { return }
                 self?.state = .results(results)
             } catch {

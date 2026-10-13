@@ -6,12 +6,15 @@ public struct SearchResult: Codable, Hashable, Identifiable, Sendable {
         case claim = "Claim"
         case prospect = "Prospect"
         case supportCase = "Case"
+        /// An internal user (staff searches only).
+        case user = "User"
 
         public var displayName: String {
             switch self {
             case .claim: "Claims"
             case .prospect: "Leads"
             case .supportCase: "Support cases"
+            case .user: "People"
             }
         }
     }

@@ -145,6 +145,8 @@ final class AppRouter {
         case .claim: open(.claim(result.id), name: result.title)
         case .prospect: open(.lead(result.id), name: result.title)
         case .supportCase: openSupport(caseId: result.id)
+        // People open inside the search sheet.
+        case .user: break
         }
     }
 

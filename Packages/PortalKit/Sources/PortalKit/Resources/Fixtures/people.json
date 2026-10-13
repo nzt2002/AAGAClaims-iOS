@@ -1,0 +1,24 @@
+{
+  "005000000000002AAA": {
+    "person": { "id": "005000000000002AAA", "name": "Jane Doe", "title": "Senior Field Adjuster", "department": "Claims",
+                "email": "jane.doe@example.com", "phone": "(404) 555-0100", "mobilePhone": "(404) 555-0150",
+                "aboutMe": "Roof and wind claims across metro Atlanta.", "city": "Atlanta", "state": "GA",
+                "managerName": "Sam Lee", "isMe": false },
+    "feed": [
+      { "id": "0D5000000000011AAA", "authorName": "Jane Doe", "text": "Heading to the Smith roof inspection at 9.",
+        "createdDate": "2026-10-12T13:00:00.000Z", "parentName": null, "totalReplies": 2,
+        "replies": [
+          { "id": "0D7000000000011AAA", "authorName": "Sam Lee", "text": "Thanks, send photos when you're done.", "createdDate": "2026-10-12T13:10:00.000Z", "isMine": false },
+          { "id": "0D7000000000012AAA", "authorName": "Alex Smith", "text": "I'll update the claim after.", "createdDate": "2026-10-12T13:20:00.000Z", "isMine": true }
+        ] },
+      { "id": "0D5000000000012AAA", "authorName": "Jane Doe", "text": "Carrier called back: they'll send a re-inspection request this week.",
+        "createdDate": "2026-10-09T16:20:00.000Z", "parentName": "Smith - Roof", "totalReplies": 0, "replies": [] }
+    ]
+  },
+  "005000000000003AAA": {
+    "person": { "id": "005000000000003AAA", "name": "Sam Lee", "title": "Account Manager", "department": "Client Services",
+                "email": "sam.lee@example.com", "phone": "(404) 555-0101", "mobilePhone": null, "aboutMe": null,
+                "city": "Atlanta", "state": "GA", "managerName": null, "isMe": false },
+    "feed": []
+  }
+}

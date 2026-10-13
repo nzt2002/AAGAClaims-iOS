@@ -12,8 +12,11 @@ struct SearchSheet: View {
     @Environment(\.isOffline) private var isOffline
     @FocusState private var fieldFocused: Bool
 
-    init(api: PortalAPI, close: @escaping () -> Void, open: @escaping (SearchResult) -> Void) {
-        _viewModel = State(initialValue: SearchViewModel(api: api, store: UserDefaultsRecentSearchStore()))
+    private let api: PortalAPI
+
+    init(api: PortalAPI, includePeople: Bool = false, close: @escaping () -> Void, open: @escaping (SearchResult) -> Void) {
+        _viewModel = State(initialValue: SearchViewModel(api: api, store: UserDefaultsRecentSearchStore(), includePeople: includePeople))
+        self.api = api
         self.close = close
         self.open = open
     }
@@ -42,6 +45,15 @@ struct SearchSheet: View {
                     }
                     .accessibilityIdentifier("searchClose")
                 }
+            }
+            .navigationDestination(for: PersonRoute.self) { route in
+                PersonView(api: api, personId: route.id, name: route.name)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close", systemImage: "xmark", action: close)
+                                .accessibilityIdentifier("searchClose")
+                        }
+                    }
             }
             .task {
                 // Keyboard up as soon as the sheet opens.
@@ -94,7 +106,7 @@ struct SearchSheet: View {
     private var scopeChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Theme.Spacing.s) {
-                ForEach(SearchViewModel.Scope.allCases, id: \.self) { scope in
+                ForEach(viewModel.scopes, id: \.self) { scope in
                     let selected = viewModel.scope == scope
                     let count = viewModel.count(for: scope)
                     Button {
@@ -160,6 +172,9 @@ struct SearchSheet: View {
                 tip("mappin.and.ellipse", "A property by street address")
                 tip("person.2", "A lead by name or email")
                 tip("questionmark.bubble", "A support case by subject or case number")
+                if viewModel.includePeople {
+                    tip("person.crop.circle", "A colleague by name, to see their profile and Chatter")
+                }
             }
             .cardStyle()
         } else {
@@ -212,15 +227,25 @@ struct SearchSheet: View {
                         .accessibilityAddTraits(.isHeader)
                     VStack(spacing: 0) {
                         ForEach(section.results) { result in
-                            Button {
-                                viewModel.commitSearch()
-                                close()
-                                open(result)
-                            } label: {
-                                row(result)
+                            if result.type == .user {
+                                // People open here, in the sheet: profile and Chatter.
+                                NavigationLink(value: PersonRoute(id: result.id, name: result.title)) {
+                                    row(result)
+                                }
+                                .buttonStyle(.plain)
+                                .simultaneousGesture(TapGesture().onEnded { viewModel.commitSearch() })
+                                .accessibilityIdentifier("searchResult-\(result.id)")
+                            } else {
+                                Button {
+                                    viewModel.commitSearch()
+                                    close()
+                                    open(result)
+                                } label: {
+                                    row(result)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("searchResult-\(result.id)")
                             }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("searchResult-\(result.id)")
                             if result.id != section.results.last?.id {
                                 Divider()
                             }
@@ -312,6 +337,7 @@ struct SearchSheet: View {
         case .claim: "doc.text"
         case .prospect: "person.2"
         case .supportCase: "questionmark.bubble"
+        case .user: "person.crop.circle"
         }
     }
 }
