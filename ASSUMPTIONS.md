@@ -86,7 +86,7 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 
 1. ~~**API access for Customer Community Login users**~~ **Resolved 2026-10-12:** the "Portal Mobile App" permission set (Customer Community Login licence, API Enabled, PortalApiV1 access) works. A portal user signed in through the app and loaded live data. Assign it to every portal user who uses the app.
 2. **Privacy policy and terms URLs** for the Account screen (spec §6.11).
-3. **App icon and vector logo** from the designer.
+3. **App icon and vector logo** from the designer. *Temporary icon added 2026-10-12* (white house with a checkmark on the hero gradient, plus dark and tinted variants; drawn by `Tools/make-app-icon.swift`) so TestFlight uploads pass. Replace the three PNGs in `AppIcon.appiconset` when the real icon arrives.
 4. ~~**Consumer key**~~ **Resolved:** the External Client App is deployed and its key is in `bootconfig.plist`.
 5. **Files over 4 MB.** The Apex REST layer caps uploads and downloads at 4 MB. Larger files (big PDFs) need another route, e.g. the standard ContentVersion REST API once portal users have API access.
 6. **Push setup:** an Apple Developer team, an APNs key added to the External Client App's push settings, and the server-side trigger (spec §8).
