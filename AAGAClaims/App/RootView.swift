@@ -30,34 +30,42 @@ struct SplashView: View {
     let isDemo: Bool
     let continueInDemo: () -> Void
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         VStack(spacing: Theme.Spacing.l) {
             Spacer()
             // Placeholder until the designer supplies the vector logo (spec §9).
             Image(systemName: "house.and.flag.fill")
-                .font(.system(size: 56))
-                .foregroundStyle(Color.brandPrimary)
+                .font(.system(size: 56, weight: .semibold))
+                .foregroundStyle(.white)
+                .padding(Theme.Spacing.xl)
+                .background(.white.opacity(0.15), in: Circle())
                 .accessibilityHidden(true)
             Text("Accurate Adjustments")
-                .font(.title.bold())
-                .foregroundStyle(Color.textPrimary)
+                .font(.largeTitle.bold())
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
             Text("We're here to help with your claim")
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(.white)
             Spacer()
             if isDemo {
                 Button(action: continueInDemo) {
-                    Text("Continue in demo mode").foregroundStyle(Color.surface)
+                    Text("Continue in demo mode")
+                        .font(.headline)
+                        .foregroundStyle(Color(red: 0x01 / 255, green: 0x44 / 255, blue: 0x86 / 255))
+                        .frame(maxWidth: .infinity, minHeight: 52)
+                        .background(.white, in: Capsule())
                 }
-                    .buttonStyle(.borderedProminent)
-                    .frame(minHeight: Theme.minTapTarget)
-                    .accessibilityIdentifier("continueDemo")
+                .accessibilityIdentifier("continueDemo")
             } else {
                 ProgressView()
+                    .tint(.white)
                     .accessibilityLabel("Signing in")
             }
         }
         .padding(Theme.Spacing.xl)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.appBackground)
+        .background(BrandGradient.hero(colorScheme).ignoresSafeArea())
     }
 }

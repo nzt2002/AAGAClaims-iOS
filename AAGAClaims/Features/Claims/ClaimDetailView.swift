@@ -284,8 +284,9 @@ struct StepRow: View {
             Image(systemName: "circle.inset.filled")
                 .foregroundStyle(currentTint)
         case .upcoming:
+            // Non-text contrast: at least 3:1 against the card.
             Image(systemName: "circle")
-                .foregroundStyle(Color.border)
+                .foregroundStyle(Color.textSecondary)
         }
     }
 

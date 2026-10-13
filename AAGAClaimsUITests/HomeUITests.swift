@@ -1,6 +1,6 @@
 import XCTest
 
-/// Milestone 5: Home tiles, status overview, activity, Update sheet, notifications and quick actions.
+/// Home: hero search, quick actions, agenda, activity, Update sheet and notifications.
 final class HomeUITests: XCTestCase {
     private var app: XCUIApplication!
 
@@ -16,6 +16,10 @@ final class HomeUITests: XCTestCase {
         app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
     }
 
+    private func element(containingCaseInsensitive text: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS[c] %@", text)).firstMatch
+    }
+
     private var bell: XCUIElement { app.buttons["notificationsBell"] }
 
     func testHomeLayout() {
@@ -29,22 +33,26 @@ final class HomeUITests: XCTestCase {
         XCTAssertEqual(newEvent.frame.midX, newTask.frame.midX, accuracy: 2, "New Event is in the same column as New Task")
         XCTAssertLessThan(newEvent.frame.maxY, newTask.frame.minY, "New Event is above New Task")
 
-        // Ask Question moved to the top bar, next to Search and the bell.
+        // Top bar has only the bell; search is the bar in the hero.
         XCTAssertFalse(app.buttons["quickAskQuestion"].exists)
-        let ask = app.buttons["askQuestion"]
-        XCTAssertTrue(ask.exists)
-        XCTAssertLessThan(ask.frame.maxY, welcome.frame.minY)
-        XCTAssertTrue(app.buttons["search"].exists)
+        XCTAssertFalse(app.buttons["askQuestion"].exists)
+        XCTAssertFalse(app.buttons["search"].exists)
+        XCTAssertTrue(bell.exists)
+        let search = app.buttons["homeSearch"]
+        XCTAssertTrue(search.exists)
+        XCTAssertLessThan(welcome.frame.maxY, search.frame.minY, "Search sits under the welcome message")
+        XCTAssertLessThan(search.frame.maxY, submit.frame.minY, "Search sits above the quick actions")
+        XCTAssertFalse(app.buttons["heroNextUp"].exists, "Next up was removed")
+        XCTAssertFalse(app.buttons["heroUnread"].exists, "Unread pill was removed")
 
         XCTAssertFalse(app.staticTexts["Status overview"].exists, "Status overview was removed")
         XCTAssertFalse(app.buttons["tileOpenClaims"].exists, "KPI tiles are gone")
     }
 
     func testSearchOpensRecord() {
-        app.buttons["search"].tap()
+        app.buttons["homeSearch"].tap()
         let field = app.searchFields.firstMatch
         XCTAssertTrue(field.waitForExistence(timeout: 5))
-        field.tap()
         field.typeText("Jordan")
         let lead = app.buttons["searchResult-a0r000000000001AAA"]
         XCTAssertTrue(lead.waitForExistence(timeout: 5))
@@ -151,8 +159,36 @@ final class HomeUITests: XCTestCase {
         app.buttons["Cancel"].tap()
 
         app.tabBars.buttons["Home"].tap()
-        app.buttons["askQuestion"].tap()
-        XCTAssertTrue(app.buttons["assistanceSubmit"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.tabBars.buttons["Support"].isSelected)
+        app.buttons["quickMyClaims"].tap()
+        XCTAssertTrue(app.tabBars.buttons["Claims"].isSelected)
+    }
+
+    func testSearchScopesRecentsAndEmptyState() {
+        app.buttons["homeSearch"].tap()
+        let field = app.searchFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Find anything"].exists, "Tips show before the first search")
+
+        field.typeText("Smith")
+        let claimsScope = app.buttons["searchScope-Claims"]
+        XCTAssertTrue(element(containingCaseInsensitive: "Claims · ").waitForExistence(timeout: 5))
+        XCTAssertTrue(claimsScope.label.contains("4 results"))
+
+        app.buttons["searchScope-Leads"].tap()
+        XCTAssertTrue(element(containing: "No leads match").waitForExistence(timeout: 5))
+        app.buttons["Show all 5 results"].tap()
+        XCTAssertTrue(element(containingCaseInsensitive: "Claims · 4").waitForExistence(timeout: 5))
+
+        // Submitting saves the search; it's offered again when the field is cleared.
+        app.keyboards.buttons["search"].tap()
+        field.buttons["Clear text"].tap()
+        let recent = app.buttons["recentSearch-Smith"]
+        XCTAssertTrue(recent.waitForExistence(timeout: 5))
+        recent.tap()
+        XCTAssertTrue(element(containingCaseInsensitive: "Claims · 4").waitForExistence(timeout: 5))
+
+        field.buttons["Clear text"].tap()
+        app.buttons["Clear recent searches"].tap()
+        XCTAssertTrue(app.staticTexts["Find anything"].waitForExistence(timeout: 5))
     }
 }

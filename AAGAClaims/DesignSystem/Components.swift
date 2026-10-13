@@ -22,9 +22,10 @@ struct StatusPill: View {
         Text(text)
             .font(.caption.weight(.semibold))
             .foregroundStyle(tone.foreground)
-            .padding(.horizontal, Theme.Spacing.s)
-            .padding(.vertical, Theme.Spacing.xs)
+            .padding(.horizontal, Theme.Spacing.m)
+            .padding(.vertical, 5)
             .background(tone.foreground.opacity(0.12), in: Capsule())
+            .overlay(Capsule().stroke(tone.foreground.opacity(0.18), lineWidth: 1))
             .accessibilityLabel("Status: \(text)")
     }
 

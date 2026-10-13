@@ -77,6 +77,8 @@ final class AppSession {
 
     func didSignOut() {
         lock.reset()
+        // Searches can contain customer names; don't keep them across accounts.
+        UserDefaultsRecentSearchStore.clear()
         // Sign-out clears cached data (spec §6.11).
         let cachingAPI = self.cachingAPI
         Task { await cachingAPI.clearCache() }

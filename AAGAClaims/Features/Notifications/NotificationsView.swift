@@ -44,6 +44,8 @@ struct NotificationsView: View {
                 }
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Color.appBackground)
             .refreshable { await viewModel.load() }
             .navigationTitle("Notifications")
             .navigationBarTitleDisplayMode(.inline)

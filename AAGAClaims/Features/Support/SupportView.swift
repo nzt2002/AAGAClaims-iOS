@@ -50,6 +50,8 @@ struct SupportView: View {
                 }
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Color.appBackground)
             .refreshable { await viewModel.load() }
         }
         .background(Color.appBackground)
