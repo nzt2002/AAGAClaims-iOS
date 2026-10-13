@@ -1,7 +1,7 @@
 import PortalKit
 import SwiftUI
 
-/// New Event (Home quick action): an event on a claim, assigned to a team member.
+/// New Event (Home quick action): an event on a claim or lead, assigned to a team member.
 struct NewEventSheet: View {
     @State private var viewModel: NewEventViewModel
     let onCreated: () -> Void
@@ -60,16 +60,14 @@ struct NewEventSheet: View {
 
     private func form(_ options: NewTaskViewModel.Options) -> some View {
         Form {
-            Section {
-                Picker("Claim", selection: $viewModel.claimId) {
-                    Text("Choose…").tag(String?.none)
-                    ForEach(options.claims) { claim in
-                        Text(claim.recordName ?? claim.claimNumber ?? "Claim").tag(String?.some(claim.recordId))
-                    }
-                }
-                .pickerStyle(.menu)
-                .accessibilityIdentifier("newEventClaim")
-                errorText(.claim)
+            RelatedRecordSection(
+                kind: $viewModel.relatedKind,
+                claimId: $viewModel.claimId,
+                leadId: $viewModel.leadId,
+                options: options,
+                idPrefix: "newEvent"
+            ) {
+                errorText(.record)
             }
 
             Section {

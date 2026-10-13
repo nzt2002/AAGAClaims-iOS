@@ -51,7 +51,7 @@ final class HomeUITests: XCTestCase {
 
     func testSearchOpensRecord() {
         app.buttons["homeSearch"].tap()
-        let field = app.searchFields.firstMatch
+        let field = app.textFields["searchField"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.typeText("Jordan")
         let lead = app.buttons["searchResult-a0r000000000001AAA"]
@@ -101,6 +101,47 @@ final class HomeUITests: XCTestCase {
         XCTAssertTrue(element(containing: "Claim CLM-1234").waitForExistence(timeout: 5))
     }
 
+    func testRecentActivityFilterAndHeaders() {
+        let post = app.buttons["post-0D5000000000001AAA"]
+        XCTAssertTrue(post.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["activityFilter-Chatter"].isSelected, "Staff start on Chatter")
+        XCTAssertFalse(app.buttons["activity-a1Y000000000002AAA"].exists)
+        XCTAssertTrue(post.label.hasPrefix("Claim · Smith - Roof"), "The record is the header: \(post.label)")
+
+        let all = app.buttons["activityFilter-All"]
+        app.scrollIntoView(all)
+        all.tap()
+        let update = app.buttons["activity-a1Y000000000002AAA"]
+        XCTAssertTrue(update.waitForExistence(timeout: 5))
+        XCTAssertTrue(update.label.hasPrefix("Claim · Smith - Roof"), update.label)
+        XCTAssertTrue(post.exists)
+    }
+
+    func testNewTaskOnLead() {
+        app.buttons["quickNewTask"].tap()
+        let save = app.buttons["newTaskSave"]
+        XCTAssertTrue(save.waitForExistence(timeout: 5))
+        app.segmentedControls["newTaskRelatedKind"].buttons["Lead"].tap()
+        app.buttons["newTaskLead"].tap()
+        app.buttons["Jordan Reyes"].tap()
+        let subject = app.textFields["newTaskSubject"]
+        subject.tap()
+        subject.typeText("Resend the agreement")
+        save.tap()
+        XCTAssertTrue(element(containing: "Lead · Jordan Reyes").waitForExistence(timeout: 5))
+        XCTAssertTrue(element(containing: "Resend the agreement").exists)
+    }
+
+    func testSearchCloses() {
+        app.buttons["homeSearch"].tap()
+        let field = app.textFields["searchField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("Smith")
+        app.buttons["searchClose"].tap()
+        XCTAssertTrue(app.buttons["homeSearch"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.textFields["searchField"].exists, "The sheet closed, not just the search field")
+    }
+
     func testNewTaskAppearsInUpcoming() {
         app.buttons["quickNewTask"].tap()
         let save = app.buttons["newTaskSave"]
@@ -123,6 +164,10 @@ final class HomeUITests: XCTestCase {
     func testActivityOpensUpdateSheetMarksReadAndOpensClaim() {
         XCTAssertEqual(bell.label, "Notifications, 2 unread")
 
+        // Staff (the demo user) start on Chatter; portal updates are one filter away.
+        let updatesFilter = app.buttons["activityFilter-Portal updates"]
+        app.scrollIntoView(updatesFilter)
+        updatesFilter.tap()
         let item = app.buttons["activity-a1Y000000000002AAA"]
         app.scrollIntoView(item)
         item.tap()
@@ -165,7 +210,7 @@ final class HomeUITests: XCTestCase {
 
     func testSearchScopesRecentsAndEmptyState() {
         app.buttons["homeSearch"].tap()
-        let field = app.searchFields.firstMatch
+        let field = app.textFields["searchField"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Find anything"].exists, "Tips show before the first search")
 
@@ -181,13 +226,13 @@ final class HomeUITests: XCTestCase {
 
         // Submitting saves the search; it's offered again when the field is cleared.
         app.keyboards.buttons["search"].tap()
-        field.buttons["Clear text"].tap()
+        app.buttons["searchClear"].tap()
         let recent = app.buttons["recentSearch-Smith"]
         XCTAssertTrue(recent.waitForExistence(timeout: 5))
         recent.tap()
         XCTAssertTrue(element(containingCaseInsensitive: "Claims · 4").waitForExistence(timeout: 5))
 
-        field.buttons["Clear text"].tap()
+        app.buttons["searchClear"].tap()
         app.buttons["Clear recent searches"].tap()
         XCTAssertTrue(app.staticTexts["Find anything"].waitForExistence(timeout: 5))
     }

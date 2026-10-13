@@ -48,7 +48,7 @@ struct HomeRedesignTests {
         #expect(form.options.value?.claims.count == 4)
 
         #expect(!(await form.submit()))
-        #expect(form.error(for: .claim) != nil)
+        #expect(form.error(for: .record) == "Choose the claim this task is for.")
         #expect(form.error(for: .subject) == "Enter a subject.")
 
         form.claimId = "a23000000000001AAA"
@@ -61,6 +61,25 @@ struct HomeRedesignTests {
 
         let agenda = try await api.agenda()
         #expect(agenda.items.contains { $0.subject == "Call the carrier" && $0.relatedRecordName == "Smith - Roof" })
+    }
+
+    @Test("New Task on a lead")
+    func newTaskOnLead() async throws {
+        let api = mock()
+        let form = NewTaskViewModel(api: api, currentUserName: "Alex Smith")
+        await form.loadOptions()
+        #expect(form.options.value?.leads.isEmpty == false)
+        form.relatedKind = .lead
+        form.claimId = "a23000000000001AAA"
+        form.subject = "Send the agreement again"
+        #expect(!(await form.submit()), "A claim doesn't count when Lead is chosen")
+        #expect(form.error(for: .record) == "Choose the lead this task is for.")
+        form.leadId = "a0r000000000001AAA"
+        #expect(form.record == .lead("a0r000000000001AAA"))
+        #expect(await form.submit())
+        let item = try #require(try await api.agenda().items.first { $0.subject == "Send the agreement again" })
+        #expect(item.relatedRecordName == "Jordan Reyes")
+        #expect(item.relatedRecordType == .prospect)
     }
 
     @Test("Users who can't create tasks get no assignee list")
@@ -83,7 +102,7 @@ struct HomeRedesignTests {
         let recorder = Recorder()
         let id = try await HTTPPortalAPI(transport: recorder).createTask(
             NewTask(subject: "X", dueDate: CalendarDate(year: 2026, month: 10, day: 20), assignedToId: "005A", description: nil),
-            onClaim: "a23000000000001AAA"
+            on: .claim("a23000000000001AAA")
         )
         #expect(id == "00T1")
         let request = try #require(await recorder.request)
@@ -92,5 +111,12 @@ struct HomeRedesignTests {
         let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
         #expect(json["dueDate"] as? String == "2026-10-20")
         #expect(json["assignedToId"] as? String == "005A")
+
+        _ = try await HTTPPortalAPI(transport: recorder).createEvent(
+            NewEvent(subject: "X", isAllDay: true, date: CalendarDate(year: 2026, month: 10, day: 20), startDateTime: nil,
+                     endDateTime: nil, location: nil, assignedToId: "005A", description: nil),
+            on: .lead("a0r000000000001AAA")
+        )
+        #expect(await recorder.request?.path == "/leads/a0r000000000001AAA/events")
     }
 }

@@ -35,8 +35,8 @@ final class AppRouter {
     let leads: LeadsListViewModel
     let cases: CasesListViewModel
 
-    init(api: PortalAPI) {
-        home = HomeViewModel(api: api)
+    init(api: PortalAPI, isInternalUser: Bool) {
+        home = HomeViewModel(api: api, isInternalUser: isInternalUser)
         claims = ClaimsListViewModel(api: api)
         leads = LeadsListViewModel(api: api)
         cases = CasesListViewModel(api: api)

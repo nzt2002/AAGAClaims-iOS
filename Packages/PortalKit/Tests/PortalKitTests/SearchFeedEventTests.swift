@@ -96,8 +96,9 @@ struct SearchFeedEventTests {
 
     @Test("Recent activity merges updates and Chatter posts, newest first")
     func merged() async {
-        let home = HomeViewModel(api: mock())
+        let home = HomeViewModel(api: mock(), isInternalUser: true)
         await home.load()
+        home.activityFilter = .all
         let entries = home.recentEntries
         #expect(entries.count == 6)
         let dates = entries.compactMap(\.date)
@@ -109,9 +110,29 @@ struct SearchFeedEventTests {
     func feedFailure() async throws {
         var fixtures = try MockPortalAPI.Fixtures.bundled()
         fixtures.feed = []
-        let home = HomeViewModel(api: MockPortalAPI(fixtures: fixtures))
+        let home = HomeViewModel(api: MockPortalAPI(fixtures: fixtures), isInternalUser: true)
         await home.load()
+        home.activityFilter = .all
         #expect(home.recentEntries.allSatisfy { if case .update = $0 { true } else { false } })
+    }
+
+    @Test("Staff start on Chatter and can switch; portal users only get portal updates")
+    func activityFilter() async {
+        let staff = HomeViewModel(api: mock(), isInternalUser: true)
+        await staff.load()
+        #expect(staff.activityFilter == .chatter)
+        #expect(!staff.recentEntries.isEmpty)
+        #expect(staff.recentEntries.allSatisfy { if case .post = $0 { true } else { false } })
+        staff.activityFilter = .updates
+        #expect(staff.recentEntries.allSatisfy { if case .update = $0 { true } else { false } })
+
+        let portal = HomeViewModel(api: mock())
+        await portal.load()
+        #expect(portal.activityFilter == .updates)
+        #expect(portal.feed.value == nil, "Portal users don't load the Chatter feed")
+        portal.activityFilter = .chatter
+        #expect(!portal.recentEntries.isEmpty)
+        #expect(portal.recentEntries.allSatisfy { if case .update = $0 { true } else { false } })
     }
 
     @Test("New Event: defaults, validation and creation")

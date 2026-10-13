@@ -218,9 +218,9 @@ Returns the cases where the user is the case contact. This includes every case t
 `canCreateTasks` is true for internal staff and portal adjusters (the `Edit_Claim_Status` custom permission), the same people who manage tasks in the portal.
 
 `GET /task-assignees` → `[{ "userId", "name" }]`: active users on the End User and Standard Platform User profiles. `404` unless `canCreateTasks`.
-`POST /claims/{id}/tasks` `{ "subject", "dueDate"?, "assignedToId", "description"? }` → `201` `{ "recordId" }`. Subject is required (max 255); the assignee must be on the list above (`400 invalid_assignee`). `404` unless `canCreateTasks`.
+`POST /claims/{id}/tasks` or `POST /leads/{id}/tasks` `{ "subject", "dueDate"?, "assignedToId", "description"? }` → `201` `{ "recordId" }`. Subject is required (max 255); the assignee must be on the list above (`400 invalid_assignee`). `404` unless `canCreateTasks`.
 
-`POST /claims/{id}/events` `{ "subject", "isAllDay", "date"? (all-day), "startDateTime"?, "endDateTime"?, "location"?, "assignedToId", "description"? }` → `201` `{ "recordId" }`. The end must not be before the start. Same permission and assignee rules as tasks. (A managed calendar package in the org rewrites event subjects and locations on save, as it does for events created in Salesforce.)
+`POST /claims/{id}/events` or `POST /leads/{id}/events` `{ "subject", "isAllDay", "date"? (all-day), "startDateTime"?, "endDateTime"?, "location"?, "assignedToId", "description"? }` → `201` `{ "recordId" }`. The end must not be before the start. Same permission and assignee rules as tasks. (A managed calendar package in the org rewrites event subjects and locations on save, as it does for events created in Salesforce.)
 
 ### 5.6 Search and Chatter
 
@@ -245,19 +245,20 @@ Returns the cases where the user is the case contact. This includes every case t
 2. **Top bar:** the notifications bell only.
    **Search sheet** (over `GET /search`, starting at 2 characters with a 300 ms debounce):
    - The field is focused and the keyboard is up as soon as the sheet opens.
+   - The X at the top left always closes the sheet, even while typing. (The field is the app's own, not the system search bar, whose X only cancels the search.)
    - Scope chips: All, Claims, Leads and Cases, each with its result count. Filtering by scope happens on the device; it doesn't search again.
    - Before typing: up to 6 recent searches (newest first; tap one to run it again; *Clear* removes them). With no recents, tips show what can be found: a claim name or number, an address, a lead's name or email, and a case subject or number.
    - Results are grouped by type, with a count per group. The matching text is bold and blue. Tapping a result opens it.
    - When nothing matches, the sheet says so and suggests what else to try. If the current scope is empty but other scopes have results, it offers "Show all {n} results".
    - A search is saved to recents when it is submitted or a result is opened. Recents are stored on the device and cleared at sign-out.
    - Offline, the sheet says search needs a connection.
-3. **Quick actions**, directly under the welcome, in two columns: *Submit a Lead* | *New Event*, then *My Claims* | *New Task*. New Event and New Task appear only when `canCreateTasks`. New Task: claim, subject, optional due date, assign to (defaults to the user), details. New Event: claim, subject, all day or start/end (defaults to the next hour, for an hour), optional location, assign to, details.
+3. **Quick actions**, directly under the welcome, in two columns: *Submit a Lead* | *New Event*, then *My Claims* | *New Task*. New Event and New Task appear only when `canCreateTasks`. Both forms start with *Related to*: a Claim | Lead switch, then a picker of the user's claims or leads. New Task: related record, subject, optional due date, assign to (defaults to the user), details. New Event: related record, subject, all day or start/end (defaults to the next hour, for an hour), optional location, assign to, details.
 4. **Upcoming:** the next 5 items from `GET /agenda`, tasks with their due date (overdue ones in the warning colour) and events with day and time (or "All day", shown in UTC as Salesforce stores them), plus the related claim or lead and an event's location. Tapping an item with a related record opens it. Hidden when empty, unless the user can create tasks ("Nothing scheduled").
 5. **Recent claims:** the 3 most recently updated claims, with status; tap to open, "See all" opens Claims.
-6. **Recent activity:** published updates from `GET /activity` and, for staff, Chatter posts from `GET /feed`, newest first (8 at most). Unread updates show a dot; tapping one opens the **Update sheet** (title, date, rendered HTML, and an "Open {Claim|Lead}" button) and marks it read. Tapping a Chatter post on a claim or lead opens that record.
+6. **Recent activity:** published updates from `GET /activity` and, for staff, Chatter posts from `GET /feed`, newest first (8 at most). Staff (Salesforce user type Standard) get filter chips *Chatter* (the default), *Portal updates* and *All*. Portal users see portal updates only, with no filter, and the app doesn't call `GET /feed` for them. Each entry's header is its record: the type in regular weight and the name in bold ("Claim · **Smith - Roof**"), with a line under it saying what it is ("Portal update · {title}" or "Chatter · {author}"). Chatter posts not on a claim or lead show the group or user name as the header. Unread updates show a dot; tapping one opens the **Update sheet** (title, date, rendered HTML, and an "Open {Claim|Lead}" button) and marks it read. Tapping a Chatter post on a claim or lead opens that record.
 7. Pull to refresh.
 
-*(Changed 2026-10-12: the KPI tiles were replaced by Upcoming and Recent claims; "Request Assistance" is called "Ask Question" throughout the app (it's on claim and lead detail and Support; not on Home); Search, New Event, staff Chatter posts and the hero were added (search later moved from the top bar into the hero, replacing Next up and the unread chip); the status overview was removed; emails no longer appear in Upcoming.)*
+*(Changed 2026-10-12: the KPI tiles were replaced by Upcoming and Recent claims; "Request Assistance" is called "Ask Question" throughout the app (it's on claim and lead detail and Support; not on Home); Search, New Event, staff Chatter posts and the hero were added (search later moved from the top bar into the hero, replacing Next up and the unread chip); the status overview was removed; emails no longer appear in Upcoming; tasks and events can go on leads; Recent activity has record headers and a staff filter.)*
 
 ### 6.3 Notifications (sheet from the bell icon)
 - An **Unread / All** segmented control over `GET /activity`.

@@ -4,14 +4,17 @@ import SwiftUI
 /// Global search, opened from the search bar on Home: claims, leads and cases the user can open.
 struct SearchSheet: View {
     @State private var viewModel: SearchViewModel
+    /// Closes the sheet. Inside an active search, `dismiss` only ends the search, so the
+    /// presenter closes it instead.
+    let close: () -> Void
     let open: (SearchResult) -> Void
 
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.isOffline) private var isOffline
-    @State private var isSearchPresented = true
+    @FocusState private var fieldFocused: Bool
 
-    init(api: PortalAPI, open: @escaping (SearchResult) -> Void) {
+    init(api: PortalAPI, close: @escaping () -> Void, open: @escaping (SearchResult) -> Void) {
         _viewModel = State(initialValue: SearchViewModel(api: api, store: UserDefaultsRecentSearchStore()))
+        self.close = close
         self.open = open
     }
 
@@ -25,22 +28,65 @@ struct SearchSheet: View {
                 .padding(Theme.Spacing.l)
             }
             .scrollDismissesKeyboard(.interactively)
+            // The app's own field rather than .searchable: while a system search is active, iOS
+            // hides the toolbar and shows an X that only cancels the search, not the sheet.
+            .safeAreaInset(edge: .top, spacing: 0) { searchField }
             .background(Color.appBackground)
             .navigationTitle("Search")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(
-                text: $viewModel.query,
-                isPresented: $isSearchPresented,
-                placement: .navigationBarDrawer(displayMode: .always),
-                prompt: "Name, claim number, address or email"
-            )
-            .onSubmit(of: .search) { viewModel.commitSearch() }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
+                    Button("Close", systemImage: "xmark") {
+                        fieldFocused = false
+                        close()
+                    }
+                    .accessibilityIdentifier("searchClose")
                 }
             }
+            .task {
+                // Keyboard up as soon as the sheet opens.
+                try? await Task.sleep(for: .milliseconds(150))
+                fieldFocused = true
+            }
         }
+    }
+
+    // MARK: - Field
+
+    private var searchField: some View {
+        HStack(spacing: Theme.Spacing.s) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(Color.textSecondary)
+                .accessibilityHidden(true)
+            TextField("Name, claim number, address or email", text: $viewModel.query)
+                .focused($fieldFocused)
+                .submitLabel(.search)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .onSubmit { viewModel.commitSearch() }
+                .accessibilityLabel("Search claims, leads and cases")
+                .accessibilityIdentifier("searchField")
+            if !viewModel.query.isEmpty {
+                Button {
+                    viewModel.query = ""
+                    fieldFocused = true
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(Color.textSecondary)
+                        .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
+                .accessibilityIdentifier("searchClear")
+            }
+        }
+        .padding(.leading, Theme.Spacing.m)
+        .frame(minHeight: 48)
+        .background(Color.surface, in: Capsule())
+        .overlay(Capsule().stroke(fieldFocused ? Color.brandPrimary : Color.border, lineWidth: fieldFocused ? 2 : 1))
+        .padding(.horizontal, Theme.Spacing.l)
+        .padding(.top, Theme.Spacing.s)
+        .background(Color.appBackground)
     }
 
     // MARK: - Scope
@@ -168,7 +214,7 @@ struct SearchSheet: View {
                         ForEach(section.results) { result in
                             Button {
                                 viewModel.commitSearch()
-                                dismiss()
+                                close()
                                 open(result)
                             } label: {
                                 row(result)

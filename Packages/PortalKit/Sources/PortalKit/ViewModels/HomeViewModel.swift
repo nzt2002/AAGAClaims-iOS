@@ -54,16 +54,30 @@ public final class HomeViewModel {
         }
     }
 
+    /// Which entries Recent activity shows. Staff choose; portal users only have portal updates.
+    public enum ActivityFilter: String, CaseIterable, Hashable, Sendable {
+        case chatter = "Chatter"
+        case updates = "Portal updates"
+        case all = "All"
+    }
+
+    /// Staff see the filter and start on their Chatter feed; portal users see portal updates only.
+    public let isInternalUser: Bool
+    public var activityFilter: ActivityFilter
+
     private let api: PortalAPI
 
-    public init(api: PortalAPI) {
+    public init(api: PortalAPI, isInternalUser: Bool = false) {
         self.api = api
+        self.isInternalUser = isInternalUser
+        self.activityFilter = isInternalUser ? .chatter : .updates
     }
 
     public func load() async {
         async let content: Void = loadContent()
         async let agenda: Void = loadAgenda()
-        async let feed: Void = loadFeed()
+        // Portal users have no Chatter feed.
+        async let feed: Void = isInternalUser ? loadFeed() : ()
         _ = await (content, agenda, feed)
     }
 
@@ -82,10 +96,11 @@ public final class HomeViewModel {
         await PortalKit.load(self, \.feed) { try await api.feed() }
     }
 
-    /// Updates and Chatter posts together, newest first (8 at most). A failed feed just leaves posts out.
+    /// Entries for the current filter, newest first (8 at most). A failed feed just leaves posts out.
     public var recentEntries: [ActivityEntry] {
-        let updates = sortedActivity.map(ActivityEntry.update)
-        let posts = (feed.value ?? []).map(ActivityEntry.post)
+        let filter = isInternalUser ? activityFilter : .updates
+        let updates = filter == .chatter ? [] : sortedActivity.map(ActivityEntry.update)
+        let posts = filter == .updates ? [] : (feed.value ?? []).map(ActivityEntry.post)
         return Array((updates + posts)
             .sorted { ($0.date ?? .distantPast) > ($1.date ?? .distantPast) }
             .prefix(8))

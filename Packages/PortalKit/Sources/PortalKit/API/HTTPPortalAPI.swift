@@ -136,13 +136,13 @@ public struct HTTPPortalAPI: PortalAPI {
         try await get("/task-assignees")
     }
 
-    public func createTask(_ task: NewTask, onClaim claimId: String) async throws -> String {
-        let response: RecordIdResponse = try await post("/claims/\(escaped(claimId))/tasks", body: task)
+    public func createTask(_ task: NewTask, on record: RecordRef) async throws -> String {
+        let response: RecordIdResponse = try await post("/\(record.collectionPath)/\(escaped(record.id))/tasks", body: task)
         return response.recordId
     }
 
-    public func createEvent(_ event: NewEvent, onClaim claimId: String) async throws -> String {
-        let response: RecordIdResponse = try await post("/claims/\(escaped(claimId))/events", body: event)
+    public func createEvent(_ event: NewEvent, on record: RecordRef) async throws -> String {
+        let response: RecordIdResponse = try await post("/\(record.collectionPath)/\(escaped(record.id))/events", body: event)
         return response.recordId
     }
 

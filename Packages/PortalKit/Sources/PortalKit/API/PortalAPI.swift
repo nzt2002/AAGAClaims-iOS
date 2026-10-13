@@ -37,10 +37,10 @@ public protocol PortalAPI: Sendable {
     /// `GET /task-assignees`: people a task can be assigned to. Staff and adjusters only.
     func taskAssignees() async throws -> [TaskAssignee]
     /// `POST /claims/{id}/tasks`. Returns the new task id. Staff and adjusters only.
-    func createTask(_ task: NewTask, onClaim claimId: String) async throws -> String
+    func createTask(_ task: NewTask, on record: RecordRef) async throws -> String
 
     /// `POST /claims/{id}/events`. Returns the new event id. Staff and adjusters only.
-    func createEvent(_ event: NewEvent, onClaim claimId: String) async throws -> String
+    func createEvent(_ event: NewEvent, on record: RecordRef) async throws -> String
 
     // Search and Chatter
     /// `GET /search?q=`: claims, leads (and, for portal users, cases) the user can open.

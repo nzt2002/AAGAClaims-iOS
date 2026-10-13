@@ -82,6 +82,8 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 67. **Emails aren't tasks:** Upcoming leaves out open tasks with Subtype Email or List Email, or a subject starting "Email:". In prod, all 654 of the admin's open "tasks" were synced emails.
 68. **Global search lives in the Home hero** (2026-10-12, at the business's request), replacing Next up and the "new updates" chip; the top bar keeps only the bell (unread count stays on its badge). Recent searches (up to 6) are kept in UserDefaults on the device because they can contain customer names; they're cleared at sign-out and never sent anywhere. Scope chips filter the results already fetched, so switching scope is instant and costs no extra calls.
 69. **TestFlight setup (2026-10-12):** team `62Z8PRAHTS`, automatic signing. `ITSAppUsesNonExemptEncryption` is `NO`: the app's only encryption is HTTPS and the encryption built into iOS (keychain, data protection) that the Mobile SDK uses for stored tokens and data, which Apple treats as exempt. The business should confirm this; if it's wrong, App Store Connect needs export compliance documents instead.
+70. **Tasks and events on leads (2026-10-12):** New Task and New Event can go on a claim or a lead, with the same permission and assignee rules. The lead picker lists the user's leads (the same list as the Leads tab).
+71. **Staff vs portal users in the app** comes from the SDK's identity data (user type `STANDARD` = staff). Recent activity: staff can filter Chatter / Portal updates / All and start on Chatter; portal users only ever see portal updates. Demo mode behaves as staff.
 
 ## Open questions
 

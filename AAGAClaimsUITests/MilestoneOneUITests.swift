@@ -37,7 +37,10 @@ final class MilestoneOneUITests: XCTestCase {
         let bell = app.buttons["notificationsBell"]
         XCTAssertTrue(bell.waitForExistence(timeout: 10))
         bell.tap()
-        XCTAssertTrue(app.staticTexts["Carrier review update"].waitForExistence(timeout: 5))
+        let update = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS %@", "Carrier review update"))
+            .firstMatch
+        XCTAssertTrue(update.waitForExistence(timeout: 5))
     }
 
     func testSignOutReturnsToSplash() {

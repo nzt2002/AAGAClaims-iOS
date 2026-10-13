@@ -299,10 +299,10 @@ public actor MockPortalAPI: PortalAPI {
         return data.assignees
     }
 
-    public func createTask(_ task: NewTask, onClaim claimId: String) async throws -> String {
+    public func createTask(_ task: NewTask, on record: RecordRef) async throws -> String {
         try await simulate()
         guard data.agenda.canCreateTasks else { throw PortalAPIError.notFound }
-        try requireClaim(claimId)
+        try requireRecord(record)
         guard !task.subject.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               let assignee = data.assignees.first(where: { $0.userId == task.assignedToId }) else {
             throw PortalAPIError.invalidRequest
@@ -311,17 +311,17 @@ public actor MockPortalAPI: PortalAPI {
         let item = AgendaItem(
             id: id, kind: .task, subject: task.subject, dueDate: task.dueDate, startDateTime: nil,
             endDateTime: nil, isAllDay: nil, location: nil, status: "Not Started", isOverdue: false,
-            assignedToName: assignee.name, relatedRecordId: claimId,
-            relatedRecordName: data.claimDetails[claimId]?.claimName, relatedRecordType: .claim
+            assignedToName: assignee.name, relatedRecordId: record.id,
+            relatedRecordName: recordName(record), relatedRecordType: recordType(record)
         )
         data.agenda = Agenda(items: data.agenda.items + [item], canCreateTasks: true)
         return id
     }
 
-    public func createEvent(_ event: NewEvent, onClaim claimId: String) async throws -> String {
+    public func createEvent(_ event: NewEvent, on record: RecordRef) async throws -> String {
         try await simulate()
         guard data.agenda.canCreateTasks else { throw PortalAPIError.notFound }
-        try requireClaim(claimId)
+        try requireRecord(record)
         guard !event.subject.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               let assignee = data.assignees.first(where: { $0.userId == event.assignedToId }) else {
             throw PortalAPIError.invalidRequest
@@ -341,8 +341,8 @@ public actor MockPortalAPI: PortalAPI {
         let item = AgendaItem(
             id: id, kind: .event, subject: event.subject, dueDate: nil, startDateTime: start, endDateTime: end,
             isAllDay: event.isAllDay, location: event.location, status: nil, isOverdue: false,
-            assignedToName: assignee.name, relatedRecordId: claimId,
-            relatedRecordName: data.claimDetails[claimId]?.claimName, relatedRecordType: .claim
+            assignedToName: assignee.name, relatedRecordId: record.id,
+            relatedRecordName: recordName(record), relatedRecordType: recordType(record)
         )
         data.agenda = Agenda(items: data.agenda.items + [item], canCreateTasks: true)
         return id
@@ -444,6 +444,20 @@ public actor MockPortalAPI: PortalAPI {
         switch record {
         case .claim(let id): try requireClaim(id)
         case .lead(let id): guard data.leadDetails[id] != nil else { throw PortalAPIError.notFound }
+        }
+    }
+
+    private func recordName(_ record: RecordRef) -> String? {
+        switch record {
+        case .claim(let id): data.claimDetails[id]?.claimName
+        case .lead(let id): data.leadDetails[id]?.prospectName
+        }
+    }
+
+    private func recordType(_ record: RecordRef) -> RelatedRecordType {
+        switch record {
+        case .claim: .claim
+        case .lead: .prospect
         }
     }
 

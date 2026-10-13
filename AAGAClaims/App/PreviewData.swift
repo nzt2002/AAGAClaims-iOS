@@ -9,13 +9,13 @@ enum PreviewData {
     }
 
     static func router() -> AppRouter {
-        let router = AppRouter(api: api())
+        let router = AppRouter(api: api(), isInternalUser: true)
         Task { await router.home.load() }
         return router
     }
 
     static func loadedHome() -> HomeViewModel {
-        let viewModel = HomeViewModel(api: api())
+        let viewModel = HomeViewModel(api: api(), isInternalUser: true)
         Task { await viewModel.load() }
         return viewModel
     }

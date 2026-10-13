@@ -1,17 +1,19 @@
 import Foundation
 import Observation
 
-/// New Event (Home quick action): an event on a claim, assigned to a team member. Staff and
+/// New Event (Home quick action): an event on a claim or lead, assigned to a team member. Staff and
 /// portal adjusters only, like New Task.
 @MainActor
 @Observable
 public final class NewEventViewModel {
     public enum Field: Hashable, Sendable {
-        case claim, subject, assignee, end
+        case record, subject, assignee, end
     }
 
     public private(set) var options: LoadState<NewTaskViewModel.Options> = .idle
+    public var relatedKind: NewTaskViewModel.RelatedKind = .claim
     public var claimId: String?
+    public var leadId: String?
     public var subject = ""
     public var isAllDay = false
     public var start: Date
@@ -39,14 +41,7 @@ public final class NewEventViewModel {
 
     public func loadOptions() async {
         let api = self.api
-        await PortalKit.load(self, \.options) {
-            async let claims = api.claims()
-            async let assignees = api.taskAssignees()
-            let sortedClaims = try await claims.sorted {
-                ($0.recordName ?? "").localizedCaseInsensitiveCompare($1.recordName ?? "") == .orderedAscending
-            }
-            return try await NewTaskViewModel.Options(claims: sortedClaims, assignees: assignees)
-        }
+        await PortalKit.load(self, \.options) { try await NewTaskViewModel.Options.load(api) }
         if assigneeId == nil, let me = options.value?.assignees.first(where: { $0.name == currentUserName }) {
             assigneeId = me.userId
         }
@@ -60,7 +55,7 @@ public final class NewEventViewModel {
 
     public var errors: [Field: String] {
         var errors: [Field: String] = [:]
-        if claimId == nil { errors[.claim] = "Choose the claim this event is for." }
+        if record == nil { errors[.record] = "Choose the \(relatedKind.rawValue.lowercased()) this event is for." }
         let trimmed = subject.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty {
             errors[.subject] = "Enter a subject."
@@ -70,6 +65,14 @@ public final class NewEventViewModel {
         if assigneeId == nil { errors[.assignee] = "Choose who the event is for." }
         if !isAllDay && end < start { errors[.end] = "The end must be after the start." }
         return errors
+    }
+
+    /// The chosen claim or lead.
+    public var record: RecordRef? {
+        switch relatedKind {
+        case .claim: claimId.map(RecordRef.claim)
+        case .lead: leadId.map(RecordRef.lead)
+        }
     }
 
     public func error(for field: Field) -> String? {
@@ -101,12 +104,12 @@ public final class NewEventViewModel {
     @discardableResult
     public func submit() async -> Bool {
         showErrors = true
-        guard errors.isEmpty, !isSubmitting, let claimId, let event = newEvent else { return false }
+        guard errors.isEmpty, !isSubmitting, let record, let event = newEvent else { return false }
         isSubmitting = true
         submitError = nil
         defer { isSubmitting = false }
         do {
-            createdEventId = try await api.createEvent(event, onClaim: claimId)
+            createdEventId = try await api.createEvent(event, on: record)
             return true
         } catch {
             submitError = .wrap(error)

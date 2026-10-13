@@ -17,7 +17,7 @@ struct MainTabView: View {
     init(session: AppSession, user: CurrentUser) {
         self.session = session
         self.user = user
-        _router = State(initialValue: AppRouter(api: session.api))
+        _router = State(initialValue: AppRouter(api: session.api, isInternalUser: user.isInternal))
     }
 
     var body: some View {
@@ -73,7 +73,7 @@ struct MainTabView: View {
             NotificationsView(router: router)
         }
         .sheet(isPresented: $router.showingSearch) {
-            SearchSheet(api: session.api) { result in router.open(result) }
+            SearchSheet(api: session.api, close: { router.showingSearch = false }) { result in router.open(result) }
         }
         .sheet(isPresented: $router.showingNewEvent) {
             NewEventSheet(api: session.api, currentUserName: user.fullName) {

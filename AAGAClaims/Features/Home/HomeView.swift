@@ -226,11 +226,47 @@ struct HomeView: View {
 
     // MARK: - Recent activity
 
+    /// Staff only: Chatter (their default), portal updates, or both.
+    private var activityFilter: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Theme.Spacing.s) {
+                ForEach(HomeViewModel.ActivityFilter.allCases, id: \.self) { filter in
+                    let selected = viewModel.activityFilter == filter
+                    Button {
+                        withAnimation(.snappy) { viewModel.activityFilter = filter }
+                    } label: {
+                        Text(filter.rawValue)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(selected ? Color.surface : Color.textPrimary)
+                            .padding(.horizontal, Theme.Spacing.m)
+                            .frame(minHeight: 36)
+                            .background(selected ? Color.brandPrimary : Color.surface, in: Capsule())
+                            .overlay(Capsule().stroke(Color.border, lineWidth: selected ? 0 : 1))
+                    }
+                    .buttonStyle(.plain)
+                    .frame(minHeight: Theme.minTapTarget)
+                    .accessibilityAddTraits(selected ? .isSelected : [])
+                    .accessibilityIdentifier("activityFilter-\(filter.rawValue)")
+                }
+            }
+        }
+    }
+
+    private var emptyActivityMessage: String {
+        switch viewModel.isInternalUser ? viewModel.activityFilter : .updates {
+        case .chatter: "No Chatter posts yet."
+        case .updates, .all: "No updates yet. We'll let you know as soon as there's news."
+        }
+    }
+
     private var recentActivity: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
             SectionHeader("Recent activity")
+            if viewModel.isInternalUser {
+                activityFilter
+            }
             if viewModel.recentEntries.isEmpty {
-                Text("No updates yet. We'll let you know as soon as there's news.")
+                Text(emptyActivityMessage)
                     .foregroundStyle(Color.textSecondary)
                     .cardStyle()
             } else {
@@ -445,10 +481,8 @@ struct FeedPostRow: View {
                 .padding(.top, 4)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                Text(PortalFormat.nonEmpty(post.authorName) ?? "Chatter")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.textPrimary)
-                Text(["Chatter", post.parentType?.displayName, post.parentName].compactMap { PortalFormat.nonEmpty($0) }.joined(separator: " · "))
+                RecordHeader(type: post.parentType?.displayName, name: post.parentName ?? "Chatter")
+                Text(["Chatter", post.authorName].compactMap { PortalFormat.nonEmpty($0) }.joined(separator: " · "))
                     .font(.caption)
                     .foregroundStyle(Color.textSecondary)
                 Text(post.text ?? "")
@@ -477,10 +511,8 @@ struct ActivityRow: View {
                 .padding(.top, 6)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                Text(item.title ?? "Update")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.textPrimary)
-                Text("\(item.relatedRecordType.displayName) · \(item.relatedRecordName ?? "")")
+                RecordHeader(type: item.relatedRecordType.displayName, name: item.relatedRecordName ?? "")
+                Text(["Portal update", item.title].compactMap { PortalFormat.nonEmpty($0) }.joined(separator: " · "))
                     .font(.caption)
                     .foregroundStyle(Color.textSecondary)
                 Text(HTMLText.plainText(item.text))
@@ -496,6 +528,24 @@ struct ActivityRow: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityValue(item.isRead ? "" : "Unread")
+    }
+}
+
+/// "Claim · Smith - Roof": the record type in regular weight, the record name in bold.
+struct RecordHeader: View {
+    let type: String?
+    let name: String
+
+    var body: some View {
+        if let type = PortalFormat.nonEmpty(type) {
+            Text("\(Text("\(type) · ").foregroundStyle(Color.textSecondary))\(Text(name).fontWeight(.semibold))")
+                .font(.subheadline)
+                .foregroundStyle(Color.textPrimary)
+        } else {
+            Text(name)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.textPrimary)
+        }
     }
 }
 

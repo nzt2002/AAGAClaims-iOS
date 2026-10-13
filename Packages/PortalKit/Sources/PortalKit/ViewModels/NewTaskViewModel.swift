@@ -1,22 +1,43 @@
 import Foundation
 import Observation
 
-/// New Task (Home quick action): a task on one of the user's claims, assigned to a team member.
+/// New Task (Home quick action): a task on one of the user's claims or leads, assigned to a team member.
 /// Staff and portal adjusters only, as in the portal.
 @MainActor
 @Observable
 public final class NewTaskViewModel {
     public enum Field: Hashable, Sendable {
-        case claim, subject, assignee
+        case record, subject, assignee
+    }
+
+    /// What a new task or event is attached to.
+    public enum RelatedKind: String, CaseIterable, Hashable, Sendable {
+        case claim = "Claim"
+        case lead = "Lead"
     }
 
     public struct Options: Sendable {
         public let claims: [ClaimSummary]
+        public let leads: [LeadSummary]
         public let assignees: [TaskAssignee]
+
+        /// Claims and leads sorted by name, and the assignee list. Shared with New Event.
+        static func load(_ api: PortalAPI) async throws -> Options {
+            async let claims = api.claims()
+            async let leads = api.leads()
+            async let assignees = api.taskAssignees()
+            return try await Options(
+                claims: claims.sorted { ($0.recordName ?? "").localizedCaseInsensitiveCompare($1.recordName ?? "") == .orderedAscending },
+                leads: leads.sorted { ($0.recordName ?? "").localizedCaseInsensitiveCompare($1.recordName ?? "") == .orderedAscending },
+                assignees: assignees
+            )
+        }
     }
 
     public private(set) var options: LoadState<Options> = .idle
+    public var relatedKind: RelatedKind = .claim
     public var claimId: String?
+    public var leadId: String?
     public var subject = ""
     public var hasDueDate = false
     public var dueDate = Date()
@@ -39,14 +60,7 @@ public final class NewTaskViewModel {
 
     public func loadOptions() async {
         let api = self.api
-        await PortalKit.load(self, \.options) {
-            async let claims = api.claims()
-            async let assignees = api.taskAssignees()
-            let sortedClaims = try await claims.sorted {
-                ($0.recordName ?? "").localizedCaseInsensitiveCompare($1.recordName ?? "") == .orderedAscending
-            }
-            return try await Options(claims: sortedClaims, assignees: assignees)
-        }
+        await PortalKit.load(self, \.options) { try await Options.load(api) }
         if assigneeId == nil, let me = options.value?.assignees.first(where: { $0.name == currentUserName }) {
             assigneeId = me.userId
         }
@@ -54,7 +68,7 @@ public final class NewTaskViewModel {
 
     public var errors: [Field: String] {
         var errors: [Field: String] = [:]
-        if claimId == nil { errors[.claim] = "Choose the claim this task is for." }
+        if record == nil { errors[.record] = "Choose the \(relatedKind.rawValue.lowercased()) this task is for." }
         let trimmed = subject.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty {
             errors[.subject] = "Enter a subject."
@@ -63,6 +77,14 @@ public final class NewTaskViewModel {
         }
         if assigneeId == nil { errors[.assignee] = "Choose who the task is for." }
         return errors
+    }
+
+    /// The chosen claim or lead.
+    public var record: RecordRef? {
+        switch relatedKind {
+        case .claim: claimId.map(RecordRef.claim)
+        case .lead: leadId.map(RecordRef.lead)
+        }
     }
 
     public func error(for field: Field) -> String? {
@@ -89,12 +111,12 @@ public final class NewTaskViewModel {
     @discardableResult
     public func submit() async -> Bool {
         showErrors = true
-        guard errors.isEmpty, !isSubmitting, let claimId, let task = newTask else { return false }
+        guard errors.isEmpty, !isSubmitting, let record, let task = newTask else { return false }
         isSubmitting = true
         submitError = nil
         defer { isSubmitting = false }
         do {
-            createdTaskId = try await api.createTask(task, onClaim: claimId)
+            createdTaskId = try await api.createTask(task, on: record)
             return true
         } catch {
             submitError = .wrap(error)

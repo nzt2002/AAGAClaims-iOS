@@ -1,7 +1,7 @@
 import PortalKit
 import SwiftUI
 
-/// New Task (Home quick action): a task on a claim, assigned to a team member.
+/// New Task (Home quick action): a task on a claim or lead, assigned to a team member.
 struct NewTaskSheet: View {
     @State private var viewModel: NewTaskViewModel
     let onCreated: () -> Void
@@ -60,16 +60,14 @@ struct NewTaskSheet: View {
 
     private func form(_ options: NewTaskViewModel.Options) -> some View {
         Form {
-            Section {
-                Picker("Claim", selection: $viewModel.claimId) {
-                    Text("Choose…").tag(String?.none)
-                    ForEach(options.claims) { claim in
-                        Text(claim.recordName ?? claim.claimNumber ?? "Claim").tag(String?.some(claim.recordId))
-                    }
-                }
-                .pickerStyle(.menu)
-                .accessibilityIdentifier("newTaskClaim")
-                errorText(.claim)
+            RelatedRecordSection(
+                kind: $viewModel.relatedKind,
+                claimId: $viewModel.claimId,
+                leadId: $viewModel.leadId,
+                options: options,
+                idPrefix: "newTask"
+            ) {
+                errorText(.record)
             }
 
             Section {

@@ -8,8 +8,11 @@ struct CurrentUser: Equatable {
     let firstName: String?
     let fullName: String
     let email: String
+    /// Internal staff (Salesforce user type Standard) rather than a portal user.
+    var isInternal = false
 
-    static let demo = CurrentUser(firstName: "Alex", fullName: "Alex Smith", email: "alex.smith@example.com")
+    // Demo mode shows staff features (Chatter, New Task), like the mock data.
+    static let demo = CurrentUser(firstName: "Alex", fullName: "Alex Smith", email: "alex.smith@example.com", isInternal: true)
 }
 
 @Observable
