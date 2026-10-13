@@ -21,6 +21,8 @@
 			</array>
 		</dict>
 	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>Take photos of damage to upload to your claim or lead.</string>
 	<key>NSFaceIDUsageDescription</key>
