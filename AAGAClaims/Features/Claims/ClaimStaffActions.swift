@@ -34,43 +34,24 @@ enum ClaimAction: String, Identifiable, CaseIterable {
         }
     }
 
-    static let quick: [ClaimAction] = [.payments, .addContact, .edit, .address, .owner, .proofOfLoss]
+    /// Shown as buttons; the rest are in the More menu.
+    static let primary: [ClaimAction] = [.payments, .edit]
+    static let more: [ClaimAction] = [.addContact, .address, .owner, .proofOfLoss]
     static let communication: [ClaimAction] = [.post, .call, .email]
 }
 
-/// The Quick Actions grid and the communication buttons, below the claim's header (staff only).
+/// The quick actions (Apply Payments, Edit Claim, More) and the communication buttons, below the
+/// claim's header (staff only).
 struct ClaimQuickActions: View {
     let open: (ClaimAction) -> Void
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.isOffline) private var isOffline
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            let columns = Array(repeating: GridItem(.flexible(), spacing: Theme.Spacing.s),
-                                count: dynamicTypeSize.isAccessibilitySize ? 1 : 3)
-            LazyVGrid(columns: columns, spacing: Theme.Spacing.s) {
-                ForEach(ClaimAction.quick) { action in
-                    Button { open(action) } label: {
-                        VStack(spacing: Theme.Spacing.xs) {
-                            IconBadge(systemName: action.icon, size: 36, filled: true)
-                            Text(action.title)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(Color.textPrimary)
-                                .multilineTextAlignment(.center)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 84)
-                        .padding(.vertical, Theme.Spacing.s)
-                        .background {
-                            RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous).fill(Color.surface)
-                        }
-                        .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous).stroke(Color.border.opacity(0.7), lineWidth: 1))
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(QuickActionPressStyle())
-                    .disabledWhenOffline(isOffline)
-                    .accessibilityIdentifier("claimAction-\(action.rawValue)")
-                }
+            // One slim row of pills; stacked full width at larger text sizes.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Theme.Spacing.s) { quickButtons }
+                VStack(spacing: Theme.Spacing.s) { quickButtons }
             }
 
             // One row when the labels fit; stacked at larger text sizes.
@@ -80,6 +61,43 @@ struct ClaimQuickActions: View {
             }
         }
         .accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder
+    private var quickButtons: some View {
+        ForEach(ClaimAction.primary) { action in
+            Button { open(action) } label: { pill(action.title, icon: action.icon) }
+                .buttonStyle(.plain)
+                .disabledWhenOffline(isOffline)
+                .accessibilityIdentifier("claimAction-\(action.rawValue)")
+        }
+        Menu {
+            ForEach(ClaimAction.more) { action in
+                Button { open(action) } label: { Label(action.title, systemImage: action.icon) }
+                    .accessibilityIdentifier("claimAction-\(action.rawValue)")
+            }
+        } label: {
+            pill("More", icon: "ellipsis.circle")
+        }
+        .buttonStyle(.plain)
+        .disabledWhenOffline(isOffline)
+        .accessibilityLabel("More actions")
+        .accessibilityIdentifier("claimActionMore")
+    }
+
+    /// A slim capsule: icon beside the label, brand blue on a light blue fill (6:1).
+    private func pill(_ title: String, icon: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+            Text(title)
+        }
+        .font(.footnote.weight(.semibold))
+        .foregroundStyle(Color.brandPrimary)
+        .fixedSize()
+        .padding(.horizontal, Theme.Spacing.m)
+        .frame(maxWidth: .infinity, minHeight: Theme.minTapTarget)
+        .background(Color.surfaceTintedStrong, in: Capsule())
+        .contentShape(Capsule())
     }
 
     /// Compact: icon above the label, three across. Otherwise one full-width button each.

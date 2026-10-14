@@ -328,7 +328,7 @@ The Prospect Conversion Guided Process (`Prospect_Conversion_Guided_Process` flo
 ### 6.5 Claim detail
 **Header:** claim name, claim number, policy number, status pill.
 
-**Quick actions (staff only)**, directly under the header: a 3-column grid of *Apply Payments*, *Add Contact*, *Edit Claim*, *Update Address*, *Change Owner* and *Proof of Loss*, then a row of communication buttons: *Add a Post*, *Log a Call*, *Send an Email*. Each opens a sheet (§5.6b):
+**Quick actions (staff only)**, directly under the header: one slim row of capsule buttons, *Apply Payments*, *Edit Claim* and *More* (a menu with *Add Contact*, *Update Address*, *Change Owner* and *Proof of Loss*), stacked full width at large text sizes; then a row of communication buttons: *Add a Post*, *Log a Call*, *Send an Email*. Each opens a sheet (§5.6b):
 - **Apply Payments:** date collected, *Apply deductible* (with the claim's deductible), payment rows (type and amount; add and swipe to remove), and a live summary: RCV, payments received (everything except RCV, less any deductible rows), the deductible when applied, the adjuster fee ((received + applied deductible) × fee %), and the insured payment (received − fee, never below 0). Choosing *Deductible* as a type switches on *Apply deductible* instead, as in the quick action. Blocked, with a message, until the claim has a deductible.
 - **Add Contact:** Existing (search) or New, with a role. New contacts are checked for matches (email, mobile phone, or name) first; then a company account for subcontractors; a duplicate-rule match lets the user add the existing contact or none.
 - **Edit Claim:** the core fields. **Update Address:** with address lookup as you type. **Change Owner:** searchable list of internal users.

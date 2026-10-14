@@ -75,10 +75,9 @@ final class AccessibilityAuditUITests: XCTestCase {
             // The Home quick actions (text and icon both scale; one column at accessibility sizes).
             let verified = ["Face ID", "Ask for Face ID", "You · ", "Sam Lee · ", "Assistance Requested",
                             "New Lead", "New Event", "New Claim", "New Task",
-                            // Claim quick action tiles (checked at accessibility sizes, 2026-10-13).
-                            "Apply Payments", "Add Contact", "Edit Claim", "Update Address", "Change Owner", "Proof of Loss",
-                            // Claim communication buttons: three across, stacked full width at accessibility sizes.
-                            "Add a Post", "Log a Call", "Send an Email"]
+                            // Claim action pills and communication buttons: one row, stacked full
+                            // width at accessibility sizes (checked in screenshots, 2026-10-13).
+                            "Apply Payments", "Edit Claim", "More", "Add a Post", "Log a Call", "Send an Email"]
             return verified.contains { label.hasPrefix($0) }
         default:
             return false
@@ -101,6 +100,7 @@ final class AccessibilityAuditUITests: XCTestCase {
         try audit("Claim detail")
         for section in ["Details", "Insurance", "Files", "Payments"] {
             app.scrollIntoView(app.buttons[section])
+            sleep(1)
             app.buttons[section].tap()
             // Let the scroll settle; mid-scroll frames are measured against moving content.
             sleep(1)

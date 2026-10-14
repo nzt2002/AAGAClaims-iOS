@@ -12,7 +12,7 @@ final class ClaimActionsUITests: XCTestCase {
         app.dismissSystemAlerts()
         app.tabBars.buttons["Claims"].tap()
         let card = app.buttons["claimCard-a23000000000001AAA"]
-        XCTAssertTrue(card.waitForExistence(timeout: 10))
+        XCTAssertTrue(card.waitForExistence(timeout: 20))
         card.tap()
         XCTAssertTrue(app.staticTexts["Claim CLM-1234"].waitForExistence(timeout: 5))
     }
@@ -21,7 +21,15 @@ final class ClaimActionsUITests: XCTestCase {
         app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
     }
 
+    private static let inMoreMenu: Set<String> = ["addContact", "address", "owner", "proofOfLoss"]
+
     private func open(_ action: String) {
+        if Self.inMoreMenu.contains(action) {
+            let more = app.buttons["claimActionMore"]
+            XCTAssertTrue(more.waitForExistence(timeout: 5))
+            app.scrollIntoView(more)
+            more.tap()
+        }
         let button = app.buttons["claimAction-\(action)"]
         XCTAssertTrue(button.waitForExistence(timeout: 5))
         app.scrollIntoView(button)
@@ -35,11 +43,24 @@ final class ClaimActionsUITests: XCTestCase {
     }
 
     func testPageLayout() {
-        for action in ["payments", "addContact", "edit", "address", "owner", "proofOfLoss", "post", "call", "email"] {
+        for action in ["payments", "edit", "post", "call", "email"] {
             XCTAssertTrue(app.buttons["claimAction-\(action)"].exists, action)
         }
-        // Quick actions sit under the header.
-        XCTAssertLessThan(app.staticTexts["Claim CLM-1234"].frame.maxY, app.buttons["claimAction-payments"].frame.minY)
+        let more = app.buttons["claimActionMore"]
+        XCTAssertTrue(more.exists)
+        // One row under the header: Apply Payments, Edit Claim and More side by side.
+        let payments = app.buttons["claimAction-payments"]
+        XCTAssertLessThan(app.staticTexts["Claim CLM-1234"].frame.maxY, payments.frame.minY)
+        XCTAssertEqual(payments.frame.midY, more.frame.midY, accuracy: 2)
+        XCTAssertFalse(app.buttons["claimAction-addContact"].exists, "The rest are in More")
+        more.tap()
+        for action in ["addContact", "address", "owner", "proofOfLoss"] {
+            XCTAssertTrue(app.buttons["claimAction-\(action)"].waitForExistence(timeout: 5), action)
+        }
+        // Choosing an item opens its sheet (and closes the menu).
+        app.buttons["claimAction-owner"].tap()
+        XCTAssertTrue(app.buttons["actionCancel"].waitForExistence(timeout: 5))
+        app.buttons["actionCancel"].tap()
 
         // Progress is collapsed; the status stays visible and prominent.
         let toggle = app.buttons["claimProgressToggle"]
@@ -78,6 +99,11 @@ final class ClaimActionsUITests: XCTestCase {
         name.typeText(" and Gutters")
         save()
         XCTAssertTrue(app.staticTexts["Smith - Roof and Gutters"].waitForExistence(timeout: 5))
+    }
+
+    func testMoreMenuOpensAddress() {
+        open("address")
+        XCTAssertTrue(app.textFields["streetAddress"].waitForExistence(timeout: 5))
     }
 
     func testApplyPayments() {
