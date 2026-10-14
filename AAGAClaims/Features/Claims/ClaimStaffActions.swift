@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Staff actions on a claim's page: quick actions and communication.
 enum ClaimAction: String, Identifiable, CaseIterable {
-    case payments, addContact, edit, address, owner, proofOfLoss, post, call, email
+    case payments, addContact, edit, address, owner, proofOfLoss, post, email
     var id: String { rawValue }
 
     var title: String {
@@ -15,7 +15,6 @@ enum ClaimAction: String, Identifiable, CaseIterable {
         case .owner: "Change Owner"
         case .proofOfLoss: "Proof of Loss"
         case .post: "Add a Post"
-        case .call: "Log a Call"
         case .email: "Send an Email"
         }
     }
@@ -29,7 +28,6 @@ enum ClaimAction: String, Identifiable, CaseIterable {
         case .owner: "person.crop.circle.badge.checkmark"
         case .proofOfLoss: "doc.text.magnifyingglass"
         case .post: "text.bubble"
-        case .call: "phone.arrow.up.right"
         case .email: "envelope"
         }
     }
@@ -42,28 +40,26 @@ enum ClaimAction: String, Identifiable, CaseIterable {
         switch self {
         case .payments: "Payments"
         case .post: "Post"
-        case .call: "Log Call"
         case .email: "Email"
         case .addContact: "Contact"
         default: title
         }
     }
-    static let communication: [ClaimAction] = [.post, .call, .email]
 }
 
-/// The claim's action strip (staff only): Apply Payments, Add a Post, Log a Call, Add Contact
+/// The claim's action strip (staff only): Apply Payments, Add a Post, Add Contact
 /// and More (Send an Email, Update Address, Change Owner, Proof of Loss), as round icon buttons with labels on one card. Edit Claim is in the top bar.
 struct ClaimQuickActions: View {
     let open: (ClaimAction) -> Void
     @Environment(\.isOffline) private var isOffline
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    private static let strip: [ClaimAction] = [.payments, .post, .call, .addContact]
+    private static let strip: [ClaimAction] = [.payments, .post, .addContact]
 
     var body: some View {
-        // Five across; two across at accessibility text sizes, so labels never break mid-word.
+        // Four across; two across at accessibility text sizes, so labels never break mid-word.
         let columns = Array(repeating: GridItem(.flexible(), spacing: Theme.Spacing.xs, alignment: .top),
-                            count: dynamicTypeSize.isAccessibilitySize ? 2 : 5)
+                            count: dynamicTypeSize.isAccessibilitySize ? 2 : 4)
         LazyVGrid(columns: columns, spacing: Theme.Spacing.m) {
             ForEach(Self.strip) { action in
                 Button { open(action) } label: {
@@ -99,7 +95,7 @@ struct ClaimQuickActions: View {
 }
 
 /// A round gradient icon with a short label under it, in the style of the system's contact actions.
-private struct ActionCircle: View {
+struct ActionCircle: View {
     let title: String
     let icon: String
     @ScaledMetric(relativeTo: .body) private var size: CGFloat = 48
@@ -129,7 +125,7 @@ private struct ActionCircle: View {
 }
 
 /// A gentle press: the circle shrinks a touch.
-private struct ActionCirclePressStyle: ButtonStyle {
+struct ActionCirclePressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.94 : 1)
@@ -176,7 +172,6 @@ struct ClaimActionSheet: View {
         case .address: UpdateAddressForm(staff: staff, actions: actions, saved: saved)
         case .owner: ChangeOwnerForm(staff: staff, actions: actions, saved: saved)
         case .proofOfLoss: ProofOfLossForm(staff: staff, actions: actions, saved: saved)
-        case .call: LogCallForm(api: api, claimId: staff.id, contacts: staff.contacts, saved: saved)
         case .email: EmailForm(api: api, staff: staff, saved: saved)
         case .payments, .addContact, .post: EmptyView()
         }
@@ -186,7 +181,7 @@ struct ClaimActionSheet: View {
 // MARK: - Shared form pieces
 
 /// Cancel and a Save button (or a spinner) for action forms.
-private struct FormToolbar: ToolbarContent {
+struct FormToolbar: ToolbarContent {
     var saveTitle = "Save"
     let isSaving: Bool
     var canSave = true
@@ -211,7 +206,7 @@ private struct FormToolbar: ToolbarContent {
     }
 }
 
-private struct ErrorRow: View {
+struct ErrorRow: View {
     let message: String?
     var body: some View {
         if let message {
@@ -251,7 +246,7 @@ private struct DecimalField: View {
 }
 
 /// An optional date with a switch, stored as a CalendarDate.
-private struct OptionalDateRow: View {
+struct OptionalDateRow: View {
     let title: String
     @Binding var value: CalendarDate?
 
@@ -281,7 +276,7 @@ extension CalendarDate {
     }
 }
 
-private func optional(_ text: String) -> String? {
+func optional(_ text: String) -> String? {
     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
     return trimmed.isEmpty ? nil : trimmed
 }
@@ -929,9 +924,9 @@ private struct AddContactForm: View {
     }
 }
 
-// MARK: - Add a Post, Log a Call, Send an Email
+// MARK: - Add a Post, Send an Email
 
-private struct AddPostForm: View {
+struct AddPostForm: View {
     let feed: ChatterFeedViewModel
     @State private var text = ""
     @FocusState private var focused: Bool
@@ -945,7 +940,7 @@ private struct AddPostForm: View {
                     .focused($focused)
                     .accessibilityIdentifier("postText")
             } footer: {
-                Text("Posts to the claim's Chatter feed. Staff only; homeowners don't see it.")
+                Text("Posts to the Chatter feed. Staff only; homeowners don't see it.")
             }
             if feed.failedId == ChatterFeedViewModel.newPostId {
                 ErrorRow(message: "We couldn't post that. Please try again.")
@@ -956,48 +951,6 @@ private struct AddPostForm: View {
             FormToolbar(saveTitle: "Post", isSaving: feed.saving.contains(ChatterFeedViewModel.newPostId),
                         canSave: !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
                 if await feed.post(text) { dismiss() }
-            }
-        }
-    }
-}
-
-private struct LogCallForm: View {
-    @State private var model: LogCallViewModel
-    let contacts: [ValueOption]
-    let saved: () -> Void
-    @Environment(\.dismiss) private var dismiss
-
-    init(api: PortalAPI, claimId: String, contacts: [ValueOption], saved: @escaping () -> Void) {
-        _model = State(initialValue: LogCallViewModel(api: api, claimId: claimId))
-        self.contacts = contacts
-        self.saved = saved
-    }
-
-    var body: some View {
-        Form {
-            Section {
-                TextField("Subject", text: $model.subject).accessibilityIdentifier("callSubject")
-                if !contacts.isEmpty {
-                    Picker("Who", selection: $model.contactId) {
-                        Text("Not set").tag(String?.none)
-                        ForEach(contacts) { Text($0.label).tag($0.value) }
-                    }
-                    .pickerStyle(.menu)
-                }
-                TextField("What was discussed?", text: $model.details, axis: .vertical)
-                    .lineLimit(3...10)
-                    .accessibilityIdentifier("callDetails")
-            } footer: {
-                Text("Saved as a completed call on the claim's activity.")
-            }
-            ErrorRow(message: model.errorMessage)
-        }
-        .toolbar {
-            FormToolbar(isSaving: model.isSaving) {
-                if await model.save() {
-                    saved()
-                    dismiss()
-                }
             }
         }
     }

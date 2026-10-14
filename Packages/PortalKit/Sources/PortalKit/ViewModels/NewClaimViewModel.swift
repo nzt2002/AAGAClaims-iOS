@@ -96,11 +96,35 @@ public final class NewClaimViewModel {
     public private(set) var error: PortalAPIError?
     public private(set) var createdClaimId: String?
 
+    /// Convert to Account: the lead being converted. The claim comes from the lead, so there's no
+    /// claim-details step; the account and contact steps are prefilled from it.
+    public let conversion: LeadConversion?
+
     private let api: PortalAPI
 
-    public init(api: PortalAPI) {
+    public init(api: PortalAPI, conversion: LeadConversion? = nil) {
         self.api = api
+        self.conversion = conversion
+        guard let conversion else { return }
+        accountFirstName = conversion.firstName ?? ""
+        accountLastName = conversion.lastName ?? ""
+        accountEmail = conversion.email ?? ""
+        accountPhone = conversion.phone ?? ""
+        claimName = conversion.leadName ?? ""
+        // The flow offers the lead's associated party as the claim contact.
+        if let party = conversion.associatedPartyName?.trimmingCharacters(in: .whitespaces), !party.isEmpty {
+            contactMode = .new
+            let parts = party.split(separator: " ", maxSplits: 1).map(String.init)
+            contactFirstName = parts.count > 1 ? parts[0] : ""
+            contactLastName = parts.count > 1 ? parts[1] : parts[0]
+            contactEmail = conversion.associatedPartyEmail ?? ""
+            contactPhone = conversion.associatedPartyPhone ?? ""
+            contactCompany = conversion.associatedPartyCompany ?? ""
+        }
     }
+
+    /// The step after the account: claim details, or the contact when converting a lead.
+    private var afterAccount: Step { conversion == nil ? .claimDetails : .contact }
 
     public func loadOptions() async {
         let api = self.api
@@ -170,8 +194,8 @@ public final class NewClaimViewModel {
     public func chooseAccount(_ account: AccountMatch) -> Step {
         selectedAccount = account
         accountMatches = []
-        prefillClaim(name: account.name, email: account.email, phone: account.phone)
-        return .claimDetails
+        if conversion == nil { prefillClaim(name: account.name, email: account.email, phone: account.phone) }
+        return afterAccount
     }
 
     /// Get_Matching_Person_Accounts before anything is created: matches must be used instead.
@@ -184,8 +208,8 @@ public final class NewClaimViewModel {
         }) else { return nil }
         accountMatches = matches
         if !matches.isEmpty { return .accountMatches }
-        prefillClaim(name: accountDisplayName, email: optional(accountEmail), phone: optional(accountPhone))
-        return .claimDetails
+        if conversion == nil { prefillClaim(name: accountDisplayName, email: optional(accountEmail), phone: optional(accountPhone)) }
+        return afterAccount
     }
 
     // MARK: - 2. Claim
@@ -319,7 +343,11 @@ public final class NewClaimViewModel {
         error = nil
         defer { isWorking = false }
         do {
-            createdClaimId = try await api.createClaim(request)
+            if let conversion {
+                createdClaimId = try await api.convertLead(id: conversion.leadId, account: request.account, contact: request.contact)
+            } else {
+                createdClaimId = try await api.createClaim(request)
+            }
             return nil
         } catch {
             let wrapped = PortalAPIError.wrap(error)

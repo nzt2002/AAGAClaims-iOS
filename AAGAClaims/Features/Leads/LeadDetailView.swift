@@ -4,12 +4,34 @@ import SwiftUI
 /// Lead detail (spec §6.7).
 struct LeadDetailView: View {
     @State private var viewModel: LeadDetailViewModel
+    /// Staff only: Convert, Post, the agreement e-sign preview, Edit and the Lead Feed.
+    @State private var leadActions: LeadActionsViewModel
+    @State private var leadFeed: ChatterFeedViewModel
+    @State private var openAction: LeadAction?
+    @State private var showingConvert = false
+    @State private var convertedClaim: (id: String, name: String)?
+    @State private var agreementURL: URL?
+    @State private var showingDemoNotice = false
+    @State private var updatesFilter: UpdatesFilter = .leadFeed
+    @Environment(\.isInternalUser) private var isInternal
+    @Environment(\.openRecord) private var openRecord
+    @Environment(\.salesforceInstanceURL) private var instanceURL
     @Environment(\.scenePhase) private var scenePhase
+
+    enum UpdatesFilter: String, CaseIterable {
+        case leadFeed = "Lead Feed"
+        case portalUpdates = "Portal Updates"
+    }
+
+    /// Generate Agreement - GA - Preview Esign (the lead page's DocMerge button).
+    private static let agreementSolutionKey = "994dd7c4-f5f6-413f-871f-0ab54a81aa2c"
     let fallbackName: String?
     let api: PortalAPI
 
     init(leadId: String, fallbackName: String?, api: PortalAPI) {
         _viewModel = State(initialValue: LeadDetailViewModel(leadId: leadId, api: api))
+        _leadActions = State(initialValue: LeadActionsViewModel(api: api, leadId: leadId))
+        _leadFeed = State(initialValue: ChatterFeedViewModel(api: api, source: .lead(leadId)))
         self.fallbackName = fallbackName
         self.api = api
     }
@@ -23,6 +45,44 @@ struct LeadDetailView: View {
                 if viewModel.detail.value == nil {
                     await viewModel.load()
                 }
+                if isInternal, leadFeed.feed.value == nil {
+                    async let staff: Void = leadActions.load()
+                    async let feed: Void = leadFeed.load()
+                    _ = await (staff, feed)
+                }
+            }
+            .sheet(item: $openAction) { action in
+                switch action {
+                case .edit:
+                    if let staff = leadActions.staff.value {
+                        EditLeadForm(staff: staff, actions: leadActions, api: api) {
+                            Task { await viewModel.load() }
+                        }
+                    }
+                default:
+                    NavigationStack {
+                        AddPostForm(feed: leadFeed)
+                            .navigationTitle("Add a Post")
+                            .navigationBarTitleDisplayMode(.inline)
+                    }
+                }
+            }
+            // The new claim opens once the sheet has closed.
+            .sheet(isPresented: $showingConvert, onDismiss: openConvertedClaim) {
+                if let staff = leadActions.staff.value {
+                    NewClaimSheet(api: api, conversion: LeadConversion(staff), close: { showingConvert = false }) { id, name in
+                        convertedClaim = (id, name)
+                        showingConvert = false
+                    }
+                }
+            }
+            .sheet(item: Binding(get: { agreementURL.map(SafariLink.init) }, set: { agreementURL = $0?.url })) {
+                SafariView(url: $0.url).ignoresSafeArea()
+            }
+            .alert("Available in Salesforce", isPresented: $showingDemoNotice) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("The agreement e-sign preview opens in Salesforce, which isn't available in demo mode.")
             }
             .onChange(of: scenePhase) { _, phase in
                 // Back in the foreground with data more than 5 minutes old (spec §7).
@@ -58,6 +118,9 @@ struct LeadDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.l) {
                 header(detail)
+                if isInternal {
+                    LeadQuickActions(isConverted: isConverted(detail)) { handle($0, detail) }
+                }
                 LeadLifecycleCard(position: detail.lifecycle, status: detail.prospectStatus)
                 AgreementCard(agreement: detail.agreement)
                 SectionBar(selection: $viewModel.section)
@@ -72,12 +135,66 @@ struct LeadDetailView: View {
             }
             .padding(Theme.Spacing.l)
         }
-        .refreshable { await viewModel.load() }
-        .recordActions(record: viewModel.record, recordName: recordName, api: api) {
-            // Lead comments are published to the lead's updates (spec §5.2).
-            viewModel.section = .updates
-            Task { await viewModel.loadUpdates() }
+        .refreshable {
+            await viewModel.load()
+            if isInternal {
+                await leadActions.load()
+                await leadFeed.load()
+            }
         }
+        .toolbar {
+            if isInternal {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Edit") { openAction = .edit }
+                        .disabled(leadActions.staff.value == nil)
+                        .accessibilityLabel("Edit Lead")
+                        .accessibilityIdentifier("leadAction-edit")
+                }
+            }
+        }
+        // Ask Question is a top-bar icon; there's no Add Comment, as on claims.
+        .recordActions(record: viewModel.record, recordName: recordName, api: api, placement: .toolbarIcon)
+    }
+
+    private func isConverted(_ detail: LeadDetail) -> Bool {
+        leadActions.staff.value?.isConverted == true || detail.prospectStatus == "Converted"
+    }
+
+    private func handle(_ action: LeadAction, _ detail: LeadDetail) {
+        switch action {
+        case .convert:
+            if isConverted(detail) {
+                if let claimId = leadActions.staff.value?.convertedClaimId {
+                    openRecord(.claim(claimId), name: detail.prospectName)
+                }
+            } else if leadActions.staff.value != nil {
+                showingConvert = true
+            }
+        case .post, .edit:
+            openAction = action
+        case .agreement:
+            guard let instanceURL else {
+                showingDemoNotice = true
+                return
+            }
+            var components = URLComponents(url: instanceURL.appendingPathComponent("apex/hic_docmerge__Composer"), resolvingAgainstBaseURL: false)
+            components?.queryItems = [
+                URLQueryItem(name: "advancemergefields", value: "true"),
+                URLQueryItem(name: "id", value: viewModel.leadId),
+                URLQueryItem(name: "documentSolutionKey", value: Self.agreementSolutionKey)
+            ]
+            agreementURL = components?.url
+        }
+    }
+
+    private func openConvertedClaim() {
+        guard let claim = convertedClaim else { return }
+        convertedClaim = nil
+        Task {
+            await viewModel.load()
+            await leadActions.load()
+        }
+        openRecord(.claim(claim.id), name: claim.name)
     }
 
     private func header(_ detail: LeadDetail) -> some View {
@@ -110,8 +227,19 @@ struct LeadDetailView: View {
     private func sectionContent(_ detail: LeadDetail) -> some View {
         switch viewModel.section {
         case .updates:
-            SectionLoader(state: viewModel.updates, subject: "updates", retry: { await viewModel.loadUpdates() }) { updates in
-                UpdatesList(updates: updates, emptyMessage: "No updates have been published for this lead yet.")
+            if isInternal {
+                Picker("Show", selection: $updatesFilter) {
+                    ForEach(UpdatesFilter.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("leadUpdatesFilter")
+            }
+            if isInternal && updatesFilter == .leadFeed {
+                ChatterFeedSection(model: leadFeed, emptyMessage: "No posts on this lead yet. Use Post to start one.", visibleCount: 3)
+            } else {
+                SectionLoader(state: viewModel.updates, subject: "updates", retry: { await viewModel.loadUpdates() }) { updates in
+                    UpdatesList(updates: updates, emptyMessage: "No updates have been published for this lead yet.", visibleCount: 3)
+                }
             }
         case .details:
             LeadDetailsSection(detail: detail)

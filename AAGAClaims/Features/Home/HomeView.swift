@@ -276,8 +276,8 @@ struct HomeView: View {
                     .foregroundStyle(Color.textSecondary)
                     .cardStyle()
             } else {
-                VStack(spacing: Theme.Spacing.s) {
-                    ForEach(viewModel.recentEntries) { entry in
+                // Three at a time; the rest scroll.
+                ScrollingStack(items: viewModel.recentEntries, noun: "updates") { entry in
                         switch entry {
                         case .update(let item):
                             Button {
@@ -307,7 +307,6 @@ struct HomeView: View {
                                     .accessibilityIdentifier("post-\(post.id)")
                             }
                         }
-                    }
                 }
             }
         }

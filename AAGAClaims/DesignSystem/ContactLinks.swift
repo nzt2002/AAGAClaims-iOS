@@ -168,6 +168,16 @@ struct OpenSupportAction {
     }
 }
 
+/// Opens a claim or lead in its tab (e.g. a lead's new claim after Convert to Account).
+struct OpenRecordAction {
+    let action: (_ record: RecordRef, _ name: String?) -> Void
+
+    func callAsFunction(_ record: RecordRef, name: String?) {
+        action(record, name)
+    }
+}
+
 extension EnvironmentValues {
     @Entry var openSupport = OpenSupportAction { _ in }
+    @Entry var openRecord = OpenRecordAction { _, _ in }
 }

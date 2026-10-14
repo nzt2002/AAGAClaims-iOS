@@ -9,6 +9,7 @@ public final class ChatterFeedViewModel {
     public enum Source: Hashable, Sendable {
         case person(String)
         case claim(String)
+        case lead(String)
     }
 
     public let source: Source
@@ -39,22 +40,28 @@ public final class ChatterFeedViewModel {
         switch source {
         case .person(let id): await PortalKit.load(self, \.feed) { try await api.personFeed(id: id) }
         case .claim(let id): await PortalKit.load(self, \.feed) { try await api.claimFeed(claimId: id) }
+        case .lead(let id): await PortalKit.load(self, \.feed) { try await api.leadFeed(leadId: id) }
         }
     }
 
     // MARK: - Posts (claims)
 
-    /// Add a Post: a new post on the claim's feed, shown at the top.
+    /// Post: a new post on the claim's or lead's feed, shown at the top.
     @discardableResult
     public func post(_ text: String) async -> Bool {
-        guard case .claim(let claimId) = source else { return false }
+        if case .person = source { return false }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !saving.contains(Self.newPostId) else { return false }
         saving.insert(Self.newPostId)
         clearFailure()
         defer { saving.remove(Self.newPostId) }
         do {
-            let post = try await api.postToClaim(claimId: claimId, text: trimmed)
+            let post: ChatterPost
+            switch source {
+            case .claim(let id): post = try await api.postToClaim(claimId: id, text: trimmed)
+            case .lead(let id): post = try await api.postToLead(leadId: id, text: trimmed)
+            case .person: return false
+            }
             let date = feed.loadedAt ?? Date()
             feed = .loaded([post] + (feed.value ?? []), at: date)
             return true

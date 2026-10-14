@@ -24,25 +24,83 @@ final class LeadsUITests: XCTestCase {
         XCTAssertTrue(element(containing: "Public Adjuster Agreement").waitForExistence(timeout: 5))
         XCTAssertTrue(element(containing: "Sent").exists)
         XCTAssertTrue(element(containing: "Working").exists)
-        XCTAssertTrue(app.staticTexts["Agreement sent"].exists, "Updates section shows the published update")
+        // Staff (the demo user) start on the Lead Feed; published updates are one tap away.
+        let filter = app.segmentedControls["leadUpdatesFilter"]
+        app.scrollIntoView(filter)
+        filter.buttons["Portal Updates"].tap()
+        XCTAssertTrue(element(containing: "Agreement sent").waitForExistence(timeout: 5), "Updates section shows the published update")
 
+        app.scrollIntoView(app.buttons["Insurance"])
         app.buttons["Insurance"].tap()
         XCTAssertTrue(element(containing: "USAA").waitForExistence(timeout: 5))
     }
 
-    func testLeadCommentAppearsInUpdates() {
+    private func openJordan() {
         let card = app.buttons["leadCard-a0r000000000001AAA"]
         XCTAssertTrue(card.waitForExistence(timeout: 10))
         card.tap()
+        XCTAssertTrue(app.buttons["leadAction-convert"].waitForExistence(timeout: 5))
+    }
 
-        app.buttons["addComment"].tap()
-        let editor = app.textViews["composerText"]
-        XCTAssertTrue(editor.waitForExistence(timeout: 5))
-        editor.typeText("Homeowner will sign tonight.")
-        app.buttons["composerSubmit"].tap()
-        app.alerts.buttons["OK"].tap()
+    func testLeadActionsAndPostToLeadFeed() {
+        openJordan()
+        XCTAssertFalse(app.buttons["addComment"].exists, "Add Comment was removed, as on claims")
+        XCTAssertTrue(app.buttons["leadAction-edit"].label.contains("Edit"))
+        XCTAssertTrue(app.buttons["requestAssistance"].exists)
+        XCTAssertTrue(app.buttons["leadAction-post"].exists)
+        XCTAssertTrue(app.buttons["leadAction-agreement"].exists)
 
+        app.buttons["leadAction-post"].tap()
+        let text = app.descendants(matching: .any)["postText"]
+        XCTAssertTrue(text.waitForExistence(timeout: 5))
+        app.typeText("Homeowner will sign tonight.")
+        app.buttons["actionSave"].tap()
+        let filter = app.segmentedControls["leadUpdatesFilter"]
+        app.scrollIntoView(filter)
+        XCTAssertTrue(filter.buttons["Lead Feed"].isSelected)
         XCTAssertTrue(element(containing: "Homeowner will sign tonight.").waitForExistence(timeout: 5))
+    }
+
+    func testEditLead() {
+        openJordan()
+        app.buttons["leadAction-edit"].tap()
+        let name = app.textFields["editLeadName"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.tap()
+        name.typeText(" Jr")
+        app.buttons["actionSave"].tap()
+        XCTAssertTrue(element(containing: "Jordan Reyes Jr").waitForExistence(timeout: 5))
+    }
+
+    func testConvertToAccountUsesExistingAccountAndOpensClaim() {
+        openJordan()
+        app.buttons["leadAction-convert"].tap()
+        let newAccount = app.buttons["newClaimNewAccount"]
+        XCTAssertTrue(newAccount.waitForExistence(timeout: 5))
+        newAccount.tap()
+        // Prefilled from the lead; Jordan Reyes already has an account, which must be used.
+        let last = app.textFields["newAccountLastName"]
+        XCTAssertTrue(last.waitForExistence(timeout: 5))
+        XCTAssertEqual(last.value as? String, "Reyes")
+        app.buttons["newClaimNext"].tap()
+        let match = app.buttons["accountMatch-001000000000002AAA"]
+        XCTAssertTrue(match.waitForExistence(timeout: 5))
+        match.tap()
+
+        // No claim-details step: the contact comes next, prefilled with the associated party.
+        let mode = app.segmentedControls["contactMode"]
+        XCTAssertTrue(mode.waitForExistence(timeout: 5))
+        XCTAssertTrue(mode.buttons["New"].isSelected)
+        mode.buttons["None"].tap()
+        app.buttons["newClaimNext"].tap()
+        let convert = app.buttons["newClaimCreate"]
+        XCTAssertTrue(convert.waitForExistence(timeout: 5))
+        XCTAssertTrue(convert.label.contains("Convert"))
+        convert.tap()
+
+        XCTAssertTrue(app.tabBars.buttons["Claims"].waitForExistence(timeout: 5))
+        XCTAssertTrue(element(containing: "Jordan Reyes").waitForExistence(timeout: 5))
+        XCTAssertTrue(app.tabBars.buttons["Claims"].isSelected, "The new claim opens")
     }
 
     func testSubmitLeadValidatesThenOpensNewLead() {

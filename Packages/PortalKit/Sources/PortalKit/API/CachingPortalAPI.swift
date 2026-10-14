@@ -168,6 +168,32 @@ public actor CachingPortalAPI: PortalAPI {
         return try await guarded { try await $0.search(query, includePeople: includePeople) }
     }
 
+    // Lead actions are online only and never cached.
+    public func leadStaff(id: String) async throws -> LeadStaff {
+        try requireOnline()
+        return try await guarded { try await $0.leadStaff(id: id) }
+    }
+
+    public func editLead(id: String, _ edit: LeadEdit) async throws {
+        try requireOnline()
+        try await guarded { try await $0.editLead(id: id, edit) }
+    }
+
+    public func leadFeed(leadId: String) async throws -> [ChatterPost] {
+        try requireOnline()
+        return try await guarded { try await $0.leadFeed(leadId: leadId) }
+    }
+
+    public func postToLead(leadId: String, text: String) async throws -> ChatterPost {
+        try requireOnline()
+        return try await guarded { try await $0.postToLead(leadId: leadId, text: text) }
+    }
+
+    public func convertLead(id: String, account: NewClaimRequest.Account, contact: NewClaimRequest.Contact?) async throws -> String {
+        try requireOnline()
+        return try await guarded { try await $0.convertLead(id: id, account: account, contact: contact) }
+    }
+
     // Claim actions are online only and never cached.
     public func staffClaim(id: String) async throws -> StaffClaim {
         try requireOnline()

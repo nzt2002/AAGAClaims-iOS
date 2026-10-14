@@ -49,7 +49,7 @@ struct ClaimDetailView: View {
                 ClaimActionSheet(action: action, actions: actions, feed: claimFeed, api: api) {
                     Task {
                         await viewModel.load()
-                        if action == .post || action == .call || action == .email { await claimFeed.load() }
+                        if action == .post || action == .email { await claimFeed.load() }
                     }
                 }
             }
@@ -134,10 +134,10 @@ struct ClaimDetailView: View {
                 .accessibilityIdentifier("updatesFilter")
             }
             if isInternal && updatesFilter == .claimFeed {
-                ChatterFeedSection(model: claimFeed, emptyMessage: "No posts on this claim yet. Use Add a Post to start one.")
+                ChatterFeedSection(model: claimFeed, emptyMessage: "No posts on this claim yet. Use Post to start one.", visibleCount: 3)
             } else {
                 SectionLoader(state: viewModel.updates, subject: "updates", retry: { await viewModel.loadUpdates() }) { updates in
-                    UpdatesList(updates: updates, emptyMessage: "No updates have been published for this claim yet.")
+                    UpdatesList(updates: updates, emptyMessage: "No updates have been published for this claim yet.", visibleCount: 3)
                 }
             }
         case .details:
@@ -171,6 +171,13 @@ private struct ClaimHeader: View {
                     StatusPill(text: status, tone: StatusPill.tone(forClaimStatus: status))
                 }
             }
+            if let address = PortalFormat.nonEmpty(detail.lossAddress) {
+                Label(address, systemImage: "mappin.and.ellipse")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.textPrimary)
+                    .accessibilityLabel("Loss address: \(address)")
+                    .accessibilityIdentifier("headerLossAddress")
+            }
             HStack(spacing: Theme.Spacing.l) {
                 if let number = PortalFormat.nonEmpty(detail.claimNumber) {
                     Text("Claim \(number)")
@@ -195,7 +202,6 @@ private struct HighlightsRow: View {
                 tile("Loss Date", PortalFormat.date(detail.lossDate))
                 tile("Total RCV", PortalFormat.currency(detail.totalRcv), help: true)
                 tile("Payments Collected", PortalFormat.currency(detail.paymentCollected))
-                tile("Deductible", PortalFormat.currency(detail.deductible))
             }
         }
     }

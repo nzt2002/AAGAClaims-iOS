@@ -96,14 +96,14 @@ public final class HomeViewModel {
         await PortalKit.load(self, \.feed) { try await api.feed() }
     }
 
-    /// Entries for the current filter, newest first (8 at most). A failed feed just leaves posts out.
+    /// Entries for the current filter, newest first (20 at most; Home shows 3 at a time and scrolls). A failed feed just leaves posts out.
     public var recentEntries: [ActivityEntry] {
         let filter = isInternalUser ? activityFilter : .updates
         let updates = filter == .chatter ? [] : sortedActivity.map(ActivityEntry.update)
         let posts = filter == .updates ? [] : (feed.value ?? []).map(ActivityEntry.post)
         return Array((updates + posts)
             .sorted { ($0.date ?? .distantPast) > ($1.date ?? .distantPast) }
-            .prefix(8))
+            .prefix(20))
     }
 
     public func loadAgenda() async {

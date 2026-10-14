@@ -7,15 +7,26 @@ import SwiftUI
 struct UpdatesList: View {
     let updates: [PortalUpdate]
     let emptyMessage: String
+    /// Show this many and scroll for the rest (claims show 3); nil shows them all.
+    var visibleCount: Int? = nil
 
     var body: some View {
         if updates.isEmpty {
             Text(emptyMessage)
                 .foregroundStyle(Color.textSecondary)
                 .cardStyle()
+        } else if let visibleCount {
+            ScrollingStack(items: updates, visibleCount: visibleCount, spacing: Theme.Spacing.m, noun: "updates") { card($0) }
         } else {
             VStack(spacing: Theme.Spacing.m) {
                 ForEach(updates) { update in
+                    card(update)
+                }
+            }
+        }
+    }
+
+    private func card(_ update: PortalUpdate) -> some View {
                     VStack(alignment: .leading, spacing: Theme.Spacing.s) {
                         HStack(alignment: .firstTextBaseline) {
                             Text(update.title ?? "Update")
@@ -28,9 +39,6 @@ struct UpdatesList: View {
                         RichText(html: update.text)
                     }
                     .cardStyle()
-                }
-            }
-        }
     }
 }
 
@@ -43,6 +51,8 @@ struct ClaimDetailsSection: View {
             VStack(alignment: .leading, spacing: 0) {
                 SectionHeading("Claim snapshot")
                 FieldRow(label: "Peril", value: detail.peril, systemImage: "cloud.bolt")
+                FieldRow(label: "Deductible", value: detail.deductible == nil ? nil : PortalFormat.currency(detail.deductible),
+                         systemImage: "dollarsign.circle")
                 FieldRow(label: "Date of claim", value: date(detail.dateOfClaim), systemImage: "calendar")
                 LinkRow(label: "Loss address", value: detail.lossAddress, url: ContactURL.map(detail.lossAddress),
                         systemImage: "mappin.and.ellipse", actionName: "Open in Maps")

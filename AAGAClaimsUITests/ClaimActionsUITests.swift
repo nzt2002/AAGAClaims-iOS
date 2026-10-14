@@ -43,7 +43,9 @@ final class ClaimActionsUITests: XCTestCase {
     }
 
     func testPageLayout() {
-        for action in ["payments", "edit", "post", "call", "addContact"] {
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "headerLossAddress").firstMatch.label.contains("123 Main St"), "Loss address under the name")
+        XCTAssertFalse(app.buttons["claimAction-call"].exists, "Log a Call was removed")
+        for action in ["payments", "edit", "post", "addContact"] {
             XCTAssertTrue(app.buttons["claimAction-\(action)"].exists, action)
         }
         let more = app.buttons["claimActionMore"]
@@ -123,13 +125,7 @@ final class ClaimActionsUITests: XCTestCase {
         XCTAssertFalse(app.buttons["actionSave"].waitForExistence(timeout: 2), "The sheet closed")
     }
 
-    func testLogCallAndSendEmail() {
-        open("call")
-        let subject = app.textFields["callSubject"]
-        XCTAssertTrue(subject.waitForExistence(timeout: 5))
-        save()
-        XCTAssertTrue(app.buttons["claimActionMore"].waitForExistence(timeout: 5))
-
+    func testSendEmail() {
         open("email")
         let emailSubject = app.textFields["emailSubject"]
         XCTAssertTrue(emailSubject.waitForExistence(timeout: 5))

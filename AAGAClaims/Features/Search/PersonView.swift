@@ -117,6 +117,8 @@ struct PersonView: View {
 struct ChatterFeedSection: View {
     let model: ChatterFeedViewModel
     let emptyMessage: String
+    /// Show this many posts and scroll for the rest; nil shows them all.
+    var visibleCount: Int? = nil
     @FocusState private var editFocused: Bool
 
     var body: some View {
@@ -131,6 +133,8 @@ struct ChatterFeedSection: View {
                     .foregroundStyle(Color.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .cardStyle()
+            } else if let visibleCount {
+                ScrollingStack(items: posts, visibleCount: visibleCount, spacing: Theme.Spacing.m, noun: "posts") { postCard($0) }
             } else {
                 VStack(spacing: Theme.Spacing.m) {
                     ForEach(posts) { post in

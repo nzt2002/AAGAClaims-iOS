@@ -74,6 +74,15 @@ public protocol PortalAPI: Sendable {
     func logCall(claimId: String, _ call: CallLog) async throws
     func sendEmail(claimId: String, _ email: OutgoingEmail) async throws
 
+    // Lead actions (staff)
+    func leadStaff(id: String) async throws -> LeadStaff
+    func editLead(id: String, _ edit: LeadEdit) async throws
+    func leadFeed(leadId: String) async throws -> [ChatterPost]
+    func postToLead(leadId: String, text: String) async throws -> ChatterPost
+    /// Convert to Account: the account and claim contact as for New Claim; the claim comes from the lead.
+    /// Returns the new claim id. Throws `.alreadyConverted` if the lead was converted already.
+    func convertLead(id: String, account: NewClaimRequest.Account, contact: NewClaimRequest.Contact?) async throws -> String
+
     // Search and Chatter
     /// `GET /search?q=`: claims, leads (and, for portal users, cases) the user can open.
     func search(_ query: String, includePeople: Bool) async throws -> [SearchResult]
@@ -128,10 +137,12 @@ public enum PortalAPIError: Error, Equatable, Sendable {
     case duplicate(DuplicateMatches)
     /// 400 or 409 with a message written for users (a validation rule, "already on the claim").
     case rejected(String)
+    /// 409 from Convert to Account: the lead is already converted (to this claim, when known).
+    case alreadyConverted(claimId: String?)
 
     public var isRetryable: Bool {
         switch self {
-        case .sessionExpired, .notFound, .invalidRequest, .decoding, .duplicate, .rejected: false
+        case .sessionExpired, .notFound, .invalidRequest, .decoding, .duplicate, .rejected, .alreadyConverted: false
         case .offline, .server: true
         }
     }

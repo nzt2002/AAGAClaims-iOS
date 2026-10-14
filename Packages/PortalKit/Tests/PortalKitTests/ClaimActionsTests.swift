@@ -175,3 +175,70 @@ struct ClaimActionsTests {
         #expect(ClaimActionsViewModel.message(for: PortalAPIError.rejected("Nope")) == "Nope")
     }
 }
+
+@MainActor
+@Suite("Lead actions")
+struct LeadActionsTests {
+    private let leadId = "a0r000000000001AAA"
+
+    private func mock() throws -> MockPortalAPI {
+        MockPortalAPI(fixtures: try .bundled(), latency: .zero)
+    }
+
+    @Test("Edit saves; Converted can't be set by hand")
+    func editLead() async throws {
+        let api = try mock()
+        let model = LeadActionsViewModel(api: api, leadId: leadId)
+        await model.load()
+        let staff = try #require(model.staff.value)
+        #expect(staff.name == "Jordan Reyes")
+        #expect(staff.city == "Atlanta")
+        var edit = LeadEdit(staff)
+        edit.status = "Converted"
+        #expect(!(await model.saveEdit(edit)))
+        #expect(model.errorMessage == "Use Convert to Account to convert a lead.")
+        edit.status = "Qualified"
+        edit.email = "bad"
+        #expect(!(await model.saveEdit(edit)))
+        edit.email = "jordan.new@example.com"
+        #expect(await model.saveEdit(edit))
+        #expect(model.staff.value?.status == "Qualified")
+        #expect(try await api.lead(id: leadId).email == "jordan.new@example.com")
+    }
+
+    @Test("Convert: prefilled, the existing account must be used, then the lead is converted")
+    func convert() async throws {
+        let api = try mock()
+        let actions = LeadActionsViewModel(api: api, leadId: leadId)
+        await actions.load()
+        let form = NewClaimViewModel(api: api, conversion: LeadConversion(try #require(actions.staff.value)))
+        #expect(form.accountFirstName == "Jordan")
+        #expect(form.accountLastName == "Reyes")
+        #expect(form.contactMode == .new, "The associated party is offered as the claim contact")
+        #expect(form.contactLastName == "Brooks")
+
+        // Jordan Reyes already has an account in the mock: it must be used.
+        #expect(await form.continueWithNewAccount() == .accountMatches)
+        #expect(form.chooseAccount(form.accountMatches[0]) == .contact, "No claim-details step when converting")
+        form.contactMode = .skip
+        #expect(await form.continueFromContact() == .review)
+        #expect(await form.submit() == nil)
+        let claimId = try #require(form.createdClaimId)
+        #expect(try await api.claim(id: claimId).claimName == "Jordan Reyes")
+        #expect(try await api.lead(id: leadId).prospectStatus == "Converted")
+
+        let again = NewClaimViewModel(api: api, conversion: LeadConversion(try await api.leadStaff(id: leadId)))
+        _ = again.chooseAccount(AccountMatch(id: "001000000000002AAA", name: "Jordan Reyes"))
+        #expect(await again.submit() == nil)
+        #expect(again.error == .alreadyConverted(claimId: claimId))
+    }
+
+    @Test("Lead feed: post")
+    func leadFeed() async throws {
+        let api = try mock()
+        let feed = ChatterFeedViewModel(api: api, source: .lead(leadId))
+        await feed.load()
+        #expect(await feed.post("Agreement sent."))
+        #expect(feed.feed.value?.first?.text == "Agreement sent.")
+    }
+}

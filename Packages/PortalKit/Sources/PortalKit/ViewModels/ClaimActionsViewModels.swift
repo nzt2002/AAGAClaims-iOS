@@ -82,6 +82,7 @@ public final class ClaimActionsViewModel {
     public nonisolated static func message(for error: Error) -> String {
         switch PortalAPIError.wrap(error) {
         case .rejected(let message): message
+        case .alreadyConverted: "This lead has already been converted to a claim."
         case .offline: "You're offline. Try again when you're connected."
         case .invalidRequest: "Salesforce didn't accept these details. Check the fields and try again."
         case .notFound: "This claim isn't available."
@@ -521,6 +522,56 @@ public final class EmailComposerViewModel {
                                   subject: subject.trimmingCharacters(in: .whitespaces), body: htmlBody)
         do {
             try await api.sendEmail(claimId: claimId, email)
+            return true
+        } catch {
+            errorMessage = ClaimActionsViewModel.message(for: error)
+            return false
+        }
+    }
+}
+
+// MARK: - Lead actions
+
+/// The staff lead actions: loads what they need (`GET /leads/{id}/staff`) and saves Edit.
+@MainActor
+@Observable
+public final class LeadActionsViewModel {
+    public let leadId: String
+    public private(set) var staff: LoadState<LeadStaff> = .idle
+    public private(set) var isSaving = false
+    public private(set) var errorMessage: String?
+
+    private let api: PortalAPI
+
+    public init(api: PortalAPI, leadId: String) {
+        self.api = api
+        self.leadId = leadId
+    }
+
+    public func load() async {
+        let api = self.api, id = leadId
+        await PortalKit.load(self, \.staff) { try await api.leadStaff(id: id) }
+    }
+
+    public func clearError() { errorMessage = nil }
+
+    @discardableResult
+    public func saveEdit(_ edit: LeadEdit) async -> Bool {
+        guard !edit.name.trimmingCharacters(in: .whitespaces).isEmpty else {
+            errorMessage = "Enter the lead's name."
+            return false
+        }
+        for email in [edit.email, edit.associatedPartyEmail] where !NewClaimViewModel.isEmailOrEmpty(email ?? "") {
+            errorMessage = "Enter a valid email address."
+            return false
+        }
+        guard !isSaving else { return false }
+        isSaving = true
+        errorMessage = nil
+        defer { isSaving = false }
+        do {
+            try await api.editLead(id: leadId, edit)
+            await load()
             return true
         } catch {
             errorMessage = ClaimActionsViewModel.message(for: error)

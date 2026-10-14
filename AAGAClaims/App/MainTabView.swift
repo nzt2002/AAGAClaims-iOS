@@ -71,6 +71,7 @@ struct MainTabView: View {
         }
         .buttonBorderShape(.capsule)
         .environment(\.openSupport, OpenSupportAction { caseId in router.openSupport(caseId: caseId) })
+        .environment(\.openRecord, OpenRecordAction { record, name in router.open(record, name: name) })
         .environment(\.isOffline, session.offline.isOffline)
         .onChange(of: session.offline.isOffline) { wasOffline, isOffline in
             // Back online: refresh the dashboard and badge.

@@ -30,6 +30,9 @@ public actor MockPortalAPI: PortalAPI {
         var paymentsApplied: [String: [PaymentEntry]] = [:]
         var callsLogged: [String: [CallLog]] = [:]
         var emailsSent: [String: [OutgoingEmail]] = [:]
+        /// Lead actions: edited values, feeds and conversions, by lead id.
+        var staffLeads: [String: LeadStaff] = [:]
+        var leadFeeds: [String: [ChatterPost]] = [:]
 
         /// The fixtures bundled with PortalKit.
         public static func bundled() throws -> Fixtures {
@@ -833,6 +836,130 @@ public actor MockPortalAPI: PortalAPI {
         _ = try staff(claimId)
         guard !email.to.isEmpty, !email.subject.isEmpty, !email.body.isEmpty else { throw PortalAPIError.invalidRequest }
         data.emailsSent[claimId, default: []].append(email)
+    }
+
+    // MARK: - Lead actions
+
+    private func staffLead(_ id: String) throws -> LeadStaff {
+        guard let options = data.newClaimOptions else { throw PortalAPIError.notFound }
+        if let existing = data.staffLeads[id] { return existing }
+        guard let detail = data.leadDetails[id] else { throw PortalAPIError.notFound }
+        // "88 Peachtree Rd\nAtlanta, GA, 30305"
+        let lines = (detail.lossAddress ?? "").components(separatedBy: "\n")
+        let place = lines.count > 1 ? lines[1].components(separatedBy: ", ") : []
+        let names = (detail.prospectName ?? "").split(separator: " ").map(String.init)
+        let lead = LeadStaff(
+            id: id, name: detail.prospectName, status: detail.prospectStatus, peril: detail.peril,
+            lossDate: detail.lossDate, lossDescription: detail.lossDescription,
+            street: lines.first.flatMap { $0.isEmpty ? nil : $0 }, city: place.first,
+            state: place.count > 1 ? place[1] : nil, postalCode: place.count > 2 ? place[2] : nil,
+            insuranceCompanyId: nil, insuranceCompanyName: detail.insuranceCompanyName,
+            policyNumber: detail.policyNumber, claimNumber: detail.claimNumber,
+            email: detail.email, phone: detail.phone,
+            firstName: names.first, lastName: names.dropFirst().joined(separator: " "),
+            associatedPartyName: detail.associatedPartyName, associatedPartyCompany: detail.associatedPartyCompany,
+            associatedPartyEmail: detail.associatedPartyEmail, associatedPartyPhone: detail.associatedPartyPhone,
+            isConverted: detail.prospectStatus == "Converted", convertedClaimId: nil,
+            statuses: ["New - Not Contacted", "Working - Contacted", "Nuturing", "Unqualified", "Qualified", "Converted"],
+            perils: options.perils, contactRoles: options.contactRoles
+        )
+        data.staffLeads[id] = lead
+        return lead
+    }
+
+    public func leadStaff(id: String) async throws -> LeadStaff {
+        try await simulate()
+        return try staffLead(id)
+    }
+
+    public func editLead(id: String, _ edit: LeadEdit) async throws {
+        try await simulate()
+        var lead = try staffLead(id)
+        guard !edit.name.trimmingCharacters(in: .whitespaces).isEmpty else { throw PortalAPIError.invalidRequest }
+        if edit.status == "Converted" { throw PortalAPIError.rejected("Use Convert to Account to convert a lead.") }
+        lead.name = edit.name
+        lead.status = edit.status
+        lead.peril = edit.peril
+        lead.lossDate = edit.lossDate
+        lead.lossDescription = edit.lossDescription
+        lead.street = edit.street
+        lead.city = edit.city
+        lead.state = edit.state
+        lead.postalCode = edit.postalCode
+        lead.policyNumber = edit.policyNumber
+        lead.claimNumber = edit.claimNumber
+        lead.email = edit.email
+        lead.phone = edit.phone
+        lead.associatedPartyName = edit.associatedPartyName
+        lead.associatedPartyCompany = edit.associatedPartyCompany
+        lead.associatedPartyEmail = edit.associatedPartyEmail
+        lead.associatedPartyPhone = edit.associatedPartyPhone
+        data.staffLeads[id] = lead
+        try patchLead(id) { fields in
+            fields["prospectName"] = edit.name
+            fields["prospectStatus"] = edit.status
+            fields["peril"] = edit.peril
+            fields["email"] = edit.email
+            fields["phone"] = edit.phone
+            fields["associatedPartyName"] = edit.associatedPartyName
+            fields["claimNumber"] = edit.claimNumber
+            fields["policyNumber"] = edit.policyNumber
+        }
+    }
+
+    public func leadFeed(leadId: String) async throws -> [ChatterPost] {
+        try await simulate()
+        _ = try staffLead(leadId)
+        if let feed = data.leadFeeds[leadId] { return feed }
+        let seeded = data.feed.filter { $0.parentId == leadId }.map {
+            ChatterPost(id: $0.id, authorName: $0.authorName, text: $0.text, createdDate: $0.createdDate,
+                        parentName: nil, replies: [], totalReplies: 0)
+        }
+        data.leadFeeds[leadId] = seeded
+        return seeded
+    }
+
+    public func postToLead(leadId: String, text: String) async throws -> ChatterPost {
+        let existing = try await leadFeed(leadId: leadId)
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw PortalAPIError.invalidRequest }
+        let post = ChatterPost(id: makeId(prefix: "0D5"), authorName: "Alex Smith", text: text, createdDate: Date(),
+                               parentName: nil, replies: [], totalReplies: 0)
+        data.leadFeeds[leadId] = [post] + existing
+        return post
+    }
+
+    /// As the server: the claim is built from the lead, duplicates are refused, and the lead becomes Converted.
+    public func convertLead(id: String, account: NewClaimRequest.Account, contact: NewClaimRequest.Contact?) async throws -> String {
+        var lead = try staffLead(id)
+        if lead.isConverted == true { throw PortalAPIError.alreadyConverted(claimId: lead.convertedClaimId) }
+        var claim = NewClaimRequest.Claim(name: lead.name ?? "Claim")
+        claim.street = lead.street
+        claim.city = lead.city
+        claim.state = lead.state.flatMap { (data.newClaimOptions?.states ?? []).contains($0) ? $0 : nil }
+        claim.postalCode = lead.postalCode
+        claim.lossDate = lead.lossDate
+        claim.peril = lead.peril.flatMap { (data.newClaimOptions?.perils ?? []).contains($0) ? $0 : nil }
+        claim.lossDescription = lead.lossDescription
+        claim.claimNumber = lead.claimNumber
+        claim.policyNumber = lead.policyNumber
+        claim.email = lead.email
+        claim.phone = lead.phone
+        let claimId = try await createClaim(NewClaimRequest(account: account, claim: claim, contact: contact))
+        lead.isConverted = true
+        lead.status = "Converted"
+        lead.convertedClaimId = claimId
+        data.staffLeads[id] = lead
+        try patchLead(id) { $0["prospectStatus"] = "Converted" }
+        return claimId
+    }
+
+    private func patchLead(_ id: String, _ change: (inout [String: Any]) -> Void) throws {
+        guard let detail = data.leadDetails[id] else { return }
+        let encoded = try PortalJSON.makeEncoder().encode(detail)
+        guard var fields = try JSONSerialization.jsonObject(with: encoded) as? [String: Any] else { return }
+        change(&fields)
+        let json = try JSONSerialization.data(withJSONObject: fields.compactMapValues { $0 is NSNull ? nil : $0 })
+        data.leadDetails[id] = try PortalJSON.makeDecoder().decode(LeadDetail.self, from: json)
     }
 
     /// For tests: what the mock received.

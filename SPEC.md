@@ -253,6 +253,14 @@ All return `404` unless the user is internal (user type Standard), and only for 
 - `POST calls {subject, description?, contactId?}` → Log a Call: a completed Call task on the claim.
 - `POST emails {fromAddressId?, to[], cc[], bcc[], subject, body}` → Send an Email: sent through Salesforce and logged on the claim as an EmailMessage.
 
+### 5.6c Lead actions (staff)
+
+Under `/leads/{id}/…` after the lead access check; `404` unless internal.
+- `GET staff` → the lead's editable values, `isConverted`, `convertedClaimId`, statuses, perils, contact roles.
+- `POST edit` → the core fields (only keys sent are changed). *Converted* can't be set here.
+- `GET feed`, `POST posts {text}` → the lead's Chatter feed, and Post.
+- `POST convert {account, contact?}` → Convert to Account (`PortalNewClaimService.convertProspect`): the flow's `Create_Claim` mapping from the lead (picklist values claims don't have, e.g. the lead peril "Wind/Tree", are left blank rather than failing), a new person account with the lead's referral fields, the claim linked to the lead, the lead's files linked (`ProspectFileLinkAction`), and the lead set to Converted, all in one transaction with New Claim's duplicate checks. `409 already_converted` (with the claim id) if the lead was converted already.
+
 ### 5.7 New Claim (staff)
 
 The Prospect Conversion Guided Process (`Prospect_Conversion_Guided_Process` flow) without a Prospect, in `PortalNewClaimService`. Every route returns `404` unless the user is internal (user type Standard).
@@ -301,7 +309,7 @@ The Prospect Conversion Guided Process (`Prospect_Conversion_Guided_Process` flo
    5. Review, then **Create Claim**. If the server finds a duplicate, the app goes to the matching step to pick it (for a contact: use the existing one or skip the contact). On success the claim is saved, the sheet closes, and the app switches to the Claims tab and opens the new claim's detail page (after the sheet has finished closing, so the navigation isn't lost).
 4. **Upcoming:** the next 5 items from `GET /agenda`, tasks with their due date (overdue ones in the warning colour) and events with day and time (or "All day", shown in UTC as Salesforce stores them), plus the related claim or lead and an event's location. Tapping an item with a related record opens it. Hidden when empty, unless the user can create tasks ("Nothing scheduled").
 5. **Recent claims:** the 3 most recently updated claims, with status; tap to open, "See all" opens Claims.
-6. **Recent activity:** published updates from `GET /activity` and, for staff, Chatter posts from `GET /feed`, newest first (8 at most). Staff (Salesforce user type Standard) get filter chips *Chatter* (the default), *Portal updates* and *All*. Portal users see portal updates only, with no filter, and the app doesn't call `GET /feed` for them. Each entry's header is its record: the type in regular weight and the name in bold ("Claim · **Smith - Roof**"), with a line under it saying what it is ("Portal update · {title}" or "Chatter · {author}"). Chatter posts not on a claim or lead show the group or user name as the header. Unread updates show a dot; tapping one opens the **Update sheet** (title, date, rendered HTML, and an "Open {Claim|Lead}" button) and marks it read. Tapping a Chatter post on a claim or lead opens that record.
+6. **Recent activity:** published updates from `GET /activity` and, for staff, Chatter posts from `GET /feed`, newest first (20 at most), **3 at a time** in a scrolling box with "Showing 3 of n updates · scroll for more". Staff (Salesforce user type Standard) get filter chips *Chatter* (the default), *Portal updates* and *All*. Portal users see portal updates only, with no filter, and the app doesn't call `GET /feed` for them. Each entry's header is its record: the type in regular weight and the name in bold ("Claim · **Smith - Roof**"), with a line under it saying what it is ("Portal update · {title}" or "Chatter · {author}"). Chatter posts not on a claim or lead show the group or user name as the header. Unread updates show a dot; tapping one opens the **Update sheet** (title, date, rendered HTML, and an "Open {Claim|Lead}" button) and marks it read. Tapping a Chatter post on a claim or lead opens that record.
 7. Pull to refresh.
 
 *(Changed 2026-10-12: the KPI tiles were replaced by Upcoming and Recent claims; "Request Assistance" is called "Ask Question" throughout the app (it's on claim and lead detail and Support; not on Home); Search, New Event, staff Chatter posts and the hero were added (search later moved from the top bar into the hero, replacing Next up and the unread chip); the status overview was removed; emails no longer appear in Upcoming; tasks and events can go on leads; Recent activity has record headers and a staff filter; Submit a Lead is New Lead on Home, and staff get New Claim.)*
@@ -330,14 +338,16 @@ The Prospect Conversion Guided Process (`Prospect_Conversion_Guided_Process` flo
 
 **Top bar:** *Ask Question* (everyone) and *Edit Claim* (staff) as icons at the top right.
 
-**Action strip (staff only)**, directly under the header: one card with round gradient icon buttons and short labels: *Payments* (Apply Payments), *Post* (Add a Post), *Log Call*, *Contact* (Add Contact) and *More* (a menu with *Send an Email*, *Update Address*, *Change Owner* and *Proof of Loss*). Five across; two across at accessibility text sizes. Each opens a sheet (§5.6b):
+**Action strip (staff only)**, directly under the header: one card with round gradient icon buttons and short labels: *Payments* (Apply Payments), *Post* (Add a Post), *Contact* (Add Contact) and *More* (a menu with *Send an Email*, *Update Address*, *Change Owner* and *Proof of Loss*). Five across; two across at accessibility text sizes. Each opens a sheet (§5.6b):
 - **Apply Payments:** date collected, *Apply deductible* (with the claim's deductible), payment rows (type and amount; add and swipe to remove), and a live summary: RCV, payments received (everything except RCV, less any deductible rows), the deductible when applied, the adjuster fee ((received + applied deductible) × fee %), and the insured payment (received − fee, never below 0). Choosing *Deductible* as a type switches on *Apply deductible* instead, as in the quick action. Blocked, with a message, until the claim has a deductible.
 - **Add Contact:** Existing (search) or New, with a role. New contacts are checked for matches (email, mobile phone, or name) first; then a company account for subcontractors; a duplicate-rule match lets the user add the existing contact or none.
 - **Edit Claim:** the core fields. **Update Address:** with address lookup as you type. **Change Owner:** searchable list of internal users.
 - **Proof of Loss:** the 13 fields with "n of 13 complete". *Generate Proof of Loss Document* (once all 13 are saved) opens Salesforce's DocMerge page (`/apex/hic_docmerge__Composer`) in an in-app browser; the user may need to sign in there. Not available in demo mode.
 - **Add a Post:** posts to the claim's Chatter feed (staff only; homeowners don't see it). **Log a Call:** subject, optional contact from the claim, notes. **Send an Email:** From (the user or an org-wide address), To (defaults to the claim's email, with one-tap suggestions for the account and claim contacts), Cc, subject and message; sent through Salesforce and logged on the claim.
 
-**Highlights row** (scrolls horizontally): Loss Date · Total RCV · Payments Collected · Deductible.
+**Header** also shows the **loss address** (map pin) directly under the claim name.
+
+**Highlights row** (scrolls horizontally): Loss Date · Total RCV · Payments Collected. The deductible is in *Details*, right after Peril (and in *Insurance*).
 
 **Lifecycle:** a 7-stage tracker in this order:
 `Preparation → Inspection → Negotiations → Restoration → Litigation → Settlement → Closed`
@@ -348,7 +358,7 @@ The card is **collapsible** and starts collapsed: the progress ring and the curr
 
 | Section | Content |
 |---|---|
-| **Updates** | Published updates (`/updates`), newest first, one card each with title, date and HTML body. Empty state: "No updates have been published for this claim yet." Staff get a *Claim Feed / Portal Updates* filter that starts on **Claim Feed**: the claim's Chatter feed, with inline replies and editing of their own replies (§5.6a). |
+| **Updates** | Published updates (`/updates`), newest first, one card each with title, date and HTML body. Empty state: "No updates have been published for this claim yet." Both lists show **3 at a time** and scroll. Staff get a *Claim Feed / Portal Updates* filter that starts on **Claim Feed**: the claim's Chatter feed, with inline replies and editing of their own replies (§5.6a). |
 | **Details** | *Claim snapshot*: peril, date of claim, loss address (tap to open in Maps), main phone, email, business email. *Loss and documentation*: loss date, date claim filed, loss description (HTML), and the "Photos or documents" link (`photosUrl`) if present. |
 | **Insurance** | Insurance company, insurance main phone (tap to call), claim number, policy number, deductible. |
 | **Files** | File list showing an icon by type, title, "{type} · {size} · Uploaded {date}" and "Uploaded by {name}". Tapping a file opens it in Quick Look. **Upload** button (§6.10). |
@@ -378,7 +388,13 @@ Same layout as the Claims list, with these differences:
   - *Details*: lead name, peril, loss address, phone, mobile, email, loss description, created, last updated, and the supporting-documents link (`documentsUrl`)
   - *Insurance*: company, claim filed?, claim number, policy number
   - *Files*, with upload
-- **Team card** and the **Add Comment** and **Request Assistance** actions, the same as on claims. The one difference: a lead comment appears in the lead's *Updates* section once it's sent (§5.2), so on success show "Your comment has been submitted. Your account manager has been notified." and refresh *Updates*.
+- **Team card**, and **Ask Question** as a top-bar icon, as on claims. There's no Add Comment on leads.
+- **Staff only** (same style as claims, §5.6c):
+  - Top right: **Edit** (a text button) next to the Ask Question icon. Edit covers name, status (not Converted), peril, homeowner email and phone, loss date and description, loss address (with lookup), insurance company, policy and claim numbers, and the associated party.
+  - Action strip under the header: **Convert** (Convert to Account), **Post**, **E-Sign** (Generate Agreement Preview E-Sign). Once converted, Convert becomes **View Claim**.
+  - **Convert to Account** follows the Prospect Conversion Guided Process: choose an existing account or create one from the lead's details (prefilled; a matching account must be used), then the claim contact (prefilled with the lead's associated party; optional), then review and **Convert**. The claim is built from the lead on the server; afterwards the new claim opens.
+  - **E-Sign** opens Salesforce's DocMerge page for the agreement (`/apex/hic_docmerge__Composer`, the lead page's "Generate Agreement - GA - Preview Esign" button) in an in-app browser. Not available in demo mode.
+  - *Updates* gets a *Lead Feed / Portal Updates* filter (Lead Feed first), 3 at a time.
 
 ### 6.8 Submit a Lead
 A single scrolling form in 5 numbered sections, with a sticky **Submit** button:

@@ -9,8 +9,9 @@ struct NewClaimSheet: View {
     let close: () -> Void
     let created: (_ claimId: String, _ name: String) -> Void
 
-    init(api: PortalAPI, close: @escaping () -> Void, created: @escaping (_ claimId: String, _ name: String) -> Void) {
-        _viewModel = State(initialValue: NewClaimViewModel(api: api))
+    init(api: PortalAPI, conversion: LeadConversion? = nil, close: @escaping () -> Void,
+         created: @escaping (_ claimId: String, _ name: String) -> Void) {
+        _viewModel = State(initialValue: NewClaimViewModel(api: api, conversion: conversion))
         self.close = close
         self.created = created
     }
@@ -67,9 +68,11 @@ struct NewClaimSheet: View {
     private var start: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.l) {
-                Text("Who is this claim for?")
+                Text(viewModel.conversion == nil ? "Who is this claim for?" : "Which account is this lead for?")
                     .font(.title2.bold())
-                Text("Choose an existing account, or create a new one. We always check for an existing account first, so customers aren't added twice.")
+                Text(viewModel.conversion == nil
+                     ? "Choose an existing account, or create a new one. We always check for an existing account first, so customers aren't added twice."
+                     : "Converting \(viewModel.conversion?.leadName ?? "this lead") creates its claim. Choose an existing account, or create one from the lead's details. We always check for an existing account first.")
                     .font(.subheadline)
                     .foregroundStyle(Color.textSecondary)
                 choiceCard(
@@ -80,7 +83,7 @@ struct NewClaimSheet: View {
                 ) { go(.accountSearch) }
                 choiceCard(
                     title: "New account",
-                    detail: "Create the account, claim contact and claim.",
+                    detail: viewModel.conversion == nil ? "Create the account, claim contact and claim." : "Create the account from the lead's details.",
                     icon: "plus",
                     id: "newClaimNewAccount"
                 ) { go(.newAccount) }
@@ -92,7 +95,7 @@ struct NewClaimSheet: View {
             .padding(Theme.Spacing.l)
         }
         .background(Color.appBackground)
-        .navigationTitle("New Claim")
+        .navigationTitle(viewModel.conversion == nil ? "New Claim" : "Convert to Account")
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -630,6 +633,11 @@ private struct ReviewStep: View {
             }
             Section("Claim") {
                 LabeledContent("Name", value: viewModel.claimName)
+                if viewModel.conversion != nil {
+                    Text("The loss details, address, insurance and team come from the lead, and the lead's files are linked to the claim. The lead is marked Converted.")
+                        .font(.footnote)
+                        .foregroundStyle(Color.textSecondary)
+                }
                 if let peril = viewModel.peril { LabeledContent("Peril", value: peril) }
                 if viewModel.hasLossDate {
                     LabeledContent("Loss date", value: viewModel.lossDate.formatted(date: .abbreviated, time: .omitted))
@@ -657,10 +665,7 @@ private struct ReviewStep: View {
             }
             if let error = viewModel.error {
                 Section {
-                    Label(error == .invalidRequest
-                          ? "Salesforce didn't accept these details. Check the fields and try again."
-                          : "We couldn't create the claim. Check your connection and try again.",
-                          systemImage: "exclamationmark.triangle")
+                    Label(ClaimActionsViewModel.message(for: error), systemImage: "exclamationmark.triangle")
                         .foregroundStyle(Color.warning)
                 }
             }
@@ -673,7 +678,7 @@ private struct ReviewStep: View {
                 } label: {
                     HStack {
                         Spacer()
-                        if viewModel.isWorking { ProgressView() } else { Text("Create Claim").bold() }
+                        if viewModel.isWorking { ProgressView() } else { Text(viewModel.conversion == nil ? "Create Claim" : "Convert").bold() }
                         Spacer()
                     }
                 }

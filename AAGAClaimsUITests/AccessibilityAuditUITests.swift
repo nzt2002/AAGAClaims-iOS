@@ -77,8 +77,14 @@ final class AccessibilityAuditUITests: XCTestCase {
                             "New Lead", "New Event", "New Claim", "New Task",
                             // Claim action pills and communication buttons: one row, stacked full
                             // width at accessibility sizes (checked in screenshots, 2026-10-13).
-                            "Apply Payments", "More", "More actions", "Add a Post", "Log a Call", "Add Contact"]
+                            "Apply Payments", "More", "More actions", "Add a Post", "Add Contact",
+                            // Lead action strip, same style.
+                            "Convert to Account", "Generate Agreement Preview E-Sign", "View the converted claim"]
+            // Round action buttons report their short visible labels (checked at accessibility sizes:
+            // two across, labels wrap without breaking words).
+            let roundButtons = ["Payments", "Post", "Contact", "More", "Convert", "E-Sign", "View Claim"]
             return verified.contains { label.hasPrefix($0) }
+                || roundButtons.contains { label.trimmingCharacters(in: .whitespacesAndNewlines) == $0 }
         default:
             return false
         }
@@ -111,7 +117,7 @@ final class AccessibilityAuditUITests: XCTestCase {
         XCTAssertTrue(app.buttons["leadCard-a0r000000000001AAA"].waitForExistence(timeout: 5))
         try audit("Leads list")
         app.buttons["leadCard-a0r000000000001AAA"].tap()
-        XCTAssertTrue(app.buttons["addComment"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["requestAssistance"].waitForExistence(timeout: 5))
         try audit("Lead detail")
         app.navigationBars.buttons.element(boundBy: 0).tap()
         app.buttons["submitLead"].tap()

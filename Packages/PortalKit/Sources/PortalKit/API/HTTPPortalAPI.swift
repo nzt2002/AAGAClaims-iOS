@@ -217,6 +217,26 @@ public struct HTTPPortalAPI: PortalAPI {
     public func logCall(claimId: String, _ call: CallLog) async throws { let _: Ignored = try await post(claimPath(claimId, "calls"), body: call) }
     public func sendEmail(claimId: String, _ email: OutgoingEmail) async throws { let _: Ignored = try await post(claimPath(claimId, "emails"), body: email) }
 
+    // MARK: - Lead actions
+
+    private func leadPath(_ id: String, _ action: String) -> String { "/leads/\(escaped(id))/\(action)" }
+
+    public func leadStaff(id: String) async throws -> LeadStaff { try await get(leadPath(id, "staff")) }
+    public func editLead(id: String, _ edit: LeadEdit) async throws { let _: Ignored = try await post(leadPath(id, "edit"), body: edit) }
+    public func leadFeed(leadId: String) async throws -> [ChatterPost] { try await get(leadPath(leadId, "feed")) }
+    public func postToLead(leadId: String, text: String) async throws -> ChatterPost { try await post(leadPath(leadId, "posts"), body: TextBody(text: text)) }
+
+    public func convertLead(id: String, account: NewClaimRequest.Account, contact: NewClaimRequest.Contact?) async throws -> String {
+        // New Claim's body, without the claim (the server builds it from the lead).
+        let wrapper = NewClaimRequest(account: account, claim: .init(name: ""), contact: contact)
+        let data = try PortalJSON.makeEncoder().encode(wrapper)
+        var object = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        object["claim"] = nil
+        let body = try JSONSerialization.data(withJSONObject: object)
+        let response = try await send(TransportRequest(method: .post, path: leadPath(id, "convert"), jsonBody: body))
+        return try (decode(response.body) as RecordIdResponse).recordId
+    }
+
     public func search(_ query: String, includePeople: Bool) async throws -> [SearchResult] {
         var items = [URLQueryItem(name: "q", value: query)]
         if includePeople { items.append(URLQueryItem(name: "includeUsers", value: "true")) }
@@ -294,6 +314,10 @@ public struct HTTPPortalAPI: PortalAPI {
         case 401: throw PortalAPIError.sessionExpired
         case 404: throw PortalAPIError.notFound
         case 409:
+            if Self.errorCode(response.body) == "already_converted" {
+                struct Body: Decodable { let matches: String? }
+                throw PortalAPIError.alreadyConverted(claimId: (try? JSONDecoder().decode(Body.self, from: response.body))?.matches)
+            }
             if let message = Self.message(response.body), Self.errorCode(response.body).flatMap(DuplicateMatches.Kind.init(rawValue:)) == nil {
                 throw PortalAPIError.rejected(message)
             }
