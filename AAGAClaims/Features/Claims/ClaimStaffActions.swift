@@ -34,97 +34,106 @@ enum ClaimAction: String, Identifiable, CaseIterable {
         }
     }
 
-    /// Shown as buttons; the rest are in the More menu.
-    static let primary: [ClaimAction] = [.payments, .edit]
-    static let more: [ClaimAction] = [.addContact, .address, .owner, .proofOfLoss]
+    /// In the More menu; the rest are on the action strip (and Edit Claim in the top bar).
+    static let more: [ClaimAction] = [.email, .address, .owner, .proofOfLoss]
+
+    /// The label under a round action button.
+    var shortTitle: String {
+        switch self {
+        case .payments: "Payments"
+        case .post: "Post"
+        case .call: "Log Call"
+        case .email: "Email"
+        case .addContact: "Contact"
+        default: title
+        }
+    }
     static let communication: [ClaimAction] = [.post, .call, .email]
 }
 
-/// The quick actions (Apply Payments, Edit Claim, More) and the communication buttons, below the
-/// claim's header (staff only).
+/// The claim's action strip (staff only): Apply Payments, Add a Post, Log a Call, Add Contact
+/// and More (Send an Email, Update Address, Change Owner, Proof of Loss), as round icon buttons with labels on one card. Edit Claim is in the top bar.
 struct ClaimQuickActions: View {
     let open: (ClaimAction) -> Void
     @Environment(\.isOffline) private var isOffline
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private static let strip: [ClaimAction] = [.payments, .post, .call, .addContact]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            // One slim row of pills; stacked full width at larger text sizes.
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: Theme.Spacing.s) { quickButtons }
-                VStack(spacing: Theme.Spacing.s) { quickButtons }
-            }
-
-            // One row when the labels fit; stacked at larger text sizes.
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: Theme.Spacing.s) { communicationButtons(compact: true) }
-                VStack(spacing: Theme.Spacing.s) { communicationButtons(compact: false) }
-            }
-        }
-        .accessibilityElement(children: .contain)
-    }
-
-    @ViewBuilder
-    private var quickButtons: some View {
-        ForEach(ClaimAction.primary) { action in
-            Button { open(action) } label: { pill(action.title, icon: action.icon) }
-                .buttonStyle(.plain)
-                .disabledWhenOffline(isOffline)
-                .accessibilityIdentifier("claimAction-\(action.rawValue)")
-        }
-        Menu {
-            ForEach(ClaimAction.more) { action in
-                Button { open(action) } label: { Label(action.title, systemImage: action.icon) }
-                    .accessibilityIdentifier("claimAction-\(action.rawValue)")
-            }
-        } label: {
-            pill("More", icon: "ellipsis.circle")
-        }
-        .buttonStyle(.plain)
-        .disabledWhenOffline(isOffline)
-        .accessibilityLabel("More actions")
-        .accessibilityIdentifier("claimActionMore")
-    }
-
-    /// A slim capsule: icon beside the label, brand blue on a light blue fill (6:1).
-    private func pill(_ title: String, icon: String) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: icon)
-            Text(title)
-        }
-        .font(.footnote.weight(.semibold))
-        .foregroundStyle(Color.brandPrimary)
-        .fixedSize()
-        .padding(.horizontal, Theme.Spacing.m)
-        .frame(maxWidth: .infinity, minHeight: Theme.minTapTarget)
-        .background(Color.surfaceTintedStrong, in: Capsule())
-        .contentShape(Capsule())
-    }
-
-    /// Compact: icon above the label, three across. Otherwise one full-width button each.
-    private func communicationButtons(compact: Bool) -> some View {
-        ForEach(ClaimAction.communication) { action in
-            Button { open(action) } label: {
-                Group {
-                    if compact {
-                        VStack(spacing: 2) {
-                            Image(systemName: action.icon)
-                            Text(action.title).font(.caption.weight(.semibold))
-                        }
-                        .padding(.vertical, Theme.Spacing.xs)
-                    } else {
-                        Label(action.title, systemImage: action.icon)
-                            .font(.subheadline.weight(.semibold))
-                    }
+        // Five across; two across at accessibility text sizes, so labels never break mid-word.
+        let columns = Array(repeating: GridItem(.flexible(), spacing: Theme.Spacing.xs, alignment: .top),
+                            count: dynamicTypeSize.isAccessibilitySize ? 2 : 5)
+        LazyVGrid(columns: columns, spacing: Theme.Spacing.m) {
+            ForEach(Self.strip) { action in
+                Button { open(action) } label: {
+                    ActionCircle(title: action.shortTitle, icon: action.icon)
                 }
-                .fixedSize()
-                .frame(maxWidth: .infinity, minHeight: Theme.minTapTarget)
+                .buttonStyle(ActionCirclePressStyle())
+                .disabledWhenOffline(isOffline)
+                .accessibilityLabel(action.title)
+                .accessibilityIdentifier("claimAction-\(action.rawValue)")
             }
-            .buttonStyle(.bordered)
-            .buttonBorderShape(.capsule)
-            .tint(.brandPrimary)
+            Menu {
+                ForEach(ClaimAction.more) { action in
+                    Button { open(action) } label: { Label(action.title, systemImage: action.icon) }
+                        .accessibilityIdentifier("claimAction-\(action.rawValue)")
+                }
+            } label: {
+                ActionCircle(title: "More", icon: "ellipsis")
+            }
+            .buttonStyle(ActionCirclePressStyle())
             .disabledWhenOffline(isOffline)
-            .accessibilityIdentifier("claimAction-\(action.rawValue)")
+            .accessibilityLabel("More actions")
+            .accessibilityIdentifier("claimActionMore")
         }
+        .padding(.vertical, Theme.Spacing.m)
+        .padding(.horizontal, Theme.Spacing.s)
+        .background {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color.surface)
+                .shadow(color: Color.brandPrimary.opacity(0.10), radius: 14, x: 0, y: 6)
+        }
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Color.border.opacity(0.6), lineWidth: 1))
+    }
+}
+
+/// A round gradient icon with a short label under it, in the style of the system's contact actions.
+private struct ActionCircle: View {
+    let title: String
+    let icon: String
+    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 48
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: size * 0.4, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: size, height: size)
+                .background(BrandGradient.hero(colorScheme), in: Circle())
+                .overlay(Circle().stroke(.white.opacity(0.25), lineWidth: 1).padding(1))
+                .opacity(isEnabled ? 1 : 0.4)
+                .accessibilityHidden(true)
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(isEnabled ? Color.textPrimary : Color.textSecondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+    }
+}
+
+/// A gentle press: the circle shrinks a touch.
+private struct ActionCirclePressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.94 : 1)
+            .animation(.spring(duration: 0.2), value: configuration.isPressed)
     }
 }
 

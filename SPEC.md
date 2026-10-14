@@ -328,7 +328,9 @@ The Prospect Conversion Guided Process (`Prospect_Conversion_Guided_Process` flo
 ### 6.5 Claim detail
 **Header:** claim name, claim number, policy number, status pill.
 
-**Quick actions (staff only)**, directly under the header: one slim row of capsule buttons, *Apply Payments*, *Edit Claim* and *More* (a menu with *Add Contact*, *Update Address*, *Change Owner* and *Proof of Loss*), stacked full width at large text sizes; then a row of communication buttons: *Add a Post*, *Log a Call*, *Send an Email*. Each opens a sheet (§5.6b):
+**Top bar:** *Ask Question* (everyone) and *Edit Claim* (staff) as icons at the top right.
+
+**Action strip (staff only)**, directly under the header: one card with round gradient icon buttons and short labels: *Payments* (Apply Payments), *Post* (Add a Post), *Log Call*, *Contact* (Add Contact) and *More* (a menu with *Send an Email*, *Update Address*, *Change Owner* and *Proof of Loss*). Five across; two across at accessibility text sizes. Each opens a sheet (§5.6b):
 - **Apply Payments:** date collected, *Apply deductible* (with the claim's deductible), payment rows (type and amount; add and swipe to remove), and a live summary: RCV, payments received (everything except RCV, less any deductible rows), the deductible when applied, the adjuster fee ((received + applied deductible) × fee %), and the insured payment (received − fee, never below 0). Choosing *Deductible* as a type switches on *Apply deductible* instead, as in the quick action. Blocked, with a message, until the claim has a deductible.
 - **Add Contact:** Existing (search) or New, with a role. New contacts are checked for matches (email, mobile phone, or name) first; then a company account for subcontractors; a duplicate-rule match lets the user add the existing contact or none.
 - **Edit Claim:** the core fields. **Update Address:** with address lookup as you type. **Change Owner:** searchable list of internal users.
@@ -358,9 +360,7 @@ The card is **collapsible** and starts collapsed: the progress ring and the curr
 - Account manager: name, tap to call, tap to email.
 - Adjuster fees as a %.
 
-**Actions** (bottom bar):
-- **Add Comment**: a sheet titled "Regarding {claim name}" with a text editor (max 5,000 characters, with a counter). On success: "Your comment has been submitted. Your account manager has been notified."
-- **Ask Question** (formerly Request Assistance): the same sheet, but it calls `POST /cases`. On success: "Your request has been submitted. We will follow up with you shortly." Offer to open the new case.
+**Ask Question** (formerly Request Assistance), from the top-bar icon: a sheet titled "Regarding {claim name}" with a text editor (max 5,000 characters, with a counter) that calls `POST /cases`. There's no Add Comment on claims (removed at the business's request; leads keep it). On success: "Your request has been submitted. We will follow up with you shortly." Offer to open the new case.
 
 ### 6.6 Leads list
 Same layout as the Claims list, with these differences:

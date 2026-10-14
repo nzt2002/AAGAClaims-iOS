@@ -30,7 +30,7 @@ final class OfflineUITests: XCTestCase {
 
         cachedCard.tap()
         XCTAssertTrue(element(offline, containing: "Claim CLM-1234").waitForExistence(timeout: 5))
-        XCTAssertFalse(offline.buttons["addComment"].isEnabled)
+        XCTAssertFalse(offline.buttons["addComment"].exists, "Claims have no Add Comment")
         XCTAssertFalse(offline.buttons["requestAssistance"].isEnabled)
         XCTAssertTrue(element(offline, containing: "Available when you're back online.").exists)
     }

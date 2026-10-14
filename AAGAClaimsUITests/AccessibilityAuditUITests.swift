@@ -77,7 +77,7 @@ final class AccessibilityAuditUITests: XCTestCase {
                             "New Lead", "New Event", "New Claim", "New Task",
                             // Claim action pills and communication buttons: one row, stacked full
                             // width at accessibility sizes (checked in screenshots, 2026-10-13).
-                            "Apply Payments", "Edit Claim", "More", "Add a Post", "Log a Call", "Send an Email"]
+                            "Apply Payments", "More", "More actions", "Add a Post", "Log a Call", "Add Contact"]
             return verified.contains { label.hasPrefix($0) }
         default:
             return false
@@ -96,7 +96,7 @@ final class AccessibilityAuditUITests: XCTestCase {
         try audit("Claims list")
 
         app.buttons["claimCard-a23000000000001AAA"].tap()
-        XCTAssertTrue(app.buttons["addComment"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["requestAssistance"].waitForExistence(timeout: 5))
         try audit("Claim detail")
         for section in ["Details", "Insurance", "Files", "Payments"] {
             app.scrollIntoView(app.buttons[section])

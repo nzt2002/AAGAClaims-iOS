@@ -21,7 +21,7 @@ final class ClaimActionsUITests: XCTestCase {
         app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
     }
 
-    private static let inMoreMenu: Set<String> = ["addContact", "address", "owner", "proofOfLoss"]
+    private static let inMoreMenu: Set<String> = ["email", "address", "owner", "proofOfLoss"]
 
     private func open(_ action: String) {
         if Self.inMoreMenu.contains(action) {
@@ -43,18 +43,18 @@ final class ClaimActionsUITests: XCTestCase {
     }
 
     func testPageLayout() {
-        for action in ["payments", "edit", "post", "call", "email"] {
+        for action in ["payments", "edit", "post", "call", "addContact"] {
             XCTAssertTrue(app.buttons["claimAction-\(action)"].exists, action)
         }
         let more = app.buttons["claimActionMore"]
         XCTAssertTrue(more.exists)
-        // One row under the header: Apply Payments, Edit Claim and More side by side.
+        // One action strip under the header: Payments, Post, Log Call, Contact and More side by side.
         let payments = app.buttons["claimAction-payments"]
         XCTAssertLessThan(app.staticTexts["Claim CLM-1234"].frame.maxY, payments.frame.minY)
         XCTAssertEqual(payments.frame.midY, more.frame.midY, accuracy: 2)
-        XCTAssertFalse(app.buttons["claimAction-addContact"].exists, "The rest are in More")
+        XCTAssertFalse(app.buttons["claimAction-email"].exists, "The rest are in More")
         more.tap()
-        for action in ["addContact", "address", "owner", "proofOfLoss"] {
+        for action in ["email", "address", "owner", "proofOfLoss"] {
             XCTAssertTrue(app.buttons["claimAction-\(action)"].waitForExistence(timeout: 5), action)
         }
         // Choosing an item opens its sheet (and closes the menu).
@@ -128,7 +128,7 @@ final class ClaimActionsUITests: XCTestCase {
         let subject = app.textFields["callSubject"]
         XCTAssertTrue(subject.waitForExistence(timeout: 5))
         save()
-        XCTAssertTrue(app.buttons["claimAction-email"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["claimActionMore"].waitForExistence(timeout: 5))
 
         open("email")
         let emailSubject = app.textFields["emailSubject"]
@@ -140,6 +140,6 @@ final class ClaimActionsUITests: XCTestCase {
         body.tap()
         app.typeText("See you Friday at 9.")
         save()
-        XCTAssertTrue(app.buttons["claimAction-email"].waitForExistence(timeout: 5), "Back on the claim")
+        XCTAssertTrue(app.buttons["claimActionMore"].waitForExistence(timeout: 5), "Back on the claim")
     }
 }

@@ -1,12 +1,19 @@
 import PortalKit
 import SwiftUI
 
-/// The Add Comment / Request Assistance bar shared by claim and lead detail (spec §6.5, §6.7),
-/// with its composer sheet and confirmation alert.
+/// Add Comment / Ask Question for claim and lead detail (spec §6.5, §6.7), with the composer
+/// sheet and confirmation alert. Leads show both in a bottom bar; claims show Ask Question as a
+/// top-bar icon and no Add Comment.
 struct RecordActions: ViewModifier {
+    enum Placement {
+        case bottomBar
+        case toolbarIcon
+    }
+
     let record: RecordRef
     let recordName: String
     let api: PortalAPI
+    var placement: Placement = .bottomBar
     /// Called after a comment is sent, e.g. to refresh a lead's updates.
     var onCommentSent: () -> Void = {}
 
@@ -22,12 +29,42 @@ struct RecordActions: ViewModifier {
     }
 
     func body(content: Content) -> some View {
-        content
-            .safeAreaInset(edge: .bottom) { bar }
+        placed(content)
             .sheet(item: $composer, content: sheet)
             .alert("Thank you", isPresented: showingConfirmation, presenting: confirmation, actions: actions) {
                 Text($0.message)
             }
+    }
+
+    @ViewBuilder
+    private func placed(_ content: Content) -> some View {
+        switch placement {
+        case .bottomBar:
+            content.safeAreaInset(edge: .bottom) { bar }
+        case .toolbarIcon:
+            content
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            composer = .assistance
+                        } label: {
+                            Image(systemName: "questionmark.bubble")
+                        }
+                        .disabledWhenOffline(isOffline)
+                        .accessibilityLabel("Ask Question")
+                        .accessibilityIdentifier("requestAssistance")
+                    }
+                }
+                .safeAreaInset(edge: .bottom) {
+                    if isOffline {
+                        OfflineHint()
+                            .padding(.horizontal, Theme.Spacing.l)
+                            .padding(.vertical, Theme.Spacing.s)
+                            .frame(maxWidth: .infinity)
+                            .background(.bar)
+                    }
+                }
+        }
     }
 
     private var bar: some View {
@@ -111,9 +148,10 @@ extension View {
         record: RecordRef,
         recordName: String,
         api: PortalAPI,
+        placement: RecordActions.Placement = .bottomBar,
         onCommentSent: @escaping () -> Void = {}
     ) -> some View {
-        modifier(RecordActions(record: record, recordName: recordName, api: api, onCommentSent: onCommentSent))
+        modifier(RecordActions(record: record, recordName: recordName, api: api, placement: placement, onCommentSent: onCommentSent))
     }
 }
 

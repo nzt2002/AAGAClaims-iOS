@@ -10,6 +10,7 @@ struct ClaimDetailView: View {
     @State private var openAction: ClaimAction?
     @State private var updatesFilter: UpdatesFilter = .claimFeed
     @Environment(\.isInternalUser) private var isInternal
+    @Environment(\.isOffline) private var isOffline
     @Environment(\.scenePhase) private var scenePhase
 
     enum UpdatesFilter: String, CaseIterable {
@@ -106,7 +107,18 @@ struct ClaimDetailView: View {
             await viewModel.load()
             if isInternal { await claimFeed.load() }
         }
-        .recordActions(record: viewModel.record, recordName: recordName, api: api)
+        .toolbar {
+            if isInternal {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { openAction = .edit } label: { Image(systemName: "square.and.pencil") }
+                        .disabledWhenOffline(isOffline)
+                        .accessibilityLabel("Edit Claim")
+                        .accessibilityIdentifier("claimAction-edit")
+                }
+            }
+        }
+        // Ask Question is a top-bar icon on claims; there's no Add Comment here.
+        .recordActions(record: viewModel.record, recordName: recordName, api: api, placement: .toolbarIcon)
     }
 
     @ViewBuilder

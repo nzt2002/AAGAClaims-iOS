@@ -43,15 +43,13 @@ final class ClaimsUITests: XCTestCase {
         XCTAssertTrue(element(containing: "Roof photo 1").waitForExistence(timeout: 5))
     }
 
-    func testAddComment() {
+    func testClaimHasNoAddCommentAndAskQuestionIsInTheTopBar() {
         openRoofClaim()
-        app.buttons["addComment"].tap()
-        let editor = app.textViews["composerText"]
-        XCTAssertTrue(editor.waitForExistence(timeout: 5))
-        editor.typeText("When is the inspection?")
-        app.buttons["composerSubmit"].tap()
-        XCTAssertTrue(element(containing: "Your account manager has been notified").waitForExistence(timeout: 5))
-        app.alerts.buttons["OK"].tap()
+        XCTAssertFalse(app.buttons["addComment"].exists, "Add Comment was removed from claims")
+        let ask = app.buttons["requestAssistance"]
+        XCTAssertTrue(ask.exists)
+        XCTAssertLessThan(ask.frame.maxY, app.staticTexts["Claim CLM-1234"].frame.minY, "Ask Question is a top-bar icon")
+        XCTAssertTrue(app.buttons["claimAction-edit"].exists, "Edit Claim is a top-bar icon for staff")
     }
 
     func testRequestAssistanceOpensSupport() {
