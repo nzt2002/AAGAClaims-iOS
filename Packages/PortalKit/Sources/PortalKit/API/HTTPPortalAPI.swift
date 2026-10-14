@@ -182,6 +182,41 @@ public struct HTTPPortalAPI: PortalAPI {
          URLQueryItem(name: "email", value: email)].filter { $0.value?.isEmpty == false }
     }
 
+    // MARK: - Claim actions
+
+    private func claimPath(_ id: String, _ action: String) -> String { "/claims/\(escaped(id))/\(action)" }
+    private struct Ignored: Decodable {}
+    private struct OwnerBody: Encodable { let ownerId: String }
+    private struct TextBody: Encodable { let text: String }
+
+    public func staffClaim(id: String) async throws -> StaffClaim { try await get(claimPath(id, "staff")) }
+    public func editClaim(id: String, _ edit: ClaimEdit) async throws { let _: Ignored = try await post(claimPath(id, "edit"), body: edit) }
+    public func updateClaimAddress(id: String, _ address: ClaimAddress) async throws { let _: Ignored = try await post(claimPath(id, "address"), body: address) }
+    public func changeClaimOwner(id: String, ownerId: String) async throws { let _: Ignored = try await post(claimPath(id, "owner"), body: OwnerBody(ownerId: ownerId)) }
+    public func saveProofOfLoss(id: String, _ proofOfLoss: ProofOfLoss) async throws { let _: Ignored = try await post(claimPath(id, "proof-of-loss"), body: proofOfLoss) }
+    public func paymentSetup(claimId: String) async throws -> PaymentSetup { try await get(claimPath(claimId, "payment-setup")) }
+    public func applyPayments(claimId: String, _ entry: PaymentEntry) async throws { let _: Ignored = try await post(claimPath(claimId, "payments"), body: entry) }
+
+    public func claimContactMatches(claimId: String, firstName: String?, lastName: String, email: String?, mobile: String?) async throws -> [ContactMatch] {
+        var items = personQuery(firstName, lastName, email)
+        if let mobile, !mobile.isEmpty { items.append(URLQueryItem(name: "mobile", value: mobile)) }
+        return try await get(claimPath(claimId, "contact-matches"), query: items)
+    }
+
+    public func addClaimContact(claimId: String, _ contact: NewClaimRequest.Contact) async throws {
+        // Same body shape as New Claim's contact.
+        let wrapper = NewClaimRequest(account: .existing(id: ""), claim: .init(name: ""), contact: contact)
+        let data = try PortalJSON.makeEncoder().encode(wrapper)
+        let object = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        let contactJSON = try JSONSerialization.data(withJSONObject: object?["contact"] ?? [:])
+        _ = try await send(TransportRequest(method: .post, path: claimPath(claimId, "contacts"), jsonBody: contactJSON))
+    }
+
+    public func claimFeed(claimId: String) async throws -> [ChatterPost] { try await get(claimPath(claimId, "feed")) }
+    public func postToClaim(claimId: String, text: String) async throws -> ChatterPost { try await post(claimPath(claimId, "posts"), body: TextBody(text: text)) }
+    public func logCall(claimId: String, _ call: CallLog) async throws { let _: Ignored = try await post(claimPath(claimId, "calls"), body: call) }
+    public func sendEmail(claimId: String, _ email: OutgoingEmail) async throws { let _: Ignored = try await post(claimPath(claimId, "emails"), body: email) }
+
     public func search(_ query: String, includePeople: Bool) async throws -> [SearchResult] {
         var items = [URLQueryItem(name: "q", value: query)]
         if includePeople { items.append(URLQueryItem(name: "includeUsers", value: "true")) }
@@ -255,12 +290,26 @@ public struct HTTPPortalAPI: PortalAPI {
         let response = try await transport.send(request)
         switch response.statusCode {
         case 200..<300: return response
-        case 400: throw PortalAPIError.invalidRequest
+        case 400: throw Self.message(response.body).map(PortalAPIError.rejected) ?? PortalAPIError.invalidRequest
         case 401: throw PortalAPIError.sessionExpired
         case 404: throw PortalAPIError.notFound
-        case 409: throw PortalAPIError.duplicate(Self.duplicateMatches(response.body))
+        case 409:
+            if let message = Self.message(response.body), Self.errorCode(response.body).flatMap(DuplicateMatches.Kind.init(rawValue:)) == nil {
+                throw PortalAPIError.rejected(message)
+            }
+            throw PortalAPIError.duplicate(Self.duplicateMatches(response.body))
         default: throw PortalAPIError.server(status: response.statusCode)
         }
+    }
+
+    private struct ErrorBody: Decodable { let error: String?; let message: String? }
+
+    static func message(_ body: Data) -> String? {
+        (try? JSONDecoder().decode(ErrorBody.self, from: body))?.message.flatMap { $0.isEmpty ? nil : $0 }
+    }
+
+    static func errorCode(_ body: Data) -> String? {
+        (try? JSONDecoder().decode(ErrorBody.self, from: body))?.error
     }
 
     /// `{"error": "duplicate_account", "matches": [...]}`.

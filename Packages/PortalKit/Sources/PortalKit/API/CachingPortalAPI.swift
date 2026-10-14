@@ -168,6 +168,72 @@ public actor CachingPortalAPI: PortalAPI {
         return try await guarded { try await $0.search(query, includePeople: includePeople) }
     }
 
+    // Claim actions are online only and never cached.
+    public func staffClaim(id: String) async throws -> StaffClaim {
+        try requireOnline()
+        return try await guarded { try await $0.staffClaim(id: id) }
+    }
+
+    public func editClaim(id: String, _ edit: ClaimEdit) async throws {
+        try requireOnline()
+        try await guarded { try await $0.editClaim(id: id, edit) }
+    }
+
+    public func updateClaimAddress(id: String, _ address: ClaimAddress) async throws {
+        try requireOnline()
+        try await guarded { try await $0.updateClaimAddress(id: id, address) }
+    }
+
+    public func changeClaimOwner(id: String, ownerId: String) async throws {
+        try requireOnline()
+        try await guarded { try await $0.changeClaimOwner(id: id, ownerId: ownerId) }
+    }
+
+    public func saveProofOfLoss(id: String, _ proofOfLoss: ProofOfLoss) async throws {
+        try requireOnline()
+        try await guarded { try await $0.saveProofOfLoss(id: id, proofOfLoss) }
+    }
+
+    public func paymentSetup(claimId: String) async throws -> PaymentSetup {
+        try requireOnline()
+        return try await guarded { try await $0.paymentSetup(claimId: claimId) }
+    }
+
+    public func applyPayments(claimId: String, _ entry: PaymentEntry) async throws {
+        try requireOnline()
+        try await guarded { try await $0.applyPayments(claimId: claimId, entry) }
+    }
+
+    public func claimContactMatches(claimId: String, firstName: String?, lastName: String, email: String?, mobile: String?) async throws -> [ContactMatch] {
+        try requireOnline()
+        return try await guarded { try await $0.claimContactMatches(claimId: claimId, firstName: firstName, lastName: lastName, email: email, mobile: mobile) }
+    }
+
+    public func addClaimContact(claimId: String, _ contact: NewClaimRequest.Contact) async throws {
+        try requireOnline()
+        try await guarded { try await $0.addClaimContact(claimId: claimId, contact) }
+    }
+
+    public func claimFeed(claimId: String) async throws -> [ChatterPost] {
+        try requireOnline()
+        return try await guarded { try await $0.claimFeed(claimId: claimId) }
+    }
+
+    public func postToClaim(claimId: String, text: String) async throws -> ChatterPost {
+        try requireOnline()
+        return try await guarded { try await $0.postToClaim(claimId: claimId, text: text) }
+    }
+
+    public func logCall(claimId: String, _ call: CallLog) async throws {
+        try requireOnline()
+        try await guarded { try await $0.logCall(claimId: claimId, call) }
+    }
+
+    public func sendEmail(claimId: String, _ email: OutgoingEmail) async throws {
+        try requireOnline()
+        try await guarded { try await $0.sendEmail(claimId: claimId, email) }
+    }
+
     // People and Chatter are online only.
     public func person(id: String) async throws -> Person {
         try requireOnline()

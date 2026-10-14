@@ -212,10 +212,10 @@ struct PaymentsList: View {
                     Divider()
                 }
             }
-            HStack {
+            AdaptiveStack {
                 Text("Total payments collected")
                     .font(.subheadline.weight(.semibold))
-                Spacer()
+                AdaptiveSpacer()
                 Text(PortalFormat.currency(totalCollected ?? 0))
                     .font(.subheadline.weight(.semibold))
             }
@@ -234,7 +234,7 @@ struct PaymentsList: View {
     }
 }
 
-/// Your public adjuster team (spec §6.5).
+/// Contact Us: the public adjuster team (spec §6.5).
 struct TeamCard: View {
     struct Member {
         let name: String?
@@ -249,7 +249,7 @@ struct TeamCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            SectionHeading("Your public adjuster team")
+            SectionHeading("Contact Us")
             member("Adjuster", adjuster)
             member("Desk adjuster", deskAdjuster)
             member("Account manager", accountManager)

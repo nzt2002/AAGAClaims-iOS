@@ -11,7 +11,6 @@ struct PersonRoute: Hashable {
 /// edited right here.
 struct PersonView: View {
     @State private var viewModel: PersonViewModel
-    @FocusState private var editFocused: Bool
     let name: String?
 
     init(api: PortalAPI, personId: String, name: String?) {
@@ -23,7 +22,8 @@ struct PersonView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.l) {
                 profile
-                chatter
+                SectionHeader("Chatter")
+                ChatterFeedSection(model: viewModel.chatter, emptyMessage: "No Chatter posts yet.")
             }
             .padding(Theme.Spacing.l)
         }
@@ -110,29 +110,36 @@ struct PersonView: View {
         "tel:" + number.filter { $0.isNumber || $0 == "+" }
     }
 
-    // MARK: - Chatter
+}
 
-    @ViewBuilder
-    private var chatter: some View {
-        SectionHeader("Chatter")
-        switch viewModel.feed {
+/// A Chatter feed: posts with their latest replies, an inline reply box on each post, and Edit on
+/// the user's own replies. Used for a person's profile feed and a claim's Claim Feed.
+struct ChatterFeedSection: View {
+    let model: ChatterFeedViewModel
+    let emptyMessage: String
+    @FocusState private var editFocused: Bool
+
+    var body: some View {
+        switch model.feed {
         case .idle, .loading:
             SkeletonList(rows: 2)
         case .failed:
-            ErrorStateView(subject: "Chatter") { Task { await viewModel.loadFeed() } }
+            ErrorStateView(subject: "Chatter") { Task { await model.load() } }
         case .loaded(let posts, _):
             if posts.isEmpty {
-                Text("No Chatter posts yet.")
+                Text(emptyMessage)
                     .foregroundStyle(Color.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .cardStyle()
             } else {
-                ForEach(posts) { post in
-                    postCard(post)
+                VStack(spacing: Theme.Spacing.m) {
+                    ForEach(posts) { post in
+                        postCard(post)
+                    }
                 }
             }
         }
     }
-
     private func postCard(_ post: ChatterPost) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
             VStack(alignment: .leading, spacing: 2) {
@@ -180,17 +187,17 @@ struct PersonView: View {
                     .font(.caption)
                     .foregroundStyle(Color.textSecondary)
                 Spacer()
-                if reply.isMine == true && viewModel.editingReplyId != reply.id {
-                    Button("Edit") { viewModel.startEditing(reply) }
+                if reply.isMine == true && model.editingReplyId != reply.id {
+                    Button("Edit") { model.startEditing(reply) }
                         .font(.caption.weight(.semibold))
                         .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
                         .accessibilityLabel("Edit your reply")
                         .accessibilityIdentifier("editReply-\(reply.id)")
                 }
             }
-            if viewModel.editingReplyId == reply.id {
-                @Bindable var model = viewModel
-                TextField("Reply", text: $model.editText, axis: .vertical)
+            if model.editingReplyId == reply.id {
+                @Bindable var editing = model
+                TextField("Reply", text: $editing.editText, axis: .vertical)
                     .lineLimit(1...6)
                     .padding(Theme.Spacing.s)
                     .background(Color.surfaceTinted, in: RoundedRectangle(cornerRadius: 10))
@@ -198,16 +205,16 @@ struct PersonView: View {
                     .onAppear { editFocused = true }
                     .accessibilityIdentifier("editReplyField")
                 HStack {
-                    Button("Cancel") { viewModel.cancelEditing() }
+                    Button("Cancel") { model.cancelEditing() }
                         .frame(minHeight: Theme.minTapTarget)
                     Spacer()
-                    if viewModel.saving.contains(reply.id) {
+                    if model.saving.contains(reply.id) {
                         ProgressView()
                     } else {
-                        Button("Save") { Task { await viewModel.saveEdit() } }
+                        Button("Save") { Task { await model.saveEdit() } }
                             .bold()
                             .frame(minHeight: Theme.minTapTarget)
-                            .disabled(viewModel.editText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            .disabled(model.editText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                             .accessibilityIdentifier("saveReply")
                     }
                 }
@@ -225,24 +232,24 @@ struct PersonView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .bottom, spacing: Theme.Spacing.s) {
                 TextField("Write a reply…", text: Binding(
-                    get: { viewModel.drafts[post.id] ?? "" },
-                    set: { viewModel.drafts[post.id] = $0 }
+                    get: { model.drafts[post.id] ?? "" },
+                    set: { model.drafts[post.id] = $0 }
                 ), axis: .vertical)
                 .lineLimit(1...5)
                 .padding(Theme.Spacing.s)
                 .background(Color.surfaceTinted, in: RoundedRectangle(cornerRadius: 10))
                 .accessibilityIdentifier("replyField-\(post.id)")
-                if viewModel.saving.contains(post.id) {
+                if model.saving.contains(post.id) {
                     ProgressView()
                         .frame(width: Theme.minTapTarget, height: Theme.minTapTarget)
                 } else {
                     Button {
-                        Task { await viewModel.sendReply(to: post.id) }
+                        Task { await model.sendReply(to: post.id) }
                     } label: {
                         Image(systemName: "paperplane.fill")
                             .frame(width: Theme.minTapTarget, height: Theme.minTapTarget)
                     }
-                    .disabled(!viewModel.canSend(post.id))
+                    .disabled(!model.canSend(post.id))
                     .accessibilityLabel("Send reply")
                     .accessibilityIdentifier("sendReply-\(post.id)")
                 }
@@ -253,7 +260,7 @@ struct PersonView: View {
 
     @ViewBuilder
     private func failure(for id: String, _ message: String) -> some View {
-        if viewModel.failedId == id {
+        if model.failedId == id {
             Label(message, systemImage: "exclamationmark.triangle")
                 .font(.caption)
                 .foregroundStyle(Color.warning)

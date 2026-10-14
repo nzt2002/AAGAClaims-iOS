@@ -4,13 +4,26 @@ import SwiftUI
 /// Claim detail (spec §6.5).
 struct ClaimDetailView: View {
     @State private var viewModel: ClaimDetailViewModel
+    /// Staff only: quick actions, communication and the Claim Feed.
+    @State private var actions: ClaimActionsViewModel
+    @State private var claimFeed: ChatterFeedViewModel
+    @State private var openAction: ClaimAction?
+    @State private var updatesFilter: UpdatesFilter = .claimFeed
+    @Environment(\.isInternalUser) private var isInternal
     @Environment(\.scenePhase) private var scenePhase
+
+    enum UpdatesFilter: String, CaseIterable {
+        case claimFeed = "Claim Feed"
+        case portalUpdates = "Portal Updates"
+    }
     /// The list row, for fields only `GET /claims` returns (loss reason).
     let summary: ClaimSummary?
     let api: PortalAPI
 
     init(claimId: String, summary: ClaimSummary?, api: PortalAPI) {
         _viewModel = State(initialValue: ClaimDetailViewModel(claimId: claimId, api: api))
+        _actions = State(initialValue: ClaimActionsViewModel(api: api, claimId: claimId))
+        _claimFeed = State(initialValue: ChatterFeedViewModel(api: api, source: .claim(claimId)))
         self.summary = summary
         self.api = api
     }
@@ -24,6 +37,19 @@ struct ClaimDetailView: View {
             .task {
                 if viewModel.detail.value == nil {
                     await viewModel.load()
+                }
+                if isInternal, claimFeed.feed.value == nil {
+                    async let staff: Void = actions.load()
+                    async let feed: Void = claimFeed.load()
+                    _ = await (staff, feed)
+                }
+            }
+            .sheet(item: $openAction) { action in
+                ClaimActionSheet(action: action, actions: actions, feed: claimFeed, api: api) {
+                    Task {
+                        await viewModel.load()
+                        if action == .post || action == .call || action == .email { await claimFeed.load() }
+                    }
                 }
             }
             .onChange(of: scenePhase) { _, phase in
@@ -60,6 +86,9 @@ struct ClaimDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.l) {
                 ClaimHeader(detail: detail)
+                if isInternal {
+                    ClaimQuickActions { openAction = $0 }
+                }
                 HighlightsRow(detail: detail)
                 LifecycleCard(position: detail.lifecycle, status: detail.claimStatus)
                 SectionBar(selection: $viewModel.section)
@@ -73,7 +102,10 @@ struct ClaimDetailView: View {
             }
             .padding(Theme.Spacing.l)
         }
-        .refreshable { await viewModel.load() }
+        .refreshable {
+            await viewModel.load()
+            if isInternal { await claimFeed.load() }
+        }
         .recordActions(record: viewModel.record, recordName: recordName, api: api)
     }
 
@@ -81,8 +113,20 @@ struct ClaimDetailView: View {
     private func sectionContent(_ detail: ClaimDetail) -> some View {
         switch viewModel.section {
         case .updates:
-            SectionLoader(state: viewModel.updates, subject: "updates", retry: { await viewModel.loadUpdates() }) { updates in
-                UpdatesList(updates: updates, emptyMessage: "No updates have been published for this claim yet.")
+            if isInternal {
+                // Staff: the claim's Chatter feed (default) or the published portal updates.
+                Picker("Show", selection: $updatesFilter) {
+                    ForEach(UpdatesFilter.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("updatesFilter")
+            }
+            if isInternal && updatesFilter == .claimFeed {
+                ChatterFeedSection(model: claimFeed, emptyMessage: "No posts on this claim yet. Use Add a Post to start one.")
+            } else {
+                SectionLoader(state: viewModel.updates, subject: "updates", retry: { await viewModel.loadUpdates() }) { updates in
+                    UpdatesList(updates: updates, emptyMessage: "No updates have been published for this claim yet.")
+                }
             }
         case .details:
             ClaimDetailsSection(detail: detail, lossReason: summary?.lossReason)
@@ -189,31 +233,54 @@ struct RCVHelpButton: View {
     }
 }
 
+/// Claim progress. Collapsible: the ring and the current status stay visible when collapsed.
 private struct LifecycleCard: View {
     let position: ClaimLifecycle.Position
     let status: String?
+    @State private var expanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            HStack(spacing: Theme.Spacing.l) {
-                if let percent = position.percentComplete {
-                    ProgressRing(percent: percent)
+            Button {
+                withAnimation(.snappy) { expanded.toggle() }
+            } label: {
+                HStack(spacing: Theme.Spacing.l) {
+                    if let percent = position.percentComplete {
+                        ProgressRing(percent: percent)
+                    }
+                    VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                        Text("Claim progress")
+                            .font(.caption)
+                            .foregroundStyle(Color.textSecondary)
+                        Text(PortalFormat.nonEmpty(status) ?? "Status not set")
+                            .font(.title3.bold())
+                            .foregroundStyle(Color.textPrimary)
+                            .accessibilityIdentifier("claimStatusProminent")
+                    }
+                    Spacer(minLength: 0)
+                    if case .stage = position {
+                        Image(systemName: "chevron.down")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color.brandPrimary)
+                            .rotationEffect(.degrees(expanded ? 180 : 0))
+                            .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
+                    }
                 }
-                VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                    Text("Claim progress")
-                        .font(.caption)
-                        .foregroundStyle(Color.textSecondary)
-                    Text(PortalFormat.nonEmpty(status) ?? "Status not set")
-                        .font(.headline)
-                }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .disabled({ if case .stage = position { false } else { true } }())
+            .accessibilityValue(expanded ? "Expanded" : "Collapsed")
+            .accessibilityHint(expanded ? "Hides the stages" : "Shows every stage")
+            .accessibilityIdentifier("claimProgressToggle")
 
-            if case .stage = position {
+            if expanded, case .stage = position {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(ClaimLifecycle.stages.enumerated()), id: \.offset) { index, stage in
                         StepRow(title: stage, state: position.state(ofStageAt: index), isLast: index == ClaimLifecycle.stages.count - 1)
                     }
                 }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .cardStyle()

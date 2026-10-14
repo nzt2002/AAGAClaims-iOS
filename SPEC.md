@@ -239,6 +239,20 @@ All return `404` unless the user is internal (user type Standard), and only for 
 - `POST /chatter/replies/{replyId}` `{ text }` → `201` the edited reply. Chatter decides who may edit (normally only the author, and only if comment editing is on); otherwise `400 edit_not_allowed`.
 - Text is required and at most 10,000 characters. Everything runs through ConnectApi as the user, so Chatter's own visibility rules apply.
 
+### 5.6b Claim actions (staff)
+
+`PortalClaimActionsService`. All routes are under `/claims/{id}/…` after the usual claim access check, and return `404` unless the user is internal. Errors a user can fix come back as `400 {"error":"validation","message":"…"}` (including the org's validation rules, e.g. Required_for_Inspection), and the app shows the message.
+
+- `GET staff` → the claim's editable values, Proof of Loss fields, and choices: stages, perils, states, occupancy and primary-home values, contact roles, internal users, email recipients (claim email, account email, claim contacts), "From" addresses (the user and org-wide addresses open to all profiles), and the claim's contacts.
+- `POST edit` → Edit Claim: name, stage, peril, loss date and description, claim and policy numbers, insurance company, deductible, adjuster fees (≤ 100), account manager.
+- `POST address` → Update Address (the Update_Address quick action's fields). `POST owner {ownerId}` → Change Owner (active internal users).
+- `POST proof-of-loss` → the 13 fields of the proofOfLossDataEntry component. The expiration date must be after the effective date.
+- `GET payment-setup` and `POST payments {dateCollected, notes, applyDeductible, rows:[{rowType, amount}]}` → Apply Payments, saved through `PaymentCalculatorController2.savePaymentBundle2Json`, as the Apply_Payments_Mobile quick action. Blocked without a deductible; hidden types (ACV, Recoverable Depreciation, Deductible (Commissions)) are refused; no hand-entered Deductible row when the deductible is applied.
+- `GET contact-matches?firstName&lastName&email&mobile` and `POST contacts` → Add Contact (Add_Claim_Contact): matches on email, mobile phone, or first and last name; `409 already_linked` if the contact is already on the claim; new contacts follow New Claim's rules (duplicate rules, subcontractor company account).
+- `GET feed`, `POST posts {text}` → the claim's Chatter feed, and Add a Post. Replies use §5.6a.
+- `POST calls {subject, description?, contactId?}` → Log a Call: a completed Call task on the claim.
+- `POST emails {fromAddressId?, to[], cc[], bcc[], subject, body}` → Send an Email: sent through Salesforce and logged on the claim as an EmailMessage.
+
 ### 5.7 New Claim (staff)
 
 The Prospect Conversion Guided Process (`Prospect_Conversion_Guided_Process` flow) without a Prospect, in `PortalNewClaimService`. Every route returns `404` unless the user is internal (user type Standard).
@@ -314,24 +328,31 @@ The Prospect Conversion Guided Process (`Prospect_Conversion_Guided_Process` flo
 ### 6.5 Claim detail
 **Header:** claim name, claim number, policy number, status pill.
 
+**Quick actions (staff only)**, directly under the header: a 3-column grid of *Apply Payments*, *Add Contact*, *Edit Claim*, *Update Address*, *Change Owner* and *Proof of Loss*, then a row of communication buttons: *Add a Post*, *Log a Call*, *Send an Email*. Each opens a sheet (§5.6b):
+- **Apply Payments:** date collected, *Apply deductible* (with the claim's deductible), payment rows (type and amount; add and swipe to remove), and a live summary: RCV, payments received (everything except RCV, less any deductible rows), the deductible when applied, the adjuster fee ((received + applied deductible) × fee %), and the insured payment (received − fee, never below 0). Choosing *Deductible* as a type switches on *Apply deductible* instead, as in the quick action. Blocked, with a message, until the claim has a deductible.
+- **Add Contact:** Existing (search) or New, with a role. New contacts are checked for matches (email, mobile phone, or name) first; then a company account for subcontractors; a duplicate-rule match lets the user add the existing contact or none.
+- **Edit Claim:** the core fields. **Update Address:** with address lookup as you type. **Change Owner:** searchable list of internal users.
+- **Proof of Loss:** the 13 fields with "n of 13 complete". *Generate Proof of Loss Document* (once all 13 are saved) opens Salesforce's DocMerge page (`/apex/hic_docmerge__Composer`) in an in-app browser; the user may need to sign in there. Not available in demo mode.
+- **Add a Post:** posts to the claim's Chatter feed (staff only; homeowners don't see it). **Log a Call:** subject, optional contact from the claim, notes. **Send an Email:** From (the user or an org-wide address), To (defaults to the claim's email, with one-tap suggestions for the account and claim contacts), Cc, subject and message; sent through Salesforce and logged on the claim.
+
 **Highlights row** (scrolls horizontally): Loss Date · Total RCV · Payments Collected · Deductible.
 
 **Lifecycle:** a 7-stage tracker in this order:
 `Preparation → Inspection → Negotiations → Restoration → Litigation → Settlement → Closed`
 
-Stages before the current one show as complete, the current stage is highlighted, and later stages show as upcoming. Show a progress ring with % complete, calculated as round(((index + 1) ÷ 7) × 100), where `index` is the stage's 0-based position. This matches the portal: Preparation 14%, Inspection 29%, Negotiations 43%, Restoration 57%, Litigation 71%, Settlement 86%, Closed 100%. The claim card's progress bar (§6.4) uses the same number. If the status isn't in this list, show the raw status and hide the ring and the bar.
+The card is **collapsible** and starts collapsed: the progress ring and the current status (large and bold) always show; tapping the card (or its chevron) shows or hides the stage list. Stages before the current one show as complete, the current stage is highlighted, and later stages show as upcoming. Show a progress ring with % complete, calculated as round(((index + 1) ÷ 7) × 100), where `index` is the stage's 0-based position. This matches the portal: Preparation 14%, Inspection 29%, Negotiations 43%, Restoration 57%, Litigation 71%, Settlement 86%, Closed 100%. The claim card's progress bar (§6.4) uses the same number. If the status isn't in this list, show the raw status and hide the ring and the bar.
 
 **Segmented sections:**
 
 | Section | Content |
 |---|---|
-| **Updates** | Published updates (`/updates`), newest first, one card each with title, date and HTML body. Empty state: "No updates have been published for this claim yet." |
+| **Updates** | Published updates (`/updates`), newest first, one card each with title, date and HTML body. Empty state: "No updates have been published for this claim yet." Staff get a *Claim Feed / Portal Updates* filter that starts on **Claim Feed**: the claim's Chatter feed, with inline replies and editing of their own replies (§5.6a). |
 | **Details** | *Claim snapshot*: peril, date of claim, loss address (tap to open in Maps), main phone, email, business email. *Loss and documentation*: loss date, date claim filed, loss description (HTML), and the "Photos or documents" link (`photosUrl`) if present. |
 | **Insurance** | Insurance company, insurance main phone (tap to call), claim number, policy number, deductible. |
 | **Files** | File list showing an icon by type, title, "{type} · {size} · Uploaded {date}" and "Uploaded by {name}". Tapping a file opens it in Quick Look. **Upload** button (§6.10). |
 | **Payments** | One row per payment: name, date of notice, net deposit, insured payment, total RCV. Footer: total payments collected. Empty state: "No payment records have been found for this claim." |
 
-**Team card:** the public adjuster team.
+**Contact Us card** (formerly "Your public adjuster team"):
 - Adjuster: name, tap to call, tap to email.
 - Desk adjuster: name, tap to email.
 - Account manager: name, tap to call, tap to email.

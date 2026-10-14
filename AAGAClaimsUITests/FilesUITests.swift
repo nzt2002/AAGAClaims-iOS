@@ -9,12 +9,15 @@ final class FilesUITests: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = ["-UITestDemo", "YES", "-PortalDataSource", "mock"]
         app.launch()
+        app.dismissSystemAlerts()
         app.tabBars.buttons["Claims"].tap()
         let card = app.buttons["claimCard-a23000000000001AAA"]
         XCTAssertTrue(card.waitForExistence(timeout: 10))
         card.tap()
         let files = app.buttons["Files"]
         XCTAssertTrue(files.waitForExistence(timeout: 5))
+        // Staff quick actions sit above the sections, so bring the tab into view first.
+        app.scrollIntoView(files)
         files.tap()
     }
 

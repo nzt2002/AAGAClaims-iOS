@@ -198,29 +198,30 @@ struct PeopleTests {
         await model.load()
         #expect(model.person.value?.name == "Jane Doe")
         #expect(model.person.value?.initials == "JD")
-        let post = try #require(model.feed.value?.first)
+        let chatter = model.chatter
+        let post = try #require(chatter.feed.value?.first)
         #expect(post.replies.count == 2)
 
-        #expect(!model.canSend(post.id))
-        model.drafts[post.id] = "  Photos are in the claim now.  "
-        #expect(await model.sendReply(to: post.id))
-        #expect(model.feed.value?.first?.replies.last?.text == "Photos are in the claim now.")
-        #expect(model.feed.value?.first?.totalReplies == 3)
-        #expect(model.drafts[post.id] == nil)
+        #expect(!chatter.canSend(post.id))
+        chatter.drafts[post.id] = "  Photos are in the claim now.  "
+        #expect(await chatter.sendReply(to: post.id))
+        #expect(chatter.feed.value?.first?.replies.last?.text == "Photos are in the claim now.")
+        #expect(chatter.feed.value?.first?.totalReplies == 3)
+        #expect(chatter.drafts[post.id] == nil)
 
         // Someone else's reply can't be edited.
         let theirs = post.replies[0]
-        model.startEditing(theirs)
-        #expect(model.editingReplyId == nil)
+        chatter.startEditing(theirs)
+        #expect(chatter.editingReplyId == nil)
 
         let mine = post.replies[1]
-        model.startEditing(mine)
-        #expect(model.editingReplyId == mine.id)
-        #expect(model.editText == "I'll update the claim after.")
-        model.editText = "Claim updated."
-        #expect(await model.saveEdit())
-        #expect(model.editingReplyId == nil)
-        #expect(model.feed.value?.first?.replies.first { $0.id == mine.id }?.text == "Claim updated.")
+        chatter.startEditing(mine)
+        #expect(chatter.editingReplyId == mine.id)
+        #expect(chatter.editText == "I'll update the claim after.")
+        chatter.editText = "Claim updated."
+        #expect(await chatter.saveEdit())
+        #expect(chatter.editingReplyId == nil)
+        #expect(chatter.feed.value?.first?.replies.first { $0.id == mine.id }?.text == "Claim updated.")
         let reloaded = try await api.personFeed(id: "005000000000002AAA")
         #expect(reloaded.first?.replies.first { $0.id == mine.id }?.text == "Claim updated.")
     }

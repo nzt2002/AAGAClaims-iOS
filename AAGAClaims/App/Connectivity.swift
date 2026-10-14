@@ -95,3 +95,10 @@ extension View {
             .accessibilityHint(isOffline ? "Available when you're back online." : "")
     }
 }
+
+extension EnvironmentValues {
+    /// Staff (Salesforce user type Standard): claim actions, Claim Feed, People.
+    @Entry var isInternalUser = false
+    /// The org's web address, for Salesforce-only pages. Nil in demo mode.
+    @Entry var salesforceInstanceURL: URL? = nil
+}

@@ -25,6 +25,12 @@ struct MainTabView: View {
     }
 
     var body: some View {
+        tabs
+            .environment(\.isInternalUser, user.isInternal)
+            .environment(\.salesforceInstanceURL, user.instanceURL)
+    }
+
+    private var tabs: some View {
         TabView(selection: $router.selection) {
             Tab("Home", systemImage: "house", value: .home) {
                 NavigationStack {

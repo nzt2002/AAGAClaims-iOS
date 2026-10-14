@@ -100,7 +100,8 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             fullName: identity.displayName ?? identity.email,
             email: identity.email,
             // "STANDARD" for internal users; portal licences have other types.
-            isInternal: identity.userType.caseInsensitiveCompare("STANDARD") == .orderedSame
+            isInternal: identity.userType.caseInsensitiveCompare("STANDARD") == .orderedSame,
+            instanceURL: UserAccountManager.shared.currentUserAccount?.credentials.instanceUrl
         )
     }
 }

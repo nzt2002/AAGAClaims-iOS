@@ -23,6 +23,13 @@ public actor MockPortalAPI: PortalAPI {
         var contacts: [ContactMatch] = []
         var newClaimOptions: NewClaimOptions?
         var people: [String: PeopleFixture] = [:]
+        /// Claim actions: edited values, claim feeds and linked contacts, by claim id.
+        var staffClaims: [String: StaffClaim] = [:]
+        var claimFeeds: [String: [ChatterPost]] = [:]
+        var claimContacts: [String: Set<String>] = [:]
+        var paymentsApplied: [String: [PaymentEntry]] = [:]
+        var callsLogged: [String: [CallLog]] = [:]
+        var emailsSent: [String: [OutgoingEmail]] = [:]
 
         /// The fixtures bundled with PortalKit.
         public static func bundled() throws -> Fixtures {
@@ -624,6 +631,223 @@ public actor MockPortalAPI: PortalAPI {
             if let email = PortalFormat.nonEmpty(email), contact.email?.caseInsensitiveCompare(email) == .orderedSame { return true }
             return !lastName.isEmpty && contact.name?.caseInsensitiveCompare(fullName) == .orderedSame
         }
+    }
+
+    // MARK: - Claim actions
+
+    private func staff(_ id: String) throws -> StaffClaim {
+        guard data.newClaimOptions != nil else { throw PortalAPIError.notFound }
+        if let existing = data.staffClaims[id] { return existing }
+        guard let detail = data.claimDetails[id] else { throw PortalAPIError.notFound }
+        var pol = ProofOfLoss()
+        pol.lossDate = detail.lossDate
+        pol.policyNumber = detail.policyNumber
+        let address = (detail.lossAddress ?? "").components(separatedBy: ", ")
+        let options = data.newClaimOptions
+        let recipients = [detail.email.map { ValueOption(value: $0, label: "Claim email <\($0)>") }].compactMap { $0 }
+        let claim = StaffClaim(
+            id: id, name: detail.claimName, status: detail.claimStatus, peril: detail.peril, lossDate: detail.lossDate,
+            lossDescription: detail.lossDescription, claimNumber: detail.claimNumber, policyNumber: detail.policyNumber,
+            insuranceCompanyId: nil, insuranceCompanyName: detail.insuranceCompanyName,
+            deductible: detail.deductible, adjusterFees: detail.adjusterFees, accountManagerId: nil,
+            ownerId: options?.currentUserId, ownerName: detail.adjusterName,
+            street: address.first, city: address.count > 1 ? address[1] : nil,
+            state: address.count > 2 ? String(address[2].prefix(2)) : nil,
+            postalCode: address.count > 2 ? address[2].split(separator: " ").last.map(String.init) : nil,
+            proofOfLoss: pol, statuses: ClaimLifecycle.stages, perils: options?.perils ?? [], states: options?.states ?? [],
+            occupancyValues: ["Occupied", "Vacant"], primaryHomeValues: ["Primary", "Rental"],
+            contactRoles: options?.contactRoles ?? [], users: options?.users ?? [],
+            emailRecipients: recipients,
+            fromAddresses: [ValueOption(value: nil, label: "Alex Smith <alex.smith@example.com>"),
+                            ValueOption(value: "0D2000000000001AAA", label: "Accurate Adjustments GA <claims@example.com>")],
+            contacts: data.contacts.prefix(2).map { ValueOption(value: $0.id, label: $0.name ?? "Contact") }
+        )
+        data.staffClaims[id] = claim
+        return claim
+    }
+
+    public func staffClaim(id: String) async throws -> StaffClaim {
+        try await simulate()
+        return try staff(id)
+    }
+
+    public func editClaim(id: String, _ edit: ClaimEdit) async throws {
+        try await simulate()
+        var claim = try staff(id)
+        guard !edit.name.trimmingCharacters(in: .whitespaces).isEmpty else { throw PortalAPIError.invalidRequest }
+        if let fees = edit.adjusterFees, fees > 100 { throw PortalAPIError.invalidRequest }
+        // The org's Required_for_Inspection rule.
+        if edit.status == "Inspection" && (edit.deductible == nil || edit.adjusterFees == nil) {
+            throw PortalAPIError.rejected("Required fields for this stage haven’t been updated. Please update Deductible and/or Adjuster Fees to continue.")
+        }
+        claim.name = edit.name
+        claim.status = edit.status
+        claim.peril = edit.peril
+        claim.lossDate = edit.lossDate
+        claim.lossDescription = edit.lossDescription
+        claim.claimNumber = edit.claimNumber
+        claim.policyNumber = edit.policyNumber
+        claim.insuranceCompanyId = edit.insuranceCompanyId
+        claim.deductible = edit.deductible
+        claim.adjusterFees = edit.adjusterFees
+        claim.accountManagerId = edit.accountManagerId
+        data.staffClaims[id] = claim
+        try patchDetail(id) { fields in
+            fields["claimName"] = edit.name
+            fields["claimStatus"] = edit.status
+            fields["peril"] = edit.peril
+            fields["claimNumber"] = edit.claimNumber
+            fields["policyNumber"] = edit.policyNumber
+            fields["deductible"] = edit.deductible.map { NSDecimalNumber(decimal: $0) }
+            fields["adjusterFees"] = edit.adjusterFees.map { NSDecimalNumber(decimal: $0) }
+        }
+    }
+
+    public func updateClaimAddress(id: String, _ address: ClaimAddress) async throws {
+        try await simulate()
+        var claim = try staff(id)
+        claim.street = address.street
+        claim.city = address.city
+        claim.state = address.state
+        claim.postalCode = address.postalCode
+        data.staffClaims[id] = claim
+        let line = [address.street, address.city, [address.state, address.postalCode].compactMap { $0 }.joined(separator: " ")]
+            .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
+        try patchDetail(id) { $0["lossAddress"] = line.isEmpty ? nil : line }
+    }
+
+    public func changeClaimOwner(id: String, ownerId: String) async throws {
+        try await simulate()
+        var claim = try staff(id)
+        guard let user = claim.users.first(where: { $0.userId == ownerId }) else { throw PortalAPIError.invalidRequest }
+        claim.ownerId = user.userId
+        claim.ownerName = user.name
+        data.staffClaims[id] = claim
+        try patchDetail(id) { $0["adjusterName"] = user.name }
+    }
+
+    public func saveProofOfLoss(id: String, _ proofOfLoss: ProofOfLoss) async throws {
+        try await simulate()
+        var claim = try staff(id)
+        if let start = proofOfLoss.policyEffectiveDate, let end = proofOfLoss.policyExpirationDate,
+           (end.year, end.month, end.day) < (start.year, start.month, start.day) {
+            throw PortalAPIError.rejected("The policy expiration date must be after the effective date.")
+        }
+        claim.proofOfLoss = proofOfLoss
+        data.staffClaims[id] = claim
+    }
+
+    public func paymentSetup(claimId: String) async throws -> PaymentSetup {
+        try await simulate()
+        let claim = try staff(claimId)
+        return PaymentSetup(
+            claimName: claim.name, deductible: claim.deductible, adjusterFees: claim.adjusterFees,
+            lifetimePaymentsReceived: data.claimDetails[claimId]?.paymentCollected,
+            paymentTypes: ["Additional Payments", "Deductible", "NET Payment (ACV)", "Replacement Cash Value (RCV)"]
+        )
+    }
+
+    public func applyPayments(claimId: String, _ entry: PaymentEntry) async throws {
+        try await simulate()
+        let claim = try staff(claimId)
+        guard let deductible = claim.deductible, deductible > 0 else {
+            throw PortalAPIError.rejected("Please add the Deductible on this claim before using the payment calculator.")
+        }
+        guard !entry.rows.isEmpty else { throw PortalAPIError.invalidRequest }
+        if entry.applyDeductible && entry.rows.contains(where: { $0.rowType == "Deductible" }) {
+            throw PortalAPIError.rejected("Deductible cannot be added as a row when Apply deductible is on.")
+        }
+        data.paymentsApplied[claimId, default: []].append(entry)
+    }
+
+    public func claimContactMatches(claimId: String, firstName: String?, lastName: String, email: String?, mobile: String?) async throws -> [ContactMatch] {
+        try await simulate()
+        _ = try staff(claimId)
+        var matches = contactMatches(firstName: firstName, lastName: lastName, email: email)
+        if let mobile = PortalFormat.nonEmpty(mobile) {
+            let digits = mobile.filter(\.isNumber)
+            for contact in data.contacts where (contact.phone ?? "").filter(\.isNumber) == digits && !matches.contains(contact) {
+                matches.append(contact)
+            }
+        }
+        return matches
+    }
+
+    public func addClaimContact(claimId: String, _ contact: NewClaimRequest.Contact) async throws {
+        try await simulate()
+        _ = try staff(claimId)
+        let contactId: String
+        switch contact {
+        case .existing(let id, _):
+            contactId = id
+        case .new(let details, _, let partner):
+            if case .new(let name) = partner, !partnerMatches(name).isEmpty {
+                throw PortalAPIError.duplicate(DuplicateMatches(kind: .partnerAccount, accounts: partnerMatches(name)))
+            }
+            if let email = PortalFormat.nonEmpty(details.email),
+               case let duplicates = data.contacts.filter({ $0.email?.caseInsensitiveCompare(email) == .orderedSame }),
+               !duplicates.isEmpty {
+                throw PortalAPIError.duplicate(DuplicateMatches(kind: .contact, contacts: duplicates))
+            }
+            let name = [details.firstName, details.lastName].compactMap { PortalFormat.nonEmpty($0) }.joined(separator: " ")
+            let created = ContactMatch(id: makeId(prefix: "003"), name: name, email: details.email, phone: details.phone, accountName: details.company)
+            data.contacts.append(created)
+            contactId = created.id
+        }
+        guard !(data.claimContacts[claimId]?.contains(contactId) ?? false) else {
+            throw PortalAPIError.rejected("This contact is already on the claim.")
+        }
+        data.claimContacts[claimId, default: []].insert(contactId)
+    }
+
+    public func claimFeed(claimId: String) async throws -> [ChatterPost] {
+        try await simulate()
+        _ = try staff(claimId)
+        if let feed = data.claimFeeds[claimId] { return feed }
+        let seeded = data.feed.filter { $0.parentId == claimId }.map {
+            ChatterPost(id: $0.id, authorName: $0.authorName, text: $0.text, createdDate: $0.createdDate,
+                        parentName: nil, replies: [], totalReplies: 0)
+        }
+        data.claimFeeds[claimId] = seeded
+        return seeded
+    }
+
+    public func postToClaim(claimId: String, text: String) async throws -> ChatterPost {
+        let existing = try await claimFeed(claimId: claimId)
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw PortalAPIError.invalidRequest }
+        let post = ChatterPost(id: makeId(prefix: "0D5"), authorName: "Alex Smith", text: text, createdDate: Date(),
+                               parentName: nil, replies: [], totalReplies: 0)
+        data.claimFeeds[claimId] = [post] + existing
+        return post
+    }
+
+    public func logCall(claimId: String, _ call: CallLog) async throws {
+        try await simulate()
+        _ = try staff(claimId)
+        guard !call.subject.trimmingCharacters(in: .whitespaces).isEmpty else { throw PortalAPIError.invalidRequest }
+        data.callsLogged[claimId, default: []].append(call)
+    }
+
+    public func sendEmail(claimId: String, _ email: OutgoingEmail) async throws {
+        try await simulate()
+        _ = try staff(claimId)
+        guard !email.to.isEmpty, !email.subject.isEmpty, !email.body.isEmpty else { throw PortalAPIError.invalidRequest }
+        data.emailsSent[claimId, default: []].append(email)
+    }
+
+    /// For tests: what the mock received.
+    public func recorded(claimId: String) -> (payments: [PaymentEntry], calls: [CallLog], emails: [OutgoingEmail], contacts: Set<String>) {
+        (data.paymentsApplied[claimId] ?? [], data.callsLogged[claimId] ?? [], data.emailsSent[claimId] ?? [], data.claimContacts[claimId] ?? [])
+    }
+
+    /// Re-decodes a claim detail with some fields changed (the models are immutable).
+    private func patchDetail(_ id: String, _ change: (inout [String: Any]) -> Void) throws {
+        guard let detail = data.claimDetails[id] else { return }
+        let encoded = try PortalJSON.makeEncoder().encode(detail)
+        guard var fields = try JSONSerialization.jsonObject(with: encoded) as? [String: Any] else { return }
+        change(&fields)
+        let json = try JSONSerialization.data(withJSONObject: fields.compactMapValues { $0 is NSNull ? nil : $0 })
+        data.claimDetails[id] = try PortalJSON.makeDecoder().decode(ClaimDetail.self, from: json)
     }
 
     private func recordName(_ record: RecordRef) -> String? {

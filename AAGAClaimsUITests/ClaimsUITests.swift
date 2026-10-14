@@ -27,7 +27,11 @@ final class ClaimsUITests: XCTestCase {
     func testClaimDetailShowsLifecycleAndSections() {
         openRoofClaim()
         XCTAssertTrue(element(containing: "29 percent complete").exists)
-        XCTAssertTrue(app.staticTexts["Carrier review update"].exists)
+        // Staff (the demo user) see the Claim Feed first; published updates are one tap away.
+        let filter = app.segmentedControls["updatesFilter"]
+        app.scrollIntoView(filter)
+        filter.buttons["Portal Updates"].tap()
+        XCTAssertTrue(element(containing: "Carrier review update").waitForExistence(timeout: 5))
 
         app.buttons["Payments"].tap()
         XCTAssertTrue(app.staticTexts["PMT-0001"].waitForExistence(timeout: 5))

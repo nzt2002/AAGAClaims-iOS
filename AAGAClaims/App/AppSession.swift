@@ -10,6 +10,8 @@ struct CurrentUser: Equatable {
     let email: String
     /// Internal staff (Salesforce user type Standard) rather than a portal user.
     var isInternal = false
+    /// The org's web address (for pages only Salesforce can show, e.g. document generation). Nil in demo mode.
+    var instanceURL: URL? = nil
 
     // Demo mode shows staff features (Chatter, New Task), like the mock data.
     static let demo = CurrentUser(firstName: "Alex", fullName: "Alex Smith", email: "alex.smith@example.com", isInternal: true)

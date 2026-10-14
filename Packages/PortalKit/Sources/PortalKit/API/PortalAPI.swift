@@ -58,6 +58,22 @@ public protocol PortalAPI: Sendable {
     /// `POST /new-claim`. Returns the new claim id. Throws `.duplicate` when a match must be used instead.
     func createClaim(_ request: NewClaimRequest) async throws -> String
 
+    // Claim actions (staff)
+    func staffClaim(id: String) async throws -> StaffClaim
+    func editClaim(id: String, _ edit: ClaimEdit) async throws
+    func updateClaimAddress(id: String, _ address: ClaimAddress) async throws
+    func changeClaimOwner(id: String, ownerId: String) async throws
+    func saveProofOfLoss(id: String, _ proofOfLoss: ProofOfLoss) async throws
+    func paymentSetup(claimId: String) async throws -> PaymentSetup
+    func applyPayments(claimId: String, _ entry: PaymentEntry) async throws
+    /// Add_Claim_Contact's matches: email, mobile phone, or first and last name.
+    func claimContactMatches(claimId: String, firstName: String?, lastName: String, email: String?, mobile: String?) async throws -> [ContactMatch]
+    func addClaimContact(claimId: String, _ contact: NewClaimRequest.Contact) async throws
+    func claimFeed(claimId: String) async throws -> [ChatterPost]
+    func postToClaim(claimId: String, text: String) async throws -> ChatterPost
+    func logCall(claimId: String, _ call: CallLog) async throws
+    func sendEmail(claimId: String, _ email: OutgoingEmail) async throws
+
     // Search and Chatter
     /// `GET /search?q=`: claims, leads (and, for portal users, cases) the user can open.
     func search(_ query: String, includePeople: Bool) async throws -> [SearchResult]
@@ -110,10 +126,12 @@ public enum PortalAPIError: Error, Equatable, Sendable {
     case decoding(String)
     /// 409 from New Claim: matching records exist, and the user must pick one instead.
     case duplicate(DuplicateMatches)
+    /// 400 or 409 with a message written for users (a validation rule, "already on the claim").
+    case rejected(String)
 
     public var isRetryable: Bool {
         switch self {
-        case .sessionExpired, .notFound, .invalidRequest, .decoding, .duplicate: false
+        case .sessionExpired, .notFound, .invalidRequest, .decoding, .duplicate, .rejected: false
         case .offline, .server: true
         }
     }
