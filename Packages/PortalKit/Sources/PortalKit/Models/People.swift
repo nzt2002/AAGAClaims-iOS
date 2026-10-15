@@ -29,13 +29,16 @@ public struct ChatterReply: Codable, Hashable, Identifiable, Sendable {
     public let createdDate: Date?
     /// The signed-in user wrote it, so it can be edited.
     public let isMine: Bool?
+    /// Names @mentioned in the text.
+    public var mentions: [String]?
 
-    public init(id: String, authorName: String?, text: String?, createdDate: Date?, isMine: Bool?) {
+    public init(id: String, authorName: String?, text: String?, createdDate: Date?, isMine: Bool?, mentions: [String]? = nil) {
         self.id = id
         self.authorName = authorName
         self.text = text
         self.createdDate = createdDate
         self.isMine = isMine
+        self.mentions = mentions
     }
 }
 
@@ -49,9 +52,11 @@ public struct ChatterPost: Codable, Hashable, Identifiable, Sendable {
     public let parentName: String?
     public var replies: [ChatterReply]
     public var totalReplies: Int?
+    public var mentions: [String]?
 
     public init(id: String, authorName: String?, text: String?, createdDate: Date?, parentName: String?,
-                replies: [ChatterReply], totalReplies: Int?) {
+                replies: [ChatterReply], totalReplies: Int?, mentions: [String]? = nil) {
+        self.mentions = mentions
         self.id = id
         self.authorName = authorName
         self.text = text

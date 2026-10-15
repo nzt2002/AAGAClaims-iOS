@@ -405,10 +405,26 @@ public actor MockPortalAPI: PortalAPI {
         return try found(data.people[id]).feed
     }
 
-    public func addReply(toPost postId: String, text: String) async throws -> ChatterReply {
+    public func mentionCandidates(_ query: String) async throws -> [Mention] {
+        try await simulate()
+        let q = query.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty else { return [] }
+        return (data.newClaimOptions?.users ?? [])
+            .filter { $0.name.lowercased().hasPrefix(q.lowercased()) || $0.name.lowercased().contains(" " + q.lowercased()) }
+            .map { Mention(id: $0.userId, name: $0.name) }
+    }
+
+    /// The mentions whose "@Name" is in the text, as the server would record them.
+    private func mentionNames(_ text: String, _ mentions: [Mention]) -> [String]? {
+        let names = mentions.filter { text.contains("@" + $0.name) }.map(\.name)
+        return names.isEmpty ? nil : names
+    }
+
+    public func addReply(toPost postId: String, text: String, mentions: [Mention]) async throws -> ChatterReply {
         try await simulate()
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw PortalAPIError.invalidRequest }
-        let reply = ChatterReply(id: makeId(prefix: "0D7"), authorName: "Alex Smith", text: text, createdDate: Date(), isMine: true)
+        let reply = ChatterReply(id: makeId(prefix: "0D7"), authorName: "Alex Smith", text: text, createdDate: Date(), isMine: true,
+                                 mentions: mentionNames(text, mentions))
         for (userId, var fixture) in data.people {
             if let index = fixture.feed.firstIndex(where: { $0.id == postId }) {
                 fixture.feed[index].replies.append(reply)
@@ -420,7 +436,7 @@ public actor MockPortalAPI: PortalAPI {
         throw PortalAPIError.notFound
     }
 
-    public func editReply(id: String, text: String) async throws -> ChatterReply {
+    public func editReply(id: String, text: String, mentions: [Mention]) async throws -> ChatterReply {
         try await simulate()
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw PortalAPIError.invalidRequest }
         for (userId, var fixture) in data.people {
@@ -429,6 +445,7 @@ public actor MockPortalAPI: PortalAPI {
                     // As in Chatter: only your own replies.
                     guard fixture.feed[p].replies[r].isMine == true else { throw PortalAPIError.invalidRequest }
                     fixture.feed[p].replies[r].text = text
+                    fixture.feed[p].replies[r].mentions = mentionNames(text, mentions)
                     data.people[userId] = fixture
                     return fixture.feed[p].replies[r]
                 }
@@ -815,11 +832,11 @@ public actor MockPortalAPI: PortalAPI {
         return seeded
     }
 
-    public func postToClaim(claimId: String, text: String) async throws -> ChatterPost {
+    public func postToClaim(claimId: String, text: String, mentions: [Mention]) async throws -> ChatterPost {
         let existing = try await claimFeed(claimId: claimId)
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw PortalAPIError.invalidRequest }
         let post = ChatterPost(id: makeId(prefix: "0D5"), authorName: "Alex Smith", text: text, createdDate: Date(),
-                               parentName: nil, replies: [], totalReplies: 0)
+                               parentName: nil, replies: [], totalReplies: 0, mentions: mentionNames(text, mentions))
         data.claimFeeds[claimId] = [post] + existing
         return post
     }
@@ -919,11 +936,11 @@ public actor MockPortalAPI: PortalAPI {
         return seeded
     }
 
-    public func postToLead(leadId: String, text: String) async throws -> ChatterPost {
+    public func postToLead(leadId: String, text: String, mentions: [Mention]) async throws -> ChatterPost {
         let existing = try await leadFeed(leadId: leadId)
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw PortalAPIError.invalidRequest }
         let post = ChatterPost(id: makeId(prefix: "0D5"), authorName: "Alex Smith", text: text, createdDate: Date(),
-                               parentName: nil, replies: [], totalReplies: 0)
+                               parentName: nil, replies: [], totalReplies: 0, mentions: mentionNames(text, mentions))
         data.leadFeeds[leadId] = [post] + existing
         return post
     }

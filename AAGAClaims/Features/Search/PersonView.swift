@@ -119,7 +119,6 @@ struct ChatterFeedSection: View {
     let emptyMessage: String
     /// Show this many posts and scroll for the rest; nil shows them all.
     var visibleCount: Int? = nil
-    @FocusState private var editFocused: Bool
 
     var body: some View {
         switch model.feed {
@@ -154,7 +153,7 @@ struct ChatterFeedSection: View {
                     .font(.caption)
                     .foregroundStyle(Color.textSecondary)
             }
-            Text(post.text ?? "")
+            Text(mentionText(post.text ?? "", mentions: post.mentions))
                 .font(.body)
                 .foregroundStyle(Color.textPrimary)
 
@@ -201,13 +200,8 @@ struct ChatterFeedSection: View {
             }
             if model.editingReplyId == reply.id {
                 @Bindable var editing = model
-                TextField("Reply", text: $editing.editText, axis: .vertical)
-                    .lineLimit(1...6)
-                    .padding(Theme.Spacing.s)
-                    .background(Color.surfaceTinted, in: RoundedRectangle(cornerRadius: 10))
-                    .focused($editFocused)
-                    .onAppear { editFocused = true }
-                    .accessibilityIdentifier("editReplyField")
+                MentionField(prompt: "Reply", draft: $editing.editDraft, search: model.mentionCandidates,
+                             lineLimit: 1...6, autofocus: true, identifier: "editReplyField")
                 HStack {
                     Button("Cancel") { model.cancelEditing() }
                         .frame(minHeight: Theme.minTapTarget)
@@ -224,7 +218,7 @@ struct ChatterFeedSection: View {
                 }
                 failure(for: reply.id, "We couldn't save your edit. You can only edit your own replies.")
             } else {
-                Text(reply.text ?? "")
+                Text(mentionText(reply.text ?? "", mentions: reply.mentions))
                     .font(.subheadline)
                     .foregroundStyle(Color.textPrimary)
                     .accessibilityIdentifier("replyText-\(reply.id)")
@@ -235,14 +229,10 @@ struct ChatterFeedSection: View {
     private func composer(_ post: ChatterPost) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .bottom, spacing: Theme.Spacing.s) {
-                TextField("Write a reply…", text: Binding(
-                    get: { model.drafts[post.id] ?? "" },
+                MentionField(prompt: "Write a reply… (type @ to mention)", draft: Binding(
+                    get: { model.drafts[post.id] ?? MentionDraft() },
                     set: { model.drafts[post.id] = $0 }
-                ), axis: .vertical)
-                .lineLimit(1...5)
-                .padding(Theme.Spacing.s)
-                .background(Color.surfaceTinted, in: RoundedRectangle(cornerRadius: 10))
-                .accessibilityIdentifier("replyField-\(post.id)")
+                ), search: model.mentionCandidates, identifier: "replyField-\(post.id)")
                 if model.saving.contains(post.id) {
                     ProgressView()
                         .frame(width: Theme.minTapTarget, height: Theme.minTapTarget)

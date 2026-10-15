@@ -93,6 +93,19 @@ final class ClaimActionsUITests: XCTestCase {
         XCTAssertTrue(element(containing: "Carrier approved the supplement.").waitForExistence(timeout: 5))
     }
 
+    func testPostWithMention() {
+        open("post")
+        let text = app.descendants(matching: .any)["postText"]
+        XCTAssertTrue(text.waitForExistence(timeout: 5))
+        app.typeText("Thanks @Ja")
+        let jane = app.buttons["mention-005000000000002AAA"]
+        XCTAssertTrue(jane.waitForExistence(timeout: 5), "Typing @ suggests people")
+        jane.tap()
+        app.typeText("please check the estimate.")
+        save()
+        XCTAssertTrue(element(containing: "Thanks @Jane Doe please check the estimate.").waitForExistence(timeout: 5))
+    }
+
     func testEditClaimShowsValidationAndSaves() {
         open("edit")
         let name = app.textFields["editClaimName"]

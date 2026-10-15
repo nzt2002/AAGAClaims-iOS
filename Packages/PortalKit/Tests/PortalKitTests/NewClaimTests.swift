@@ -203,7 +203,7 @@ struct PeopleTests {
         #expect(post.replies.count == 2)
 
         #expect(!chatter.canSend(post.id))
-        chatter.drafts[post.id] = "  Photos are in the claim now.  "
+        chatter.drafts[post.id] = MentionDraft(text: "  Photos are in the claim now.  ")
         #expect(await chatter.sendReply(to: post.id))
         #expect(chatter.feed.value?.first?.replies.last?.text == "Photos are in the claim now.")
         #expect(chatter.feed.value?.first?.totalReplies == 3)

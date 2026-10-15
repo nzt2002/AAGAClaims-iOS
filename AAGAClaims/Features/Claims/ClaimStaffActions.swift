@@ -928,17 +928,15 @@ private struct AddContactForm: View {
 
 struct AddPostForm: View {
     let feed: ChatterFeedViewModel
-    @State private var text = ""
-    @FocusState private var focused: Bool
+    @State private var draft = MentionDraft()
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         Form {
             Section {
-                TextField("Share an update with the team", text: $text, axis: .vertical)
-                    .lineLimit(4...12)
-                    .focused($focused)
-                    .accessibilityIdentifier("postText")
+                MentionField(prompt: "Share an update with the team. Type @ to mention someone.", draft: $draft,
+                             search: feed.mentionCandidates, lineLimit: 4...12, autofocus: true, boxed: false,
+                             identifier: "postText")
             } footer: {
                 Text("Posts to the Chatter feed. Staff only; homeowners don't see it.")
             }
@@ -946,11 +944,10 @@ struct AddPostForm: View {
                 ErrorRow(message: "We couldn't post that. Please try again.")
             }
         }
-        .onAppear { focused = true }
         .toolbar {
             FormToolbar(saveTitle: "Post", isSaving: feed.saving.contains(ChatterFeedViewModel.newPostId),
-                        canSave: !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
-                if await feed.post(text) { dismiss() }
+                        canSave: !draft.trimmedText.isEmpty) {
+                if await feed.post(draft) { dismiss() }
             }
         }
     }

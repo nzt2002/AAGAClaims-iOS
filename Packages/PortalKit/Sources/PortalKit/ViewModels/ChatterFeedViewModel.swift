@@ -15,11 +15,15 @@ public final class ChatterFeedViewModel {
     public let source: Source
     public private(set) var feed: LoadState<[ChatterPost]> = .idle
 
-    /// Reply drafts by post id.
-    public var drafts: [String: String] = [:]
-    /// The reply being edited, and its text.
+    /// Reply drafts (text and @mentions) by post id.
+    public var drafts: [String: MentionDraft] = [:]
+    /// The reply being edited, and its text and @mentions.
     public private(set) var editingReplyId: String?
-    public var editText = ""
+    public var editDraft = MentionDraft()
+    public var editText: String {
+        get { editDraft.text }
+        set { editDraft.text = newValue }
+    }
     /// Post or reply ids with a write in flight ("new-post" for a new post).
     public private(set) var saving: Set<String> = []
     /// The post or reply whose last write failed.
@@ -46,11 +50,22 @@ public final class ChatterFeedViewModel {
 
     // MARK: - Posts (claims)
 
-    /// Post: a new post on the claim's or lead's feed, shown at the top.
+    /// People to @mention whose name starts with (or has a word starting with) `query`.
+    public func mentionCandidates(_ query: String) async -> [Mention] {
+        (try? await api.mentionCandidates(query)) ?? []
+    }
+
     @discardableResult
     public func post(_ text: String) async -> Bool {
+        await post(MentionDraft(text: text))
+    }
+
+    /// Post: a new post on the claim's or lead's feed, shown at the top, with its @mentions.
+    @discardableResult
+    public func post(_ draft: MentionDraft) async -> Bool {
         if case .person = source { return false }
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = draft.trimmedText
+        let mentions = draft.resolvedMentions
         guard !trimmed.isEmpty, !saving.contains(Self.newPostId) else { return false }
         saving.insert(Self.newPostId)
         clearFailure()
@@ -58,8 +73,8 @@ public final class ChatterFeedViewModel {
         do {
             let post: ChatterPost
             switch source {
-            case .claim(let id): post = try await api.postToClaim(claimId: id, text: trimmed)
-            case .lead(let id): post = try await api.postToLead(leadId: id, text: trimmed)
+            case .claim(let id): post = try await api.postToClaim(claimId: id, text: trimmed, mentions: mentions)
+            case .lead(let id): post = try await api.postToLead(leadId: id, text: trimmed, mentions: mentions)
             case .person: return false
             }
             let date = feed.loadedAt ?? Date()
@@ -74,18 +89,19 @@ public final class ChatterFeedViewModel {
     // MARK: - Replies
 
     public func canSend(_ postId: String) -> Bool {
-        !(drafts[postId] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !saving.contains(postId)
+        !(drafts[postId]?.trimmedText ?? "").isEmpty && !saving.contains(postId)
     }
 
     @discardableResult
     public func sendReply(to postId: String) async -> Bool {
-        let text = (drafts[postId] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let draft = drafts[postId] ?? MentionDraft()
+        let text = draft.trimmedText
         guard !text.isEmpty, !saving.contains(postId) else { return false }
         saving.insert(postId)
         clearFailure()
         defer { saving.remove(postId) }
         do {
-            let reply = try await api.addReply(toPost: postId, text: text)
+            let reply = try await api.addReply(toPost: postId, text: text, mentions: draft.resolvedMentions)
             updatePost(postId) { post in
                 post.replies.append(reply)
                 post.totalReplies = (post.totalReplies ?? post.replies.count - 1) + 1
@@ -101,26 +117,30 @@ public final class ChatterFeedViewModel {
     public func startEditing(_ reply: ChatterReply) {
         guard reply.isMine == true else { return }
         editingReplyId = reply.id
-        editText = reply.text ?? ""
+        editDraft = MentionDraft(text: reply.text ?? "")
         clearFailure()
     }
 
     public func cancelEditing() {
         editingReplyId = nil
-        editText = ""
+        editDraft = MentionDraft()
     }
 
     @discardableResult
     public func saveEdit() async -> Bool {
         guard let replyId = editingReplyId else { return false }
-        let text = editText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = editDraft.trimmedText
+        let mentions = editDraft.resolvedMentions
         guard !text.isEmpty, !saving.contains(replyId) else { return false }
         saving.insert(replyId)
         clearFailure()
         defer { saving.remove(replyId) }
         do {
-            let saved = try await api.editReply(id: replyId, text: text)
-            replaceReply(replyId) { $0.text = saved.text ?? text }
+            let saved = try await api.editReply(id: replyId, text: text, mentions: mentions)
+            replaceReply(replyId) {
+                $0.text = saved.text ?? text
+                $0.mentions = saved.mentions
+            }
             cancelEditing()
             return true
         } catch {

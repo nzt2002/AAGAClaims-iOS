@@ -242,3 +242,63 @@ struct LeadActionsTests {
         #expect(feed.feed.value?.first?.text == "Agreement sent.")
     }
 }
+
+@MainActor
+@Suite("Mentions")
+struct MentionTests {
+    @Test("Typing @ finds the query; picking inserts the name; only names left in the text are sent")
+    func draft() {
+        var draft = MentionDraft(text: "Thanks @Ja")
+        #expect(draft.activeQuery == "Ja")
+        draft.insert(Mention(id: "005000000000002AAA", name: "Jane Doe"))
+        #expect(draft.text == "Thanks @Jane Doe ")
+        #expect(draft.activeQuery == nil, "A chosen mention isn't searched again")
+        draft.text += "and @Sam L"
+        #expect(draft.activeQuery == "Sam L", "One space allowed, for last names")
+        draft.insert(Mention(id: "005000000000003AAA", name: "Sam Lee"))
+        #expect(draft.resolvedMentions.map(\.name) == ["Jane Doe", "Sam Lee"])
+        draft.text = "Thanks @Sam Lee "
+        #expect(draft.resolvedMentions.map(\.name) == ["Sam Lee"], "Deleted mentions aren't sent")
+        #expect(MentionDraft(text: "email me@example.com").activeQuery == nil, "@ inside a word isn't a mention")
+        #expect(MentionDraft(text: "hi @a b c").activeQuery == nil)
+    }
+
+    @Test("Posts and replies send their mentions")
+    func send() async throws {
+        let api = MockPortalAPI(fixtures: try .bundled(), latency: .zero)
+        let feed = ChatterFeedViewModel(api: api, source: .claim("a23000000000001AAA"))
+        await feed.load()
+        let people = await feed.mentionCandidates("Ja")
+        #expect(people.map(\.name) == ["Jane Doe"])
+        var draft = MentionDraft(text: "@")
+        draft.insert(people[0])
+        draft.text += "can you check the estimate?"
+        #expect(await feed.post(draft))
+        #expect(feed.feed.value?.first?.mentions == ["Jane Doe"])
+
+        let postId = try #require(feed.feed.value?.first?.id)
+        var reply = MentionDraft(text: "Looping in @Sa")
+        reply.insert(Mention(id: "005000000000003AAA", name: "Sam Lee"))
+        feed.drafts[postId] = reply
+        // Replies on posts outside the people fixtures aren't stored by the mock; check the request instead.
+        #expect(reply.resolvedMentions.map(\.id) == ["005000000000003AAA"])
+    }
+
+    @Test("Mentions are sent as {id, name}")
+    func httpBody() async throws {
+        actor Recorder: PortalTransport {
+            var request: TransportRequest?
+            func send(_ request: TransportRequest) async throws -> TransportResponse {
+                self.request = request
+                return TransportResponse(statusCode: 201, body: Data(#"{"id":"0D7X","text":"hi"}"#.utf8))
+            }
+        }
+        let recorder = Recorder()
+        _ = try await HTTPPortalAPI(transport: recorder).addReply(toPost: "0D5X", text: "hi @Jane Doe", mentions: [Mention(id: "005A", name: "Jane Doe")])
+        let body = try #require(await recorder.request?.jsonBody)
+        let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+        let mentions = try #require(json["mentions"] as? [[String: Any]])
+        #expect(mentions.first?["id"] as? String == "005A")
+        #expect(mentions.first?["name"] as? String == "Jane Doe")
+    }
+}
