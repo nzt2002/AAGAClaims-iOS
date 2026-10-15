@@ -28,6 +28,9 @@ struct MainTabView: View {
         tabs
             .environment(\.isInternalUser, user.isInternal)
             .environment(\.salesforceInstanceURL, user.instanceURL)
+            .environment(\.salesforcePage, user.instanceURL.map { instance in
+                SalesforcePageAction { path in await SalesforceWebSession.signedInURL(for: path, instanceURL: instance) }
+            })
             .environment(\.currentUserName, user.fullName)
     }
 

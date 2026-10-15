@@ -16,7 +16,7 @@ struct LeadDetailView: View {
     @Environment(\.isInternalUser) private var isInternal
     @Environment(\.openRecord) private var openRecord
     @Environment(\.currentUserName) private var currentUserName
-    @Environment(\.salesforceInstanceURL) private var instanceURL
+    @Environment(\.salesforcePage) private var salesforcePage
     @Environment(\.scenePhase) private var scenePhase
 
     enum UpdatesFilter: String, CaseIterable {
@@ -178,17 +178,17 @@ struct LeadDetailView: View {
         case .post, .edit, .task, .event:
             openAction = action
         case .agreement:
-            guard let instanceURL else {
+            guard let salesforcePage else {
                 showingDemoNotice = true
                 return
             }
-            var components = URLComponents(url: instanceURL.appendingPathComponent("apex/hic_docmerge__Composer"), resolvingAgainstBaseURL: false)
-            components?.queryItems = [
+            // Opened through a single-use sign-in link, so there's no second login.
+            let path = SalesforcePageLink.path("/apex/hic_docmerge__Composer", query: [
                 URLQueryItem(name: "advancemergefields", value: "true"),
                 URLQueryItem(name: "id", value: viewModel.leadId),
                 URLQueryItem(name: "documentSolutionKey", value: Self.agreementSolutionKey)
-            ]
-            agreementURL = components?.url
+            ])
+            Task { agreementURL = await salesforcePage.url(for: path) }
         }
     }
 

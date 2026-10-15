@@ -343,3 +343,30 @@ struct RecordActivityTests {
         #expect(try await api.agenda().items.contains { $0.subject == "Meeting" && $0.relatedRecordName == "Smith - Roof" })
     }
 }
+
+@Suite("Salesforce page links")
+struct SalesforcePageLinkTests {
+    @Test("The front-door link goes to the page; the token never appears")
+    func link() throws {
+        let path = SalesforcePageLink.path("/apex/hic_docmerge__Composer", query: [
+            URLQueryItem(name: "id", value: "a0r000000000001AAA"),
+            URLQueryItem(name: "documentSolutionKey", value: "994dd7c4")
+        ])
+        #expect(path == "/apex/hic_docmerge__Composer?id=a0r000000000001AAA&documentSolutionKey=994dd7c4")
+
+        let body = String(decoding: SalesforcePageLink.requestBody(for: path), as: UTF8.self)
+        #expect(body == "redirect_uri=%2Fapex%2Fhic_docmerge__Composer%3Fid%3Da0r000000000001AAA%26documentSolutionKey%3D994dd7c4")
+
+        let response = Data(#"{"frontdoor_uri":"https://proclaimer.my.salesforce.com/secur/frontdoor.jsp?otp=ONE-TIME&cshc=abc"}"#.utf8)
+        let url = try #require(SalesforcePageLink.url(fromResponse: response, pagePath: path))
+        let items = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
+        #expect(items.contains(URLQueryItem(name: "otp", value: "ONE-TIME")))
+        #expect(items.contains(URLQueryItem(name: "retURL", value: path)))
+
+        let withRedirect = Data(#"{"frontdoor_uri":"https://x.my.salesforce.com/secur/frontdoor.jsp?otp=1&retURL=%2Fapex%2FPage"}"#.utf8)
+        let kept = try #require(SalesforcePageLink.url(fromResponse: withRedirect, pagePath: path))
+        #expect(URLComponents(url: kept, resolvingAgainstBaseURL: false)?.queryItems?.filter { $0.name == "retURL" }.count == 1)
+
+        #expect(SalesforcePageLink.url(fromResponse: Data("{}".utf8), pagePath: path) == nil)
+    }
+}

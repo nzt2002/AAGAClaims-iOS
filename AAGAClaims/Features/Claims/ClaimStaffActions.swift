@@ -513,8 +513,9 @@ private struct ProofOfLossForm: View {
     @State private var pol: ProofOfLoss
     @State private var hasTime: Bool
     @State private var time: Date
-    @State private var showingGenerator = false
-    @Environment(\.salesforceInstanceURL) private var instanceURL
+    @State private var generatorURL: URL?
+    @State private var openingGenerator = false
+    @Environment(\.salesforcePage) private var salesforcePage
 
     /// The document is made by a Salesforce page (DocMerge), as from the quick action.
     private static let documentSolutionKey = "384d10eb-635a-4b6d-8b5b-578e06ed9643"
@@ -540,15 +541,13 @@ private struct ProofOfLossForm: View {
         return value
     }
 
-    private var generatorURL: URL? {
-        guard let instanceURL else { return nil }
-        var components = URLComponents(url: instanceURL.appendingPathComponent("apex/hic_docmerge__Composer"), resolvingAgainstBaseURL: false)
-        components?.queryItems = [
+    /// The DocMerge page, opened signed in.
+    private var generatorPath: String {
+        SalesforcePageLink.path("/apex/hic_docmerge__Composer", query: [
             URLQueryItem(name: "advancemergefields", value: "true"),
             URLQueryItem(name: "id", value: staff.id),
             URLQueryItem(name: "documentSolutionKey", value: Self.documentSolutionKey)
-        ]
-        return components?.url
+        ])
     }
 
     var body: some View {
@@ -598,17 +597,25 @@ private struct ProofOfLossForm: View {
             ErrorRow(message: actions.errorMessage)
             Section {
                 Button {
-                    showingGenerator = true
+                    guard let salesforcePage else { return }
+                    openingGenerator = true
+                    Task {
+                        generatorURL = await salesforcePage.url(for: generatorPath)
+                        openingGenerator = false
+                    }
                 } label: {
-                    Label("Generate Proof of Loss Document", systemImage: "doc.richtext")
+                    HStack {
+                        Label("Generate Proof of Loss Document", systemImage: "doc.richtext")
+                        if openingGenerator { Spacer(); ProgressView() }
+                    }
                 }
-                .disabled(!staff.proofOfLoss.isComplete || generatorURL == nil)
+                .disabled(!staff.proofOfLoss.isComplete || salesforcePage == nil || openingGenerator)
                 .accessibilityIdentifier("polGenerate")
             } footer: {
-                Text(generatorURL == nil
+                Text(salesforcePage == nil
                      ? "Document generation opens in Salesforce, which isn't available in demo mode."
                      : staff.proofOfLoss.isComplete
-                        ? "Opens Salesforce's document generator. You may be asked to sign in."
+                        ? "Opens Salesforce's document generator, already signed in."
                         : "Save all 13 fields first.")
             }
         }
@@ -619,8 +626,8 @@ private struct ProofOfLossForm: View {
                 }
             }
         }
-        .sheet(isPresented: $showingGenerator) {
-            if let generatorURL { SafariView(url: generatorURL).ignoresSafeArea() }
+        .sheet(item: Binding(get: { generatorURL.map(SafariLink.init) }, set: { generatorURL = $0?.url })) {
+            SafariView(url: $0.url).ignoresSafeArea()
         }
     }
 }
