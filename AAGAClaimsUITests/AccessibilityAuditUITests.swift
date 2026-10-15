@@ -82,7 +82,7 @@ final class AccessibilityAuditUITests: XCTestCase {
                             "Convert to Account", "Generate Agreement Preview E-Sign", "View the converted claim"]
             // Round action buttons report their short visible labels (checked at accessibility sizes:
             // two across, labels wrap without breaking words).
-            let roundButtons = ["Payments", "Post", "Contact", "More", "Convert", "E-Sign", "View Claim"]
+            let roundButtons = ["Payments", "Post", "Contact", "Task", "Event", "More", "Convert", "E-Sign", "View Claim"]
             return verified.contains { label.hasPrefix($0) }
                 || roundButtons.contains { label.trimmingCharacters(in: .whitespacesAndNewlines) == $0 }
         default:

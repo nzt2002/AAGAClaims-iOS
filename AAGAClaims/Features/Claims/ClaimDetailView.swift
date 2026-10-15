@@ -11,6 +11,7 @@ struct ClaimDetailView: View {
     @State private var updatesFilter: UpdatesFilter = .claimFeed
     @Environment(\.isInternalUser) private var isInternal
     @Environment(\.isOffline) private var isOffline
+    @Environment(\.currentUserName) private var currentUserName
     @Environment(\.scenePhase) private var scenePhase
 
     enum UpdatesFilter: String, CaseIterable {
@@ -46,11 +47,18 @@ struct ClaimDetailView: View {
                 }
             }
             .sheet(item: $openAction) { action in
+                switch action {
+                case .task:
+                    NewTaskSheet(api: api, currentUserName: currentUserName, record: .claim(viewModel.claimId)) {}
+                case .event:
+                    NewEventSheet(api: api, currentUserName: currentUserName, record: .claim(viewModel.claimId)) {}
+                default:
                 ClaimActionSheet(action: action, actions: actions, feed: claimFeed, api: api) {
                     Task {
                         await viewModel.load()
                         if action == .post || action == .email { await claimFeed.load() }
                     }
+                }
                 }
             }
             .onChange(of: scenePhase) { _, phase in

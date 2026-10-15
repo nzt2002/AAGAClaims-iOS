@@ -28,6 +28,7 @@ struct MainTabView: View {
         tabs
             .environment(\.isInternalUser, user.isInternal)
             .environment(\.salesforceInstanceURL, user.instanceURL)
+            .environment(\.currentUserName, user.fullName)
     }
 
     private var tabs: some View {

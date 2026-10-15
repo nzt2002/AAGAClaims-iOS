@@ -20,17 +20,22 @@ public final class NewTaskViewModel {
         public let claims: [ClaimSummary]
         public let leads: [LeadSummary]
         public let assignees: [TaskAssignee]
+        /// Subject suggestions (empty if they couldn't be loaded; the subject is still free text).
+        public var subjects: ActivitySubjects = .none
 
         /// Claims and leads sorted by name, and the assignee list. Shared with New Event.
         static func load(_ api: PortalAPI) async throws -> Options {
             async let claims = api.claims()
             async let leads = api.leads()
             async let assignees = api.taskAssignees()
-            return try await Options(
+            async let subjects = try? api.activitySubjects()
+            var options = try await Options(
                 claims: claims.sorted { ($0.recordName ?? "").localizedCaseInsensitiveCompare($1.recordName ?? "") == .orderedAscending },
                 leads: leads.sorted { ($0.recordName ?? "").localizedCaseInsensitiveCompare($1.recordName ?? "") == .orderedAscending },
                 assignees: assignees
             )
+            options.subjects = await subjects ?? .none
+            return options
         }
     }
 
@@ -52,10 +57,19 @@ public final class NewTaskViewModel {
     /// The signed-in user's name, to pick them as the default assignee when they're in the list.
     private let currentUserName: String?
 
-    public init(api: PortalAPI, currentUserName: String?, claimId: String? = nil) {
+    /// Opened from a claim or lead page: the task belongs to that record, which can't be changed.
+    public let lockedRecord: RecordRef?
+
+    public init(api: PortalAPI, currentUserName: String?, claimId: String? = nil, record: RecordRef? = nil) {
         self.api = api
         self.currentUserName = currentUserName
         self.claimId = claimId
+        self.lockedRecord = record
+        switch record {
+        case .claim(let id): relatedKind = .claim; self.claimId = id
+        case .lead(let id): relatedKind = .lead; leadId = id
+        case nil: break
+        }
     }
 
     public func loadOptions() async {
@@ -77,6 +91,11 @@ public final class NewTaskViewModel {
         }
         if assigneeId == nil { errors[.assignee] = "Choose who the task is for." }
         return errors
+    }
+
+    /// Subject suggestions for what's typed so far.
+    public var subjectSuggestions: [String] {
+        ActivitySubjects.suggestions(for: subject, in: options.value?.subjects.taskSubjects ?? [])
     }
 
     /// The chosen claim or lead.

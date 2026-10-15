@@ -112,6 +112,11 @@ public actor CachingPortalAPI: PortalAPI {
     public func activity() async throws -> [ActivityItem] { try await read("activity") { try await $0.activity() } }
     public func agenda() async throws -> Agenda { try await read("agenda") { try await $0.agenda() } }
 
+    public func activitySubjects() async throws -> ActivitySubjects {
+        try requireOnline()
+        return try await guarded { try await $0.activitySubjects() }
+    }
+
     public func taskAssignees() async throws -> [TaskAssignee] {
         try requireOnline()
         return try await guarded { try await $0.taskAssignees() }

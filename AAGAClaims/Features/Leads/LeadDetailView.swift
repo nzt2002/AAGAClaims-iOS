@@ -15,6 +15,7 @@ struct LeadDetailView: View {
     @State private var updatesFilter: UpdatesFilter = .leadFeed
     @Environment(\.isInternalUser) private var isInternal
     @Environment(\.openRecord) private var openRecord
+    @Environment(\.currentUserName) private var currentUserName
     @Environment(\.salesforceInstanceURL) private var instanceURL
     @Environment(\.scenePhase) private var scenePhase
 
@@ -53,6 +54,10 @@ struct LeadDetailView: View {
             }
             .sheet(item: $openAction) { action in
                 switch action {
+                case .task:
+                    NewTaskSheet(api: api, currentUserName: currentUserName, record: .lead(viewModel.leadId)) {}
+                case .event:
+                    NewEventSheet(api: api, currentUserName: currentUserName, record: .lead(viewModel.leadId)) {}
                 case .edit:
                     if let staff = leadActions.staff.value {
                         EditLeadForm(staff: staff, actions: leadActions, api: api) {
@@ -170,7 +175,7 @@ struct LeadDetailView: View {
             } else if leadActions.staff.value != nil {
                 showingConvert = true
             }
-        case .post, .edit:
+        case .post, .edit, .task, .event:
             openAction = action
         case .agreement:
             guard let instanceURL else {

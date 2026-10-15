@@ -312,6 +312,17 @@ public actor MockPortalAPI: PortalAPI {
         return data.agenda
     }
 
+    public func activitySubjects() async throws -> ActivitySubjects {
+        try await simulate()
+        guard data.agenda.canCreateTasks else { throw PortalAPIError.notFound }
+        return ActivitySubjects(
+            taskSubjects: ["Call - Follow-up on supplement review", "Check - Received from Insurer",
+                           "Documents - Requested from insurance company", "Estimate - Estimate sent to Insurance Adjuster",
+                           "POL - Proof of Loss received from Client", "Settlement - Full Payment Received"],
+            eventSubjects: ["Call", "Email", "Meeting", "Send Letter/Quote", "Other"]
+        )
+    }
+
     public func taskAssignees() async throws -> [TaskAssignee] {
         try await simulate()
         guard data.agenda.canCreateTasks else { throw PortalAPIError.notFound }

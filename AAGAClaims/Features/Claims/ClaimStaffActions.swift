@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Staff actions on a claim's page: quick actions and communication.
 enum ClaimAction: String, Identifiable, CaseIterable {
-    case payments, addContact, edit, address, owner, proofOfLoss, post, email
+    case payments, addContact, edit, address, owner, proofOfLoss, post, email, task, event
     var id: String { rawValue }
 
     var title: String {
@@ -16,6 +16,8 @@ enum ClaimAction: String, Identifiable, CaseIterable {
         case .proofOfLoss: "Proof of Loss"
         case .post: "Add a Post"
         case .email: "Send an Email"
+        case .task: "New Task"
+        case .event: "New Event"
         }
     }
 
@@ -29,11 +31,13 @@ enum ClaimAction: String, Identifiable, CaseIterable {
         case .proofOfLoss: "doc.text.magnifyingglass"
         case .post: "text.bubble"
         case .email: "envelope"
+        case .task: "checklist"
+        case .event: "calendar.badge.plus"
         }
     }
 
     /// In the More menu; the rest are on the action strip (and Edit Claim in the top bar).
-    static let more: [ClaimAction] = [.email, .address, .owner, .proofOfLoss]
+    static let more: [ClaimAction] = [.addContact, .email, .address, .owner, .proofOfLoss]
 
     /// The label under a round action button.
     var shortTitle: String {
@@ -42,24 +46,26 @@ enum ClaimAction: String, Identifiable, CaseIterable {
         case .post: "Post"
         case .email: "Email"
         case .addContact: "Contact"
+        case .task: "Task"
+        case .event: "Event"
         default: title
         }
     }
 }
 
-/// The claim's action strip (staff only): Apply Payments, Add a Post, Add Contact
-/// and More (Send an Email, Update Address, Change Owner, Proof of Loss), as round icon buttons with labels on one card. Edit Claim is in the top bar.
+/// The claim's action strip (staff only): Apply Payments, Add a Post, New Task, New Event and More
+/// (Add Contact, Send an Email, Update Address, Change Owner, Proof of Loss), as round icon buttons with labels on one card. Edit Claim is in the top bar.
 struct ClaimQuickActions: View {
     let open: (ClaimAction) -> Void
     @Environment(\.isOffline) private var isOffline
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    private static let strip: [ClaimAction] = [.payments, .post, .addContact]
+    private static let strip: [ClaimAction] = [.payments, .post, .task, .event]
 
     var body: some View {
-        // Four across; two across at accessibility text sizes, so labels never break mid-word.
+        // Five across; two across at accessibility text sizes, so labels never break mid-word.
         let columns = Array(repeating: GridItem(.flexible(), spacing: Theme.Spacing.xs, alignment: .top),
-                            count: dynamicTypeSize.isAccessibilitySize ? 2 : 4)
+                            count: dynamicTypeSize.isAccessibilitySize ? 2 : 5)
         LazyVGrid(columns: columns, spacing: Theme.Spacing.m) {
             ForEach(Self.strip) { action in
                 Button { open(action) } label: {
@@ -173,7 +179,7 @@ struct ClaimActionSheet: View {
         case .owner: ChangeOwnerForm(staff: staff, actions: actions, saved: saved)
         case .proofOfLoss: ProofOfLossForm(staff: staff, actions: actions, saved: saved)
         case .email: EmailForm(api: api, staff: staff, saved: saved)
-        case .payments, .addContact, .post: EmptyView()
+        case .payments, .addContact, .post, .task, .event: EmptyView()
         }
     }
 }

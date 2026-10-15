@@ -132,6 +132,10 @@ public struct HTTPPortalAPI: PortalAPI {
         try await get("/agenda")
     }
 
+    public func activitySubjects() async throws -> ActivitySubjects {
+        try await get("/activity-subjects")
+    }
+
     public func taskAssignees() async throws -> [TaskAssignee] {
         try await get("/task-assignees")
     }

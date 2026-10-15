@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Staff actions on a lead's page, in the claim page's style.
 enum LeadAction: String, Identifiable {
-    case convert, post, agreement, edit
+    case convert, post, agreement, edit, task, event
     var id: String { rawValue }
 
     var title: String {
@@ -12,6 +12,8 @@ enum LeadAction: String, Identifiable {
         case .post: "Add a Post"
         case .agreement: "Generate Agreement Preview E-Sign"
         case .edit: "Edit Lead"
+        case .task: "New Task"
+        case .event: "New Event"
         }
     }
 
@@ -21,6 +23,8 @@ enum LeadAction: String, Identifiable {
         case .post: "Post"
         case .agreement: "E-Sign"
         case .edit: "Edit"
+        case .task: "Task"
+        case .event: "Event"
         }
     }
 
@@ -30,11 +34,14 @@ enum LeadAction: String, Identifiable {
         case .post: "text.bubble"
         case .agreement: "signature"
         case .edit: "square.and.pencil"
+        case .task: "checklist"
+        case .event: "calendar.badge.plus"
         }
     }
 }
 
-/// The lead's action strip (staff only): Convert to Account, Post, and the agreement e-sign preview.
+/// The lead's action strip (staff only): Convert to Account, Post, New Task, New Event, and the
+/// agreement e-sign preview.
 /// Edit and Ask Question are in the top bar.
 struct LeadQuickActions: View {
     let isConverted: Bool
@@ -44,9 +51,9 @@ struct LeadQuickActions: View {
 
     var body: some View {
         let columns = Array(repeating: GridItem(.flexible(), spacing: Theme.Spacing.xs, alignment: .top),
-                            count: dynamicTypeSize.isAccessibilitySize ? 2 : 3)
+                            count: dynamicTypeSize.isAccessibilitySize ? 2 : 5)
         LazyVGrid(columns: columns, spacing: Theme.Spacing.m) {
-            ForEach([LeadAction.convert, .post, .agreement]) { action in
+            ForEach([LeadAction.convert, .post, .task, .event, .agreement]) { action in
                 Button { open(action) } label: {
                     ActionCircle(title: action == .convert && isConverted ? "View Claim" : action.shortTitle,
                                  icon: action == .convert && isConverted ? "doc.text" : action.icon)

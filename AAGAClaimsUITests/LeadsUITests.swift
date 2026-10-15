@@ -61,6 +61,23 @@ final class LeadsUITests: XCTestCase {
         XCTAssertTrue(element(containing: "Homeowner will sign tonight.").waitForExistence(timeout: 5))
     }
 
+    func testNewEventFromLead() {
+        openJordan()
+        app.buttons["leadAction-event"].tap()
+        let locked = app.descendants(matching: .any)["newEventLockedRecord"]
+        XCTAssertTrue(locked.waitForExistence(timeout: 5))
+        XCTAssertTrue(locked.label.contains("Jordan Reyes"), locked.label)
+        let subject = app.textFields["newEventSubject"]
+        subject.tap()
+        subject.typeText("Mee")
+        let suggestion = app.buttons["subjectSuggestion"].firstMatch
+        XCTAssertTrue(suggestion.waitForExistence(timeout: 5))
+        suggestion.tap()
+        XCTAssertEqual(subject.value as? String, "Meeting")
+        app.buttons["newEventSave"].tap()
+        XCTAssertTrue(app.buttons["leadAction-convert"].waitForExistence(timeout: 5), "Back on the lead")
+    }
+
     func testEditLead() {
         openJordan()
         app.buttons["leadAction-edit"].tap()

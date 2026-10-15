@@ -302,3 +302,44 @@ struct MentionTests {
         #expect(mentions.first?["name"] as? String == "Jane Doe")
     }
 }
+
+@MainActor
+@Suite("Tasks and events from a record")
+struct RecordActivityTests {
+    @Test("Subject suggestions: all when empty, matches as you type, starts-with first")
+    func suggestions() {
+        let subjects = ["Check - Received from Insurer", "POL - Proof of Loss received from Client", "Call - Follow-up on supplement review"]
+        #expect(ActivitySubjects.suggestions(for: "", in: subjects) == subjects)
+        #expect(ActivitySubjects.suggestions(for: "rec", in: subjects) == ["Check - Received from Insurer", "POL - Proof of Loss received from Client"])
+        #expect(ActivitySubjects.suggestions(for: "call", in: subjects) == ["Call - Follow-up on supplement review"])
+        #expect(ActivitySubjects.suggestions(for: "Call - Follow-up on supplement review", in: subjects).isEmpty, "A chosen subject isn't suggested again")
+    }
+
+    @Test("A task from a lead page belongs to that lead, with subject suggestions")
+    func taskFromLead() async throws {
+        let api = MockPortalAPI(fixtures: try .bundled(), latency: .zero)
+        let form = NewTaskViewModel(api: api, currentUserName: "Alex Smith", record: .lead("a0r000000000001AAA"))
+        await form.loadOptions()
+        #expect(form.lockedRecord == .lead("a0r000000000001AAA"))
+        #expect(form.record == .lead("a0r000000000001AAA"))
+        form.subject = "pol"
+        #expect(form.subjectSuggestions == ["POL - Proof of Loss received from Client"])
+        form.subject = form.subjectSuggestions[0]
+        #expect(await form.submit())
+        let item = try #require(try await api.agenda().items.first { $0.subject == "POL - Proof of Loss received from Client" })
+        #expect(item.relatedRecordType == .prospect)
+    }
+
+    @Test("An event from a claim page belongs to that claim")
+    func eventFromClaim() async throws {
+        let api = MockPortalAPI(fixtures: try .bundled(), latency: .zero)
+        let form = NewEventViewModel(api: api, currentUserName: "Alex Smith", record: .claim("a23000000000001AAA"))
+        await form.loadOptions()
+        #expect(form.record == .claim("a23000000000001AAA"))
+        form.subject = "Mee"
+        #expect(form.subjectSuggestions == ["Meeting"])
+        form.subject = "Meeting"
+        #expect(await form.submit())
+        #expect(try await api.agenda().items.contains { $0.subject == "Meeting" && $0.relatedRecordName == "Smith - Roof" })
+    }
+}

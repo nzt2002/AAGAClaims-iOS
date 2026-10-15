@@ -101,4 +101,6 @@ extension EnvironmentValues {
     @Entry var isInternalUser = false
     /// The org's web address, for Salesforce-only pages. Nil in demo mode.
     @Entry var salesforceInstanceURL: URL? = nil
+    /// The signed-in user's name (the default assignee on New Task and New Event).
+    @Entry var currentUserName: String? = nil
 }

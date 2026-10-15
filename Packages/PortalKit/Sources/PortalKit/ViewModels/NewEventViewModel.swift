@@ -30,9 +30,18 @@ public final class NewEventViewModel {
     private let currentUserName: String?
 
     /// Starts at the next whole hour, for an hour.
-    public init(api: PortalAPI, currentUserName: String?, now: Date = Date()) {
+    /// Opened from a claim or lead page: the event belongs to that record, which can't be changed.
+    public let lockedRecord: RecordRef?
+
+    public init(api: PortalAPI, currentUserName: String?, now: Date = Date(), record: RecordRef? = nil) {
         self.api = api
         self.currentUserName = currentUserName
+        self.lockedRecord = record
+        switch record {
+        case .claim(let id): relatedKind = .claim; claimId = id
+        case .lead(let id): relatedKind = .lead; leadId = id
+        case nil: break
+        }
         let calendar = Calendar.current
         let nextHour = calendar.nextDate(after: now, matching: DateComponents(minute: 0), matchingPolicy: .nextTime) ?? now
         self.start = nextHour
@@ -65,6 +74,11 @@ public final class NewEventViewModel {
         if assigneeId == nil { errors[.assignee] = "Choose who the event is for." }
         if !isAllDay && end < start { errors[.end] = "The end must be after the start." }
         return errors
+    }
+
+    /// Subject suggestions for what's typed so far.
+    public var subjectSuggestions: [String] {
+        ActivitySubjects.suggestions(for: subject, in: options.value?.subjects.eventSubjects ?? [])
     }
 
     /// The chosen claim or lead.

@@ -8,8 +8,9 @@ struct NewTaskSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    init(api: PortalAPI, currentUserName: String?, onCreated: @escaping () -> Void) {
-        _viewModel = State(initialValue: NewTaskViewModel(api: api, currentUserName: currentUserName))
+    /// `record`: opened from a claim or lead page, so the new item belongs to it.
+    init(api: PortalAPI, currentUserName: String?, record: RecordRef? = nil, onCreated: @escaping () -> Void) {
+        _viewModel = State(initialValue: NewTaskViewModel(api: api, currentUserName: currentUserName, record: record))
         self.onCreated = onCreated
     }
 
@@ -60,6 +61,12 @@ struct NewTaskSheet: View {
 
     private func form(_ options: NewTaskViewModel.Options) -> some View {
         Form {
+            if let locked = viewModel.lockedRecord {
+                Section("Related to") {
+                    LabeledContent(locked.kindName, value: options.name(of: locked))
+                        .accessibilityIdentifier("newTaskLockedRecord")
+                }
+            } else {
             RelatedRecordSection(
                 kind: $viewModel.relatedKind,
                 claimId: $viewModel.claimId,
@@ -69,10 +76,10 @@ struct NewTaskSheet: View {
             ) {
                 errorText(.record)
             }
+            }
 
             Section {
-                TextField("Subject", text: $viewModel.subject)
-                    .accessibilityIdentifier("newTaskSubject")
+                SubjectField(text: $viewModel.subject, suggestions: viewModel.subjectSuggestions, identifier: "newTaskSubject")
                 errorText(.subject)
                 Toggle("Due date", isOn: $viewModel.hasDueDate.animation())
                 if viewModel.hasDueDate {

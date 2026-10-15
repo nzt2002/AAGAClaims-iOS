@@ -159,3 +159,23 @@ struct RecordLookupList: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 }
+
+extension RecordRef {
+    /// "Claim" or "Lead".
+    var kindName: String {
+        switch self {
+        case .claim: "Claim"
+        case .lead: "Lead"
+        }
+    }
+}
+
+extension NewTaskViewModel.Options {
+    /// The record's name from the user's claims and leads.
+    func name(of record: RecordRef) -> String {
+        switch record {
+        case .claim(let id): claims.first { $0.recordId == id }?.recordName ?? "This claim"
+        case .lead(let id): leads.first { $0.recordId == id }?.recordName ?? "This lead"
+        }
+    }
+}

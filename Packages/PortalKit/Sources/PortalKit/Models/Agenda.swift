@@ -65,3 +65,26 @@ public struct NewTask: Codable, Hashable, Sendable {
         self.description = description
     }
 }
+
+/// `GET /activity-subjects`: the Task and Event Subject combobox values, as offered on desktop.
+public struct ActivitySubjects: Codable, Hashable, Sendable {
+    public let taskSubjects: [String]
+    public let eventSubjects: [String]
+
+    public init(taskSubjects: [String], eventSubjects: [String]) {
+        self.taskSubjects = taskSubjects
+        self.eventSubjects = eventSubjects
+    }
+
+    public static let none = ActivitySubjects(taskSubjects: [], eventSubjects: [])
+
+    /// Subjects for the typed text, as desktop's combobox: everything when empty, otherwise the
+    /// subjects containing it (those starting with it first). The typed text itself isn't repeated.
+    public static func suggestions(for text: String, in subjects: [String]) -> [String] {
+        let query = text.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else { return subjects }
+        let matches = subjects.filter { $0.localizedCaseInsensitiveContains(query) && $0.caseInsensitiveCompare(query) != .orderedSame }
+        let starting = matches.filter { $0.lowercased().hasPrefix(query.lowercased()) }
+        return starting + matches.filter { !starting.contains($0) }
+    }
+}

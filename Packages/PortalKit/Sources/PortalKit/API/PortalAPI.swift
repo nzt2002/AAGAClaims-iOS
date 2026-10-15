@@ -34,6 +34,8 @@ public protocol PortalAPI: Sendable {
     // Home agenda and tasks
     /// `GET /agenda`: the user's open tasks and upcoming events, plus upcoming events on their records.
     func agenda() async throws -> Agenda
+    /// `GET /activity-subjects`: Task and Event subject suggestions. Staff and adjusters only.
+    func activitySubjects() async throws -> ActivitySubjects
     /// `GET /task-assignees`: people a task can be assigned to. Staff and adjusters only.
     func taskAssignees() async throws -> [TaskAssignee]
     /// `POST /claims/{id}/tasks`. Returns the new task id. Staff and adjusters only.

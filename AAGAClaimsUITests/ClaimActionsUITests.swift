@@ -21,7 +21,7 @@ final class ClaimActionsUITests: XCTestCase {
         app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
     }
 
-    private static let inMoreMenu: Set<String> = ["email", "address", "owner", "proofOfLoss"]
+    private static let inMoreMenu: Set<String> = ["addContact", "email", "address", "owner", "proofOfLoss"]
 
     private func open(_ action: String) {
         if Self.inMoreMenu.contains(action) {
@@ -45,7 +45,7 @@ final class ClaimActionsUITests: XCTestCase {
     func testPageLayout() {
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "headerLossAddress").firstMatch.label.contains("123 Main St"), "Loss address under the name")
         XCTAssertFalse(app.buttons["claimAction-call"].exists, "Log a Call was removed")
-        for action in ["payments", "edit", "post", "addContact"] {
+        for action in ["payments", "edit", "post", "task", "event"] {
             XCTAssertTrue(app.buttons["claimAction-\(action)"].exists, action)
         }
         let more = app.buttons["claimActionMore"]
@@ -56,7 +56,7 @@ final class ClaimActionsUITests: XCTestCase {
         XCTAssertEqual(payments.frame.midY, more.frame.midY, accuracy: 2)
         XCTAssertFalse(app.buttons["claimAction-email"].exists, "The rest are in More")
         more.tap()
-        for action in ["email", "address", "owner", "proofOfLoss"] {
+        for action in ["addContact", "email", "address", "owner", "proofOfLoss"] {
             XCTAssertTrue(app.buttons["claimAction-\(action)"].waitForExistence(timeout: 5), action)
         }
         // Choosing an item opens its sheet (and closes the menu).
@@ -104,6 +104,25 @@ final class ClaimActionsUITests: XCTestCase {
         app.typeText("please check the estimate.")
         save()
         XCTAssertTrue(element(containing: "Thanks @Jane Doe please check the estimate.").waitForExistence(timeout: 5))
+    }
+
+    func testNewTaskFromClaimWithSuggestedSubject() {
+        open("task")
+        let locked = app.descendants(matching: .any)["newTaskLockedRecord"]
+        XCTAssertTrue(locked.waitForExistence(timeout: 5))
+        XCTAssertTrue(locked.label.contains("Smith - Roof"), "The task belongs to this claim: \(locked.label)")
+        XCTAssertFalse(app.buttons["newTaskClaim"].exists, "The claim can't be changed")
+        let subject = app.textFields["newTaskSubject"]
+        subject.tap()
+        subject.typeText("check")
+        let suggestion = app.buttons["subjectSuggestion"].firstMatch
+        XCTAssertTrue(suggestion.waitForExistence(timeout: 5))
+        XCTAssertTrue(suggestion.label.contains("Check - Received from Insurer"))
+        suggestion.tap()
+        XCTAssertEqual(subject.value as? String, "Check - Received from Insurer")
+        app.buttons["newTaskSave"].tap()
+        XCTAssertTrue(app.buttons["claimActionMore"].waitForExistence(timeout: 5), "Back on the claim")
+        XCTAssertFalse(app.buttons["newTaskSave"].exists)
     }
 
     func testEditClaimShowsValidationAndSaves() {

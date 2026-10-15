@@ -228,6 +228,12 @@ Returns the cases where the user is the case contact. This includes every case t
 
 `GET /feed` → `[{ "id", "authorName", "text", "createdDate", "parentId", "parentName", "parentType": "Claim" | "Prospect" | null }]`: the latest 20 posts in a staff member's Chatter news feed. Empty for portal users.
 
+### 5.5a Activity subjects
+
+`GET /activity-subjects` → `{ taskSubjects, eventSubjects }`: the active values of the Task and Event *Subject* comboboxes, as on desktop. Same permission as tasks (`404` otherwise). New Task and New Event offer them as type-ahead suggestions under the Subject field: all of them when the field is empty, then those containing the typed text (starting-with first); tapping one fills it in, and any text can still be typed. If the call fails, Subject is plain text.
+
+New Task and New Event can also be opened from a claim or lead page (staff); then *Related to* shows that record and can't be changed, so the task or event is always linked to it.
+
 ### 5.6a People and Chatter (staff)
 
 All return `404` unless the user is internal (user type Standard), and only for active internal users.
@@ -338,7 +344,7 @@ The Prospect Conversion Guided Process (`Prospect_Conversion_Guided_Process` flo
 
 **Top bar:** *Ask Question* (everyone) and *Edit Claim* (staff) as icons at the top right.
 
-**Action strip (staff only)**, directly under the header: one card with round gradient icon buttons and short labels: *Payments* (Apply Payments), *Post* (Add a Post), *Contact* (Add Contact) and *More* (a menu with *Send an Email*, *Update Address*, *Change Owner* and *Proof of Loss*). Five across; two across at accessibility text sizes. Each opens a sheet (§5.6b):
+**Action strip (staff only)**, directly under the header: one card with round gradient icon buttons and short labels: *Payments* (Apply Payments), *Post* (Add a Post), *Task* (New Task), *Event* (New Event) and *More* (a menu with *Add Contact*, *Send an Email*, *Update Address*, *Change Owner* and *Proof of Loss*). Five across. Five across; two across at accessibility text sizes. Each opens a sheet (§5.6b):
 - **Apply Payments:** date collected, *Apply deductible* (with the claim's deductible), payment rows (type and amount; add and swipe to remove), and a live summary: RCV, payments received (everything except RCV, less any deductible rows), the deductible when applied, the adjuster fee ((received + applied deductible) × fee %), and the insured payment (received − fee, never below 0). Choosing *Deductible* as a type switches on *Apply deductible* instead, as in the quick action. Blocked, with a message, until the claim has a deductible.
 - **Add Contact:** Existing (search) or New, with a role. New contacts are checked for matches (email, mobile phone, or name) first; then a company account for subcontractors; a duplicate-rule match lets the user add the existing contact or none.
 - **Edit Claim:** the core fields. **Update Address:** with address lookup as you type. **Change Owner:** searchable list of internal users.
@@ -391,7 +397,7 @@ Same layout as the Claims list, with these differences:
 - **Team card**, and **Ask Question** as a top-bar icon, as on claims. There's no Add Comment on leads.
 - **Staff only** (same style as claims, §5.6c):
   - Top right: **Edit** (a text button) next to the Ask Question icon. Edit covers name, status (not Converted), peril, homeowner email and phone, loss date and description, loss address (with lookup), insurance company, policy and claim numbers, and the associated party.
-  - Action strip under the header: **Convert** (Convert to Account), **Post**, **E-Sign** (Generate Agreement Preview E-Sign). Once converted, Convert becomes **View Claim**.
+  - Action strip under the header: **Convert** (Convert to Account), **Post**, **Task**, **Event**, **E-Sign** (Generate Agreement Preview E-Sign). Once converted, Convert becomes **View Claim**.
   - **Convert to Account** follows the Prospect Conversion Guided Process: choose an existing account or create one from the lead's details (prefilled; a matching account must be used), then the claim contact (prefilled with the lead's associated party; optional), then review and **Convert**. The claim is built from the lead on the server; afterwards the new claim opens.
   - **E-Sign** opens Salesforce's DocMerge page for the agreement (`/apex/hic_docmerge__Composer`, the lead page's "Generate Agreement - GA - Preview Esign" button) in an in-app browser. Not available in demo mode.
   - *Updates* gets a *Lead Feed / Portal Updates* filter (Lead Feed first), 3 at a time.
