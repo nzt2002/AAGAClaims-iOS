@@ -94,6 +94,7 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 79. **Salesforce pages open signed in (2026-10-15):** E-Sign and Generate Proof of Loss Document open DocMerge through a single-use front-door link from `POST /services/oauth2/singleaccess` (verified in prod: returns `frontdoor_uri` with `otp` and `startURL`), so the in-app browser doesn't ask for a second login. The OAuth token never goes in a URL. If the call fails, the plain page opens (and may ask to sign in). Orgs that lock sessions to an IP address may still prompt.
 80. **One login at a time (2026-10-19):** leaving the app during sign-in (to fetch a verification code) and coming back no longer starts a second login that replaces the first and wipes what was typed. A new login starts only after sign-out, session expiry, or a cancelled login.
 81. **Claim Recent activity (2026-10-19):** staff see all of the claim's tasks, including calls, emails and completed ones, plus its events; homeowners don't see it, because tasks are internal. The task and event record page is read-only in the app. Editing or completing one happens in Salesforce, through the page's Safari icon.
+82. **Release notes (2026-10-19):** a What's New sheet appears once after sign-in when a new version with notes is installed; Account → What's New shows it again. Staff-only changes aren't listed for homeowners. Notes live in `WhatsNew.releases`; add an entry for each version that has user-facing changes.
 
 ## Open questions
 

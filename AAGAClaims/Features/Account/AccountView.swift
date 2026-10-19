@@ -9,6 +9,7 @@ struct AccountView: View {
     let openSupport: () -> Void
 
     @State private var confirmingSignOut = false
+    @State private var whatsNew: WhatsNew.Release?
     @State private var notificationStatus: PushNotifications.Status = .notDetermined
     @Environment(\.scenePhase) private var scenePhase
 
@@ -48,11 +49,18 @@ struct AccountView: View {
 
             Section {
                 LabeledContent("Version", value: Self.versionString)
+                if let release = WhatsNew.current(isInternal: user.isInternal) {
+                    Button("What's New") { whatsNew = release }
+                        .accessibilityIdentifier("whatsNewButton")
+                }
             }
         }
         .scrollContentBackground(.hidden)
         .background(Color.appBackground)
         .navigationTitle("Account")
+        .sheet(item: $whatsNew) { release in
+            WhatsNewSheet(release: release, isInternal: user.isInternal)
+        }
         .navigationBarTitleDisplayMode(.inline)
         .task(id: scenePhase) {
             // Re-check when returning from Settings.

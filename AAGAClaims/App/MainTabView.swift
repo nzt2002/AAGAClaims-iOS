@@ -12,6 +12,8 @@ struct MainTabView: View {
     @State private var router: AppRouter
     @State private var safariLink: SafariLink?
     @State private var offeringLock = false
+    /// Release notes for a newly installed version, once, after sign-in.
+    @State private var whatsNew: WhatsNew.Release?
     /// Set by New Claim; opened when its sheet has closed.
     @State private var createdClaim: (id: String, name: String)?
     @Environment(\.scenePhase) private var scenePhase
@@ -126,10 +128,18 @@ struct MainTabView: View {
             await router.home.load()
         }
         .task {
-            // After the first sign-in, offer Face ID (spec §6.1).
-            if session.lock.shouldOffer {
+            // What's new first; then, after the first sign-in, offer Face ID (spec §6.1).
+            if let release = WhatsNew.pending(isInternal: user.isInternal) {
+                whatsNew = release
+            } else if session.lock.shouldOffer {
                 offeringLock = true
             }
+        }
+        .sheet(item: $whatsNew, onDismiss: {
+            WhatsNew.markSeen()
+            if session.lock.shouldOffer { offeringLock = true }
+        }) { release in
+            WhatsNewSheet(release: release, isInternal: user.isInternal)
         }
         .alert("Use \(session.lock.methodName)?", isPresented: $offeringLock) {
             Button("Turn On") { Task { _ = await session.lock.enable() } }
