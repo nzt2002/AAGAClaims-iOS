@@ -217,7 +217,28 @@ public struct HTTPPortalAPI: PortalAPI {
     }
 
     public func claimFeed(claimId: String) async throws -> [ChatterPost] { try await get(claimPath(claimId, "feed")) }
-    public func claimActivities(claimId: String) async throws -> [AgendaItem] { try await get(claimPath(claimId, "activities")) }
+    public func activities(on record: RecordRef, includeEmails: Bool) async throws -> [AgendaItem] {
+        let path = switch record {
+        case .claim(let id): claimPath(id, "activities")
+        case .lead(let id): leadPath(id, "activities")
+        }
+        return try await get(path, query: includeEmails ? [URLQueryItem(name: "include", value: "emails")] : [])
+    }
+    public func editActivity(id: String, _ edit: ActivityEdit) async throws -> AgendaItem {
+        try await post("/activities/\(escaped(id))", body: edit)
+    }
+    public func completeTask(id: String) async throws -> AgendaItem {
+        try await post("/activities/\(escaped(id))/complete", body: [String: String]())
+    }
+    public func activityOptions() async throws -> ActivityOptions { try await get("/activity-options") }
+    public func serverMeta() async throws -> ServerMeta {
+        do {
+            return try await get("/meta")
+        } catch PortalAPIError.notFound {
+            // Deployed before /meta existed.
+            return .legacy
+        }
+    }
     public func postToClaim(claimId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost {
         try await post(claimPath(claimId, "posts"), body: ChatterBody(text, mentions, fileIds: fileIds))
     }

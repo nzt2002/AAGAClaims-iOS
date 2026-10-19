@@ -250,6 +250,19 @@ All return `404` unless the user is internal (user type Standard), and only for 
 - `POST /chatter/replies/{replyId}` `{ text }` → `201` the edited reply. Chatter decides who may edit (normally only the author, and only if comment editing is on); otherwise `400 edit_not_allowed`.
 - Text is required and at most 10,000 characters. Everything runs through ConnectApi as the user, so Chatter's own visibility rules apply.
 
+### 5.6a-2 Server features (`GET /meta`)
+
+`GET /meta` → `{ "apiVersion": 5, "features": ["claimActivities", "chatterAttachments", "claimReferenceId", "leadActivities", "activityEmails", "activityEdit", "push"] }`, for every signed-in user. The app loads it after sign-in and **hides any feature whose name isn't listed**, so an app build can go out before or after its server change. A server without `/meta` (404) is treated as having the first three. Add a name to `PortalApiV1.SERVER_FEATURES` with each new server feature and never remove one. `Tools/release.sh` in the app repo deploys the server first (after validating and asking), then uploads the app.
+
+### 5.6c Activity (staff)
+
+`PortalActivityService` (with sharing). Staff only; everyone else gets `404`.
+
+- `GET /claims/{id}/activities` and `GET /leads/{id}/activities` → the record's tasks (to-dos, calls, emails; open or done) and events, open first (soonest first), then done (newest first), 50 of each at most. With `?include=emails`, the record's emails (EmailMessage related to it, or for claims filed on it through `Claim__c`) are added as `kind: "email"` with `fromName, fromAddress, toAddress, ccAddress, isIncoming, hasAttachment`, the sent time as `startDateTime` and up to 5,000 characters of text as `description`. They replace the tasks that log them. Apps that don't ask never see the "email" kind. Every item has `assignedToId`.
+- `POST /activities/{id}` → edit or reassign a task `{ subject?, status?, priority?, dueDate? ("" clears), description?, assignedToId? }` or an event `{ subject?, location?, description?, assignedToId?, startDateTime?, endDateTime? }`. Only the keys sent change. Assignees follow the New Task rule. Returns the activity. A validation rule's message comes back as `400 {"error":"validation","message":…}`.
+- `POST /activities/{id}/complete` → Mark Complete (tasks only; events are `404`).
+- `GET /activity-options` → `{ taskStatuses, taskPriorities }` (active picklist values).
+
 ### 5.6b Claim actions (staff)
 
 `PortalClaimActionsService`. All routes are under `/claims/{id}/…` after the usual claim access check, and return `404` unless the user is internal. Errors a user can fix come back as `400 {"error":"validation","message":"…"}` (including the org's validation rules, e.g. Required_for_Inspection), and the app shows the message.
@@ -375,7 +388,9 @@ The card is **collapsible** and starts collapsed: the progress ring and the curr
 | **Files** | File list showing an icon by type, title, "{type} · {size} · Uploaded {date}" and "Uploaded by {name}". Tapping a file opens it in Quick Look. **Upload** button (§6.10). |
 | **Payments** | One row per payment: name, date of notice, net deposit, insured payment, total RCV. Footer: total payments collected. Empty state: "No payment records have been found for this claim." |
 
-**Recent activity** (staff only, below the claim progress card and above the sections): the claim's tasks (to-dos, logged calls and emails, open or done) and events from `GET /claims/{id}/activities`. Open tasks and upcoming events come first, soonest first; then completed tasks and past events, newest first. Cards match Home's Recent activity: an icon by type, the subject, a status pill (Overdue, the task status, Completed, Upcoming or Past), "{type} · {date}", the assignee and the first two lines of the comments. They show **3 at a time** and scroll. Empty state: "No tasks or events on this claim yet. Use Task or Event to add one." The list reloads after a task or event is created from the claim. Tapping a card opens its **record page**, which shows the subject, status, due date or time and location, priority, assignee, related claim, comments, and who created it and when. A Safari icon opens the record in Salesforce, signed in through a single-use link.
+**Claim progress** also explains the current stage in plain language: *What's happening* and *What's next* (ClaimLifecycle.guide). **Payments** shows a progress bar of payments collected against the claim's total RCV, with the amount still to collect.
+
+**Recent activity** (staff only, below the claim progress card and above the sections; also on lead pages, §5.6c): the record's tasks (to-dos, logged calls and emails, open or done), events and, where the server has them, emails, from `GET /claims/{id}/activities?include=emails`. Open tasks and upcoming events come first, soonest first; then completed tasks and past events, newest first. Cards match Home's Recent activity: an icon by type, the subject, a status pill (Overdue, the task status, Completed, Upcoming or Past), "{type} · {date}", the assignee and the first two lines of the comments. They show **3 at a time** and scroll. Empty state: "No tasks or events on this claim yet. Use Task or Event to add one." The list reloads after a task or event is created from the claim. Tapping a card opens its **record page**, which shows the subject, status, due date or time and location, priority, assignee, related claim, comments, and who created it and when. Tasks have **Mark Complete**, **Reassign** (the New Task assignee list) and **Edit** (subject, status, priority, due date, assignee, comments); events have Reassign and Edit (subject, start and end unless all-day, location, assignee, description). Emails are read-only: from, to, cc, when, whether there are attachments, and the message. A Safari icon opens the record in Salesforce, signed in through a single-use link.
 
 **Contact Us card** (formerly "Your public adjuster team"):
 - Adjuster: name, tap to call, tap to email.
@@ -455,10 +470,18 @@ A single scrolling form in 5 numbered sections, with a sticky **Submit** button:
   - **Camera** (photo)
   - **Photo Library**, multi-select with `PhotosPicker`
   - **Files**, with `fileImporter`
+  - **Inspection Photos**: several photos in a row (camera, or the library), each with a caption that becomes its title (e.g. "Roof – north slope"); uncaptioned ones are named by date and time.
+  - **Scan Document** (devices with the VisionKit scanner): pages are cropped by the system scanner and saved as one US Letter PDF, compressed so a few pages stay under 4 MB, titled "Scan {yyyy-MM-dd HH:mm}".
 - Allowed types: `pdf, png, jpg, jpeg, heic, doc, docx, xls, xlsx`.
 - Before upload, keep HEIC as it is (the server accepts it) and downscale photos so the longest side is at most 4,000 px.
 - Show progress for each file. Uploads continue if the user leaves the screen, and failed uploads can be retried.
 - Default title: "Photo {yyyy-MM-dd HH:mm}" for camera photos, otherwise the original file name.
+
+### 6.10a Offline posts and replies (staff)
+A Chatter post or reply sent with no connection is kept in an **outbox** on the device (Application Support, file protection until first unlock) instead of failing. It shows in the feed as "Waiting to send" with Discard, and is sent, oldest first, as soon as the app is back online (and at sign-in). Anything the server refuses is marked "Couldn't send". Files need a connection, so a post or reply with files isn't queued. The outbox is cleared at sign-out.
+
+### 6.10b iPad
+The app runs on iPad in every orientation. At regular width, Claims and Leads are split views: the list on the left, the chosen claim or lead on the right ("Choose a claim" until one is picked); records opened from elsewhere open in the right column. Other tabs use the iPhone layout.
 
 ### 6.11 Account
 - Name and email (read-only).
@@ -467,6 +490,7 @@ A single scrolling form in 5 numbered sections, with a sticky **Submit** button:
 - Links: *Contact support* (opens Support), *Privacy policy*, *Terms*.
 - **Sign out**: revokes the token through the SDK logout and clears the cache and keychain.
 - App version and build number.
+- **What's New in {version}** (the current version's notes again) and **Release Notes**: every version's notes, newest first, with its date; the installed version is marked "Current". Staff-only items aren't listed for homeowners. Notes live in `WhatsNew.releases`; add one per version.
 
 ---
 
@@ -483,7 +507,7 @@ A single scrolling form in 5 numbered sections, with a sticky **Submit** button:
 
 | Feature | Behaviour |
 |---|---|
-| **Push notifications** | Use the Mobile SDK push registration with APNs. The server sends a push when (a) a new update is **published** on the user's claim or lead, or (b) staff reply on the user's support case. Payload: `{ "type": "update" \| "caseReply", "recordId": "...", "commentId": "..." }`. Tapping the push deep-links to the record and opens the update. *(The server-side trigger is built by the Salesforce team.)* |
+| **Push notifications** | The Mobile SDK registers the device with Salesforce for the External Client App. The app asks for permission once after sign-in (after What's New and the Face ID offer), and in Account. `PortalPushService` sends, from a Queueable so saves never fail: **update**, when a portal update is published on a claim or lead (to its portal users; a portal user's own comment goes to the record's owner, account manager and desk adjuster); **payment**, when a payment is recorded on a claim (to its portal users, without the amount); **mention**, when someone is @mentioned in a Chatter post or reply; **task**, when a task is assigned to someone else. Nobody is notified about their own change. Payload: `{ "aps": { "alert": { "title", "body" }, "sound": "default" }, "type": "update" \| "payment" \| "mention" \| "task" \| "caseReply", "recordId": "...", "commentId"? }`. A tap opens the record on top of the current screen (an update is also marked read). The app's name and an on/off switch are the Custom Labels `Portal_Push_App_Name` and `Portal_Push_Enabled`. Delivery needs an APNs key on the External Client App (ASSUMPTIONS). |
 | **Face ID / Touch ID** | An optional app lock. Require it on launch and after 5 minutes in the background. Fall back to the device passcode. |
 | **Camera and photo uploads** | §6.10 |
 | **Tap to call / email / map** | Every phone number, email address and address. |

@@ -131,13 +131,13 @@ struct ClaimActionsTests {
         #expect(again.errorMessage == "This contact is already on the claim.")
     }
 
-    @Test("Recent activity: open items first, then logged calls and history")
+    @Test("Recent activity: open items first, then logged calls and history; emails on request")
     func claimActivities() async throws {
         let api = try mock()
-        let actions = ClaimActionsViewModel(api: api, claimId: claimId)
+        let activity = RecordActivityViewModel(api: api, record: .claim(claimId), includeEmails: false)
         try await api.logCall(claimId: claimId, CallLog(subject: "Called the carrier", description: "Left a voicemail", contactId: nil))
-        await actions.loadActivities()
-        let items = try #require(actions.activities.value)
+        await activity.load()
+        let items = try #require(activity.activities.value)
         let call = try #require(items.first { $0.subject == "Called the carrier" })
         #expect(call.subtype == "Call")
         #expect(call.isClosed == true)
@@ -145,6 +145,72 @@ struct ClaimActionsTests {
         let firstClosed = try #require(items.firstIndex { $0.isClosed == true })
         #expect(items[..<firstClosed].allSatisfy { $0.isClosed == false })
         #expect(items.allSatisfy { $0.relatedRecordId == claimId })
+        #expect(!items.contains { $0.kind == .email })
+
+        activity.includeEmails = true
+        await activity.load()
+        let email = try #require(activity.activities.value?.first { $0.kind == .email })
+        #expect(email.fromName != nil)
+    }
+
+    @Test("Task page: Mark Complete, Edit and Reassign update the list")
+    func activityActions() async throws {
+        let api = try mock()
+        let list = RecordActivityViewModel(api: api, record: .claim(claimId), includeEmails: false)
+        await list.load()
+        let task = try #require(list.activities.value?.first { $0.kind == .task && $0.isClosed == true })
+        let detail = ActivityDetailViewModel(api: api, item: task, canChange: true)
+        detail.onChange = { list.replace($0) }
+        await detail.loadOptions()
+        #expect(detail.options?.taskStatuses.contains("Completed") == true)
+        #expect(!detail.canComplete, "Already done")
+
+        var edit = ActivityEdit()
+        edit.status = "Working"
+        edit.priority = "High"
+        edit.changesDueDate = true
+        edit.dueDate = nil
+        #expect(await detail.save(edit))
+        #expect(detail.item.isClosed == false)
+        #expect(detail.item.dueDate == nil)
+        #expect(detail.canComplete)
+        let items = try #require(list.activities.value)
+        let firstClosed = items.firstIndex { $0.isClosed == true } ?? items.count
+        #expect(items[..<firstClosed].contains { $0.id == task.id }, "Open again, so it moves up with the open items")
+
+        let other = try #require(detail.assignees.first { $0.userId != task.assignedToId })
+        #expect(await detail.reassign(to: other.userId))
+        #expect(detail.item.assignedToName == other.name)
+
+        #expect(await detail.complete())
+        #expect(detail.item.isClosed == true)
+        #expect(detail.item.status == "Completed")
+
+        var blank = ActivityEdit()
+        blank.subject = "  "
+        #expect(!(await detail.save(blank)))
+        #expect(detail.errorMessage == "Enter a subject.")
+    }
+
+    @Test("Offline: posts and replies wait in the outbox, then send")
+    func outbox() async throws {
+        let mock = try self.mock()
+        let offline = CachingPortalAPI(base: mock, cache: MemoryResponseCache())
+        await offline.setOnline(false)
+        let outbox = Outbox(fileURL: nil)
+        let feed = ChatterFeedViewModel(api: offline, source: .claim(claimId), outbox: outbox)
+        await ChatterFeedViewModel(api: mock, source: .claim(claimId)).load()
+        #expect(await feed.post(MentionDraft(text: "Written in the basement")))
+        #expect(feed.pendingPosts.count == 1)
+        feed.drafts["0D5000000000001AAA"] = MentionDraft(text: "Reply offline")
+        #expect(await feed.sendReply(to: "0D5000000000001AAA"))
+        #expect(feed.pendingReplies(to: "0D5000000000001AAA").count == 1)
+
+        #expect(await outbox.send(using: offline) == 0, "Still offline")
+        #expect(await outbox.send(using: mock) == 2)
+        #expect(outbox.items.isEmpty)
+        let posts = try await mock.claimFeed(claimId: claimId)
+        #expect(posts.first?.text == "Written in the basement")
     }
 
     @Test("Claim feed: attach a file to a reply and a post; replies take one file")
@@ -416,3 +482,4 @@ struct SalesforcePageLinkTests {
         #expect(SalesforcePageLink.url(fromResponse: Data("{}".utf8), pagePath: path) == nil)
     }
 }
+

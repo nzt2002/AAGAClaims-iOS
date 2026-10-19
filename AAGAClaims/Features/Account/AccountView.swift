@@ -50,9 +50,13 @@ struct AccountView: View {
             Section {
                 LabeledContent("Version", value: Self.versionString)
                 if let release = WhatsNew.current(isInternal: user.isInternal) {
-                    Button("What's New") { whatsNew = release }
+                    Button("What's New in \(release.version)") { whatsNew = release }
                         .accessibilityIdentifier("whatsNewButton")
                 }
+                NavigationLink("Release Notes") {
+                    ReleaseNotesView(isInternal: user.isInternal)
+                }
+                .accessibilityIdentifier("releaseNotesLink")
             }
         }
         .scrollContentBackground(.hidden)

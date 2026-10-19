@@ -72,8 +72,15 @@ public protocol PortalAPI: Sendable {
     func claimContactMatches(claimId: String, firstName: String?, lastName: String, email: String?, mobile: String?) async throws -> [ContactMatch]
     func addClaimContact(claimId: String, _ contact: NewClaimRequest.Contact) async throws
     func claimFeed(claimId: String) async throws -> [ChatterPost]
-    /// Staff: the claim's tasks and events, open first.
-    func claimActivities(claimId: String) async throws -> [AgendaItem]
+    /// Staff: the claim's or lead's tasks and events (and emails, if asked), open first.
+    func activities(on record: RecordRef, includeEmails: Bool) async throws -> [AgendaItem]
+    /// Staff: edit or reassign a task or event on a claim or lead.
+    func editActivity(id: String, _ edit: ActivityEdit) async throws -> AgendaItem
+    /// Staff: Mark Complete.
+    func completeTask(id: String) async throws -> AgendaItem
+    func activityOptions() async throws -> ActivityOptions
+    /// What the server supports (`ServerMeta.legacy` for servers without `/meta`).
+    func serverMeta() async throws -> ServerMeta
     func postToClaim(claimId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost
     func logCall(claimId: String, _ call: CallLog) async throws
     func sendEmail(claimId: String, _ email: OutgoingEmail) async throws

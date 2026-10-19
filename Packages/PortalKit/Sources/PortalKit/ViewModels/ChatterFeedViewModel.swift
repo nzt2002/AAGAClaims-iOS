@@ -41,10 +41,42 @@ public final class ChatterFeedViewModel {
     public private(set) var attachmentErrors: [String: String] = [:]
 
     private let api: PortalAPI
+    /// Where posts and replies written offline wait (claim and lead feeds; nil keeps them unsent).
+    private let outbox: Outbox?
 
-    public init(api: PortalAPI, source: Source) {
+    public init(api: PortalAPI, source: Source, outbox: Outbox? = nil) {
         self.api = api
         self.source = source
+        self.outbox = outbox
+    }
+
+    // MARK: - Offline outbox
+
+    /// Posts on this claim or lead waiting to be sent.
+    public var pendingPosts: [Outbox.Item] {
+        guard let outbox else { return [] }
+        switch source {
+        case .claim(let id): return outbox.items.filter { $0.kind == .claimPost && $0.targetId == id }
+        case .lead(let id): return outbox.items.filter { $0.kind == .leadPost && $0.targetId == id }
+        case .person: return []
+        }
+    }
+
+    /// Replies to a post waiting to be sent.
+    public func pendingReplies(to postId: String) -> [Outbox.Item] {
+        outbox?.items.filter { $0.kind == .reply && $0.targetId == postId } ?? []
+    }
+
+    /// Drops a waiting post or reply.
+    public func discardPending(_ id: UUID) {
+        outbox?.remove(id)
+    }
+
+    /// When offline, keeps a text-only post or reply in the outbox instead of failing.
+    private func queueIfOffline(_ error: Error, kind: Outbox.Item.Kind, targetId: String, draft: MentionDraft, hasFiles: Bool) -> Bool {
+        guard let outbox, !hasFiles, PortalAPIError.wrap(error) == .offline else { return false }
+        outbox.add(Outbox.Item(kind: kind, targetId: targetId, text: draft.trimmedText, mentions: draft.resolvedMentions))
+        return true
     }
 
     public func load() async {
@@ -147,6 +179,15 @@ public final class ChatterFeedViewModel {
             discardDraft(Self.newPostId)
             return true
         } catch {
+            let target: (Outbox.Item.Kind, String)? = switch source {
+            case .claim(let id): (.claimPost, id)
+            case .lead(let id): (.leadPost, id)
+            case .person: nil
+            }
+            if let target, queueIfOffline(error, kind: target.0, targetId: target.1, draft: draft, hasFiles: !fileIds.isEmpty) {
+                discardDraft(Self.newPostId)
+                return true
+            }
             fail(Self.newPostId, error)
             return false
         }
@@ -180,6 +221,10 @@ public final class ChatterFeedViewModel {
             attachmentErrors[postId] = nil
             return true
         } catch {
+            if queueIfOffline(error, kind: .reply, targetId: postId, draft: draft, hasFiles: !fileIds.isEmpty) {
+                drafts[postId] = nil
+                return true
+            }
             fail(postId, error)
             return false
         }

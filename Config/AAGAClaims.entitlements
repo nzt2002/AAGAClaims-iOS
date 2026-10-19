@@ -4,6 +4,9 @@
 <dict>
 	<!-- The Mobile SDK keeps OAuth tokens and encryption keys in the keychain. Without an access
 	     group the simulator refuses keychain writes (errSecMissingEntitlement, -34018). -->
+	<!-- Push notifications (spec §8). Xcode sets "production" in App Store and TestFlight builds. -->
+	<key>aps-environment</key>
+	<string>development</string>
 	<key>keychain-access-groups</key>
 	<array>
 		<string>$(AppIdentifierPrefix)com.accurateadjustmentsga.claims</string>

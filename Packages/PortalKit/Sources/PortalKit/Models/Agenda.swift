@@ -16,33 +16,44 @@ public struct AgendaItem: Codable, Hashable, Identifiable, Sendable {
     public enum Kind: String, Codable, Sendable {
         case task
         case event
+        /// `GET …/activities?include=emails` only.
+        case email
     }
 
     public let id: String
     public let kind: Kind
-    public let subject: String?
+    public var subject: String?
     /// Tasks: due date, no time.
-    public let dueDate: CalendarDate?
-    /// Events.
-    public let startDateTime: Date?
-    public let endDateTime: Date?
+    public var dueDate: CalendarDate?
+    /// Events; for emails, when it was sent.
+    public var startDateTime: Date?
+    public var endDateTime: Date?
     public let isAllDay: Bool?
-    public let location: String?
-    public let status: String?
-    public let isOverdue: Bool?
-    public let assignedToName: String?
+    public var location: String?
+    public var status: String?
+    public var isOverdue: Bool?
+    public var assignedToName: String?
     public let relatedRecordId: String?
     public let relatedRecordName: String?
     public let relatedRecordType: RelatedRecordType?
-    /// `GET /claims/{id}/activities` only: the record page's details.
+    /// `GET …/activities` only: the record page's details.
     public var description: String? = nil
     public var priority: String? = nil
     /// Tasks: "Call", "Email" or "Task".
     public var subtype: String? = nil
-    /// Completed tasks and past events.
+    /// Completed tasks, past events and emails.
     public var isClosed: Bool? = nil
     public var createdDate: Date? = nil
     public var createdByName: String? = nil
+    /// The owner's user id, for Reassign.
+    public var assignedToId: String? = nil
+    /// Emails.
+    public var fromName: String? = nil
+    public var fromAddress: String? = nil
+    public var toAddress: String? = nil
+    public var ccAddress: String? = nil
+    public var isIncoming: Bool? = nil
+    public var hasAttachment: Bool? = nil
 
     public var recordRef: RecordRef? {
         guard let relatedRecordId, let relatedRecordType else { return nil }
@@ -50,6 +61,79 @@ public struct AgendaItem: Codable, Hashable, Identifiable, Sendable {
         case .claim: return .claim(relatedRecordId)
         case .prospect: return .lead(relatedRecordId)
         }
+    }
+}
+
+/// `POST /activities/{id}`: only the fields set are changed.
+public struct ActivityEdit: Encodable, Hashable, Sendable {
+    public var subject: String?
+    public var status: String?
+    public var priority: String?
+    /// Set `changesDueDate` to send it; nil then clears the due date.
+    public var dueDate: CalendarDate?
+    public var changesDueDate = false
+    public var description: String?
+    public var assignedToId: String?
+    public var location: String?
+    public var startDateTime: Date?
+    public var endDateTime: Date?
+
+    public init() {}
+
+    enum CodingKeys: String, CodingKey {
+        case subject, status, priority, dueDate, description, assignedToId, location, startDateTime, endDateTime
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encodeIfPresent(subject, forKey: .subject)
+        try c.encodeIfPresent(status, forKey: .status)
+        try c.encodeIfPresent(priority, forKey: .priority)
+        if changesDueDate {
+            if let dueDate { try c.encode(dueDate, forKey: .dueDate) } else { try c.encode("", forKey: .dueDate) }
+        }
+        try c.encodeIfPresent(description, forKey: .description)
+        try c.encodeIfPresent(assignedToId, forKey: .assignedToId)
+        try c.encodeIfPresent(location, forKey: .location)
+        try c.encodeIfPresent(startDateTime, forKey: .startDateTime)
+        try c.encodeIfPresent(endDateTime, forKey: .endDateTime)
+    }
+}
+
+/// `GET /activity-options`: task statuses and priorities for Edit.
+public struct ActivityOptions: Codable, Hashable, Sendable {
+    public let taskStatuses: [String]
+    public let taskPriorities: [String]
+
+    public init(taskStatuses: [String], taskPriorities: [String]) {
+        self.taskStatuses = taskStatuses
+        self.taskPriorities = taskPriorities
+    }
+}
+
+/// `GET /meta`: what the server supports. A build hides features its server doesn't have yet,
+/// so the app and the server can be released in either order.
+public struct ServerMeta: Codable, Hashable, Sendable {
+    public let apiVersion: Int
+    public let features: Set<String>
+
+    public init(apiVersion: Int, features: Set<String>) {
+        self.apiVersion = apiVersion
+        self.features = features
+    }
+
+    /// A server from before `/meta`: the features it already had are assumed.
+    public static let legacy = ServerMeta(apiVersion: 4, features: ["claimActivities", "chatterAttachments", "claimReferenceId"])
+
+    /// Every feature, for demo mode and previews.
+    public static let all = ServerMeta(apiVersion: .max, features: Set(Feature.allCases.map(\.rawValue)))
+
+    public func supports(_ feature: Feature) -> Bool { features.contains(feature.rawValue) }
+
+    /// Server features the app checks for.
+    public enum Feature: String, CaseIterable, Sendable {
+        case claimActivities, chatterAttachments, claimReferenceId
+        case leadActivities, activityEmails, activityEdit, push
     }
 }
 

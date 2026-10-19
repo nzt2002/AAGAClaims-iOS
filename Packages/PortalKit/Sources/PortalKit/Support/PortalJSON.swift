@@ -7,6 +7,12 @@ public struct CalendarDate: Codable, Hashable, Comparable, Sendable, CustomStrin
     public let month: Int
     public let day: Int
 
+    /// Today, in the device's calendar.
+    public static var today: CalendarDate {
+        let parts = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+        return CalendarDate(year: parts.year!, month: parts.month!, day: parts.day!)
+    }
+
     public init(year: Int, month: Int, day: Int) {
         self.year = year
         self.month = month

@@ -14,9 +14,13 @@ struct MainTabView: View {
     @State private var offeringLock = false
     /// Release notes for a newly installed version, once, after sign-in.
     @State private var whatsNew: WhatsNew.Release?
+    /// `GET /meta`; legacy until it loads.
+    @State private var serverMeta: ServerMeta = .legacy
     /// Set by New Claim; opened when its sheet has closed.
     @State private var createdClaim: (id: String, name: String)?
     @Environment(\.scenePhase) private var scenePhase
+    /// iPad (full screen or a wide split): lists and records side by side.
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @ScaledMetric(relativeTo: .body) private var bellSize: CGFloat = 14.5
     @ScaledMetric(relativeTo: .body) private var bellButtonSize: CGFloat = 38
 
@@ -34,6 +38,21 @@ struct MainTabView: View {
                 SalesforcePageAction { path in await SalesforceWebSession.signedInURL(for: path, instanceURL: instance) }
             })
             .environment(\.currentUserName, user.fullName)
+            .environment(\.serverMeta, serverMeta)
+    }
+
+    private var claimsList: some View {
+        ClaimsListView(viewModel: router.claims, api: session.api, openSupport: { router.openSupport(caseId: nil) })
+            .statusBanners(session)
+            .toolbar { topBarButtons() }
+    }
+
+    private var leadsList: some View {
+        LeadsListView(viewModel: router.leads, path: $router.leadsPath, showingSubmit: $router.showingSubmitLead,
+                      api: session.api, userEmail: user.email,
+                      openSupport: { router.openSupport(caseId: nil) })
+            .statusBanners(session)
+            .toolbar { topBarButtons() }
     }
 
     private var tabs: some View {
@@ -47,21 +66,41 @@ struct MainTabView: View {
                 }
             }
             Tab("Claims", systemImage: "doc.text", value: .claims) {
-                NavigationStack(path: $router.claimsPath) {
-                    ClaimsListView(viewModel: router.claims, api: session.api, openSupport: { router.openSupport(caseId: nil) })
-                        .modifier(RecordDestinations(router: router, api: session.api))
-                        .statusBanners(session)
-                        .toolbar { topBarButtons() }
+                if horizontalSizeClass == .regular {
+                    NavigationSplitView {
+                        claimsList
+                    } detail: {
+                        NavigationStack(path: $router.claimsPath) {
+                            RecordPlaceholder(noun: "claim", systemImage: "doc.text")
+                                .modifier(RecordDestinations(router: router, api: session.api))
+                                .navigationDestination(for: ClaimSummary.self) { claim in
+                                    ClaimDetailView(claimId: claim.recordId, summary: claim, api: session.api)
+                                        .id(claim.recordId)
+                                }
+                        }
+                    }
+                } else {
+                    NavigationStack(path: $router.claimsPath) {
+                        claimsList
+                            .modifier(RecordDestinations(router: router, api: session.api))
+                    }
                 }
             }
             Tab("Leads", systemImage: "person.2", value: .leads) {
-                NavigationStack(path: $router.leadsPath) {
-                    LeadsListView(viewModel: router.leads, path: $router.leadsPath, showingSubmit: $router.showingSubmitLead,
-                                  api: session.api, userEmail: user.email,
-                                  openSupport: { router.openSupport(caseId: nil) })
-                        .modifier(RecordDestinations(router: router, api: session.api))
-                        .statusBanners(session)
-                        .toolbar { topBarButtons() }
+                if horizontalSizeClass == .regular {
+                    NavigationSplitView {
+                        leadsList
+                    } detail: {
+                        NavigationStack(path: $router.leadsPath) {
+                            RecordPlaceholder(noun: "lead", systemImage: "person.2")
+                                .modifier(RecordDestinations(router: router, api: session.api))
+                        }
+                    }
+                } else {
+                    NavigationStack(path: $router.leadsPath) {
+                        leadsList
+                            .modifier(RecordDestinations(router: router, api: session.api))
+                    }
                 }
             }
             Tab("Support", systemImage: "questionmark.bubble", value: .support) {
@@ -84,9 +123,10 @@ struct MainTabView: View {
         .environment(\.openRecord, OpenRecordAction { record, name in router.open(record, name: name) })
         .environment(\.isOffline, session.offline.isOffline)
         .onChange(of: session.offline.isOffline) { wasOffline, isOffline in
-            // Back online: refresh the dashboard and badge.
+            // Back online: refresh the dashboard and badge, and send posts written offline.
             if wasOffline && !isOffline {
                 Task { await router.home.load() }
+                Task { await Outbox.shared.send(using: session.api) }
             }
         }
         .opensWebLinksInSafari($safariLink)
@@ -132,22 +172,42 @@ struct MainTabView: View {
             await router.home.load()
         }
         .task {
+            if let meta = try? await session.api.serverMeta() {
+                serverMeta = meta
+            }
+            await Outbox.shared.send(using: session.api)
+        }
+        .task {
             // What's new first; then, after the first sign-in, offer Face ID (spec §6.1).
             if let release = WhatsNew.pending(isInternal: user.isInternal) {
                 whatsNew = release
             } else if session.lock.shouldOffer {
                 offeringLock = true
+            } else {
+                await askForNotifications()
             }
         }
         .sheet(item: $whatsNew, onDismiss: {
             WhatsNew.markSeen()
-            if session.lock.shouldOffer { offeringLock = true }
+            if session.lock.shouldOffer {
+                offeringLock = true
+            } else {
+                Task { await askForNotifications() }
+            }
         }) { release in
             WhatsNewSheet(release: release, isInternal: user.isInternal)
         }
         .alert("Use \(session.lock.methodName)?", isPresented: $offeringLock) {
-            Button("Turn On") { Task { _ = await session.lock.enable() } }
-            Button("Not Now", role: .cancel) { session.lock.markOffered() }
+            Button("Turn On") {
+                Task {
+                    _ = await session.lock.enable()
+                    await askForNotifications()
+                }
+            }
+            Button("Not Now", role: .cancel) {
+                session.lock.markOffered()
+                Task { await askForNotifications() }
+            }
         } message: {
             Text("Lock AAGA Claims with \(session.lock.methodName) so only you can see your claims. You can change this in Account.")
         }
@@ -155,6 +215,14 @@ struct MainTabView: View {
 
     /// Top right: the notifications bell. (Search is the bar in Home's hero.)
     @ToolbarContentBuilder
+    /// After sign-in (and What's New and the Face ID offer), ask once to allow notifications:
+    /// new updates, payments, @mentions and tasks (spec §8). Not in demo mode or UI tests.
+    private func askForNotifications() async {
+        guard !session.isDemo, !UserDefaults.standard.bool(forKey: "UITestDemo"),
+              await PushNotifications.status() == .notDetermined else { return }
+        _ = await PushNotifications.requestPermission(registerWithSalesforce: true)
+    }
+
     private func openCreatedClaim() {
         guard let claim = createdClaim else { return }
         createdClaim = nil
@@ -197,5 +265,17 @@ struct UnreadBadge: View {
             .background(Color.red, in: Capsule())
             .offset(x: 4, y: 2)
             .accessibilityHidden(true)
+    }
+}
+
+/// iPad: the detail column before a claim or lead is chosen.
+private struct RecordPlaceholder: View {
+    let noun: String
+    let systemImage: String
+
+    var body: some View {
+        ContentUnavailableView("Choose a \(noun)", systemImage: systemImage,
+                               description: Text("Pick a \(noun) from the list to see it here."))
+            .background(Color.appBackground)
     }
 }

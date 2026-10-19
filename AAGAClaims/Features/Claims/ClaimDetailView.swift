@@ -7,12 +7,14 @@ struct ClaimDetailView: View {
     /// Staff only: quick actions, communication and the Claim Feed.
     @State private var actions: ClaimActionsViewModel
     @State private var claimFeed: ChatterFeedViewModel
+    @State private var activity: RecordActivityViewModel
     @State private var openAction: ClaimAction?
     @State private var updatesFilter: UpdatesFilter = .claimFeed
     @Environment(\.isInternalUser) private var isInternal
     @Environment(\.isOffline) private var isOffline
     @Environment(\.currentUserName) private var currentUserName
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.serverMeta) private var serverMeta
 
     enum UpdatesFilter: String, CaseIterable {
         case claimFeed = "Claim Feed"
@@ -25,7 +27,8 @@ struct ClaimDetailView: View {
     init(claimId: String, summary: ClaimSummary?, api: PortalAPI) {
         _viewModel = State(initialValue: ClaimDetailViewModel(claimId: claimId, api: api))
         _actions = State(initialValue: ClaimActionsViewModel(api: api, claimId: claimId))
-        _claimFeed = State(initialValue: ChatterFeedViewModel(api: api, source: .claim(claimId)))
+        _claimFeed = State(initialValue: ChatterFeedViewModel(api: api, source: .claim(claimId), outbox: .shared))
+        _activity = State(initialValue: RecordActivityViewModel(api: api, record: .claim(claimId), includeEmails: false))
         self.summary = summary
         self.api = api
     }
@@ -43,7 +46,7 @@ struct ClaimDetailView: View {
                 if isInternal, claimFeed.feed.value == nil {
                     async let staff: Void = actions.load()
                     async let feed: Void = claimFeed.load()
-                    async let activity: Void = actions.loadActivities()
+                    async let activity: Void = loadActivity()
                     _ = await (staff, feed, activity)
                 }
             }
@@ -51,11 +54,11 @@ struct ClaimDetailView: View {
                 switch action {
                 case .task:
                     NewTaskSheet(api: api, currentUserName: currentUserName, record: .claim(viewModel.claimId)) {
-                        Task { await actions.loadActivities() }
+                        Task { await loadActivity() }
                     }
                 case .event:
                     NewEventSheet(api: api, currentUserName: currentUserName, record: .claim(viewModel.claimId)) {
-                        Task { await actions.loadActivities() }
+                        Task { await loadActivity() }
                     }
                 default:
                 ClaimActionSheet(action: action, actions: actions, feed: claimFeed, api: api,
@@ -107,7 +110,9 @@ struct ClaimDetailView: View {
                 HighlightsRow(detail: detail)
                 LifecycleCard(position: detail.lifecycle, status: detail.claimStatus)
                 if isInternal {
-                    ClaimActivitySection(actions: actions)
+                    if serverMeta.supports(.claimActivities) {
+                        RecordActivitySection(model: activity, api: api, noun: "claim")
+                    }
                 }
                 SectionBar(selection: $viewModel.section)
                 sectionContent(detail)
@@ -124,7 +129,7 @@ struct ClaimDetailView: View {
             await viewModel.load()
             if isInternal {
                 async let feed: Void = claimFeed.load()
-                async let activity: Void = actions.loadActivities()
+                async let activity: Void = loadActivity()
                 _ = await (feed, activity)
             }
         }
@@ -141,6 +146,13 @@ struct ClaimDetailView: View {
         }
         // Ask Question is a top-bar icon on claims; there's no Add Comment here.
         .recordActions(record: viewModel.record, recordName: recordName, api: api, placement: .toolbarIcon)
+    }
+
+    /// Emails are included once the server has them.
+    private func loadActivity() async {
+        guard serverMeta.supports(.claimActivities) else { return }
+        activity.includeEmails = serverMeta.supports(.activityEmails)
+        await activity.load()
     }
 
     @ViewBuilder
@@ -170,7 +182,7 @@ struct ClaimDetailView: View {
             FilesSection(record: viewModel.record, state: viewModel.files, api: api) { await viewModel.loadFiles() }
         case .payments:
             SectionLoader(state: viewModel.payments, subject: "payments", retry: { await viewModel.loadPayments() }) { payments in
-                PaymentsList(payments: payments, totalCollected: detail.paymentCollected)
+                PaymentsList(payments: payments, totalCollected: detail.paymentCollected, totalRcv: detail.totalRcv)
             }
         }
     }
@@ -314,6 +326,14 @@ private struct LifecycleCard: View {
             .accessibilityHint(expanded ? "Hides the stages" : "Shows every stage")
             .accessibilityIdentifier("claimProgressToggle")
 
+            if let guide = ClaimLifecycle.guide(for: status) {
+                VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                    guideRow("What's happening", guide.now, icon: "hourglass")
+                    guideRow("What's next", guide.next, icon: "arrow.forward.circle")
+                }
+                .accessibilityIdentifier("stageGuide")
+            }
+
             if expanded, case .stage = position {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(ClaimLifecycle.stages.enumerated()), id: \.offset) { index, stage in
@@ -324,6 +344,25 @@ private struct LifecycleCard: View {
             }
         }
         .cardStyle()
+    }
+
+    private func guideRow(_ title: String, _ text: String, icon: String) -> some View {
+        HStack(alignment: .top, spacing: Theme.Spacing.s) {
+            Image(systemName: icon)
+                .foregroundStyle(Color.brandPrimary)
+                .frame(width: 22)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.textSecondary)
+                Text(text)
+                    .font(.subheadline)
+                    .foregroundStyle(Color.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 

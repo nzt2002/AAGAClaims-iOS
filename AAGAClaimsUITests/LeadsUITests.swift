@@ -16,6 +16,17 @@ final class LeadsUITests: XCTestCase {
         app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
     }
 
+    func testLeadRecentActivity() {
+        let card = app.buttons["leadCard-a0r000000000001AAA"]
+        XCTAssertTrue(card.waitForExistence(timeout: 10))
+        card.tap()
+        let call = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'leadActivity-'")).firstMatch
+        XCTAssertTrue(call.waitForExistence(timeout: 10))
+        app.scrollIntoView(call)
+        call.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["activityHeader"].waitForExistence(timeout: 5))
+    }
+
     func testLeadDetailShowsAgreementAndLifecycle() {
         let card = app.buttons["leadCard-a0r000000000001AAA"]
         XCTAssertTrue(card.waitForExistence(timeout: 10))

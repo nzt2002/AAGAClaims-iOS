@@ -84,6 +84,8 @@ final class AppSession {
         lock.reset()
         // Searches can contain customer names; don't keep them across accounts.
         UserDefaultsRecentSearchStore.clear()
+        // Unsent posts and replies belong to this account.
+        Outbox.shared.clear()
         // Sign-out clears cached data (spec §6.11).
         let cachingAPI = self.cachingAPI
         Task { await cachingAPI.clearCache() }

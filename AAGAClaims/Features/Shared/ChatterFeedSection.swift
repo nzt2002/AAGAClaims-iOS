@@ -15,6 +15,10 @@ struct ChatterFeedSection: View {
     var visibleCount: Int? = nil
 
     @State private var expanded: Set<String> = []
+    @Environment(\.serverMeta) private var serverMeta
+
+    /// Claim and lead feeds, once the server takes files.
+    private var canAttach: Bool { model.supportsAttachments && serverMeta.supports(.chatterAttachments) }
     /// The post whose reply box is open.
     @State private var replyingTo: String?
     @State private var preview: PreviewFile?
@@ -22,7 +26,16 @@ struct ChatterFeedSection: View {
     @State private var previewError: String?
 
     var body: some View {
-        content
+        VStack(spacing: Theme.Spacing.m) {
+            ForEach(model.pendingPosts) { item in
+                PendingCard(item: item, isReply: false) { model.discardPending(item.id) }
+            }
+            content
+        }
+            // Posts written offline went out: show them as the server has them.
+            .onChange(of: Outbox.shared.lastSent) { _, sent in
+                if sent != nil { Task { await model.load() } }
+            }
             .quickLookPreview($preview.url)
             .onChange(of: preview) { old, new in
                 // Delete the temporary copy once Quick Look closes (spec §8: no file caching).
@@ -45,7 +58,9 @@ struct ChatterFeedSection: View {
         case .failed:
             ErrorStateView(subject: "Chatter") { Task { await model.load() } }
         case .loaded(let posts, _):
-            if posts.isEmpty {
+            if posts.isEmpty && !model.pendingPosts.isEmpty {
+                EmptyView()
+            } else if posts.isEmpty {
                 Text(emptyMessage)
                     .foregroundStyle(Color.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -170,7 +185,7 @@ struct ChatterFeedSection: View {
 
     @ViewBuilder
     private func replies(_ post: ChatterPost) -> some View {
-        if !post.replies.isEmpty {
+        if !post.replies.isEmpty || !model.pendingReplies(to: post.id).isEmpty {
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
                 if let total = post.totalReplies, total > post.replies.count {
                     Text("Latest \(post.replies.count) of \(total) replies")
@@ -179,6 +194,9 @@ struct ChatterFeedSection: View {
                 }
                 ForEach(post.replies) { reply in
                     replyRow(reply)
+                }
+                ForEach(model.pendingReplies(to: post.id)) { item in
+                    PendingCard(item: item, isReply: true) { model.discardPending(item.id) }
                 }
             }
             .padding(.leading, Theme.Spacing.m)
@@ -260,7 +278,7 @@ struct ChatterFeedSection: View {
             }
 
             HStack(spacing: Theme.Spacing.s) {
-                if model.supportsAttachments {
+                if canAttach {
                     FileSourceMenu(maxCount: model.maxFiles(for: post.id), onPicked: { uploads in
                         Task { await model.attach(uploads, to: post.id) }
                     }) {
@@ -412,5 +430,45 @@ struct DraftAttachments: View {
                 .accessibilityElement(children: .combine)
             }
         }
+    }
+}
+
+/// A post or reply written offline, waiting to be sent, with a way to discard it.
+struct PendingCard: View {
+    let item: Outbox.Item
+    let isReply: Bool
+    let discard: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            HStack {
+                Label(item.failed ? "Couldn't send" : "Waiting to send", systemImage: item.failed ? "exclamationmark.triangle" : "clock.arrow.circlepath")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(item.failed ? Color.warning : Color.textSecondary)
+                Spacer()
+                Button("Discard", role: .destructive, action: discard)
+                    .font(.caption.weight(.semibold))
+                    .frame(minHeight: Theme.minTapTarget)
+                    .accessibilityIdentifier("discardPending")
+            }
+            Text(mentionText(item.text, mentions: item.mentions.map(\.name)))
+                .font(isReply ? .subheadline : .body)
+                .foregroundStyle(Color.textPrimary)
+            if !item.failed {
+                Text("Sends when you're back online.")
+                    .font(.caption)
+                    .foregroundStyle(Color.textSecondary)
+            }
+        }
+        .padding(isReply ? 0 : Theme.Spacing.m)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(isReply ? Color.clear : Color.surfaceTinted, in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            if !isReply {
+                RoundedRectangle(cornerRadius: 14).strokeBorder(Color.border, style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("pendingPost")
     }
 }

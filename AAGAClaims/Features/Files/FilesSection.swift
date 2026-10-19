@@ -82,7 +82,7 @@ struct PreviewFile: Equatable {
 }
 
 /// Keeps letters, digits, spaces and hyphens, so a title can't escape the folder.
-private func safeFileName(_ title: String?) -> String {
+func safeFileName(_ title: String?) -> String {
     var name = ""
     for character in (title ?? "File").prefix(80) {
         let keep = character.isLetter || character.isNumber || character == " " || character == "-"

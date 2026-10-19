@@ -943,6 +943,7 @@ private struct AddContactForm: View {
 
 struct AddPostForm: View {
     let feed: ChatterFeedViewModel
+    @Environment(\.serverMeta) private var serverMeta
     @State private var draft = MentionDraft()
     @Environment(\.dismiss) private var dismiss
 
@@ -955,7 +956,7 @@ struct AddPostForm: View {
             } footer: {
                 Text("Posts to the Chatter feed. Staff only; homeowners don't see it.")
             }
-            if feed.supportsAttachments {
+            if feed.supportsAttachments && serverMeta.supports(.chatterAttachments) {
                 Section {
                     let id = ChatterFeedViewModel.newPostId
                     let files = feed.attachments[id] ?? []

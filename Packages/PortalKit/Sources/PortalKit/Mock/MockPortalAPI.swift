@@ -504,6 +504,9 @@ public actor MockPortalAPI: PortalAPI {
         return fileContents[contentDocumentId] ?? Self.samplePDF
     }
 
+    /// Claim and lead activity, seeded on first view (by record id).
+    private var activityStore: [String: [AgendaItem]] = [:]
+
     /// Files uploaded to a claim or lead, as attachments; anything else is refused, as on the server.
     private func uploadedAttachments(_ fileIds: [String]) throws -> [ChatterAttachment] {
         try fileIds.map { id in
@@ -877,43 +880,135 @@ public actor MockPortalAPI: PortalAPI {
         return seeded
     }
 
-    public func claimActivities(claimId: String) async throws -> [AgendaItem] {
+    public func activities(on record: RecordRef, includeEmails: Bool) async throws -> [AgendaItem] {
         try await simulate()
-        _ = try staff(claimId)
-        let name = recordName(.claim(claimId))
-        func done(_ id: String, _ subject: String, subtype: String, daysAgo: Int, description: String?) -> AgendaItem {
-            let day = Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date())!
-            let parts = Calendar.current.dateComponents([.year, .month, .day], from: day)
-            var item = AgendaItem(
-                id: id, kind: .task, subject: subject, dueDate: CalendarDate(year: parts.year!, month: parts.month!, day: parts.day!), startDateTime: nil, endDateTime: nil,
-                isAllDay: nil, location: nil, status: "Completed", isOverdue: false, assignedToName: "Alex Smith",
-                relatedRecordId: claimId, relatedRecordName: name, relatedRecordType: .claim
-            )
-            item.description = description
-            item.subtype = subtype
-            item.isClosed = true
-            item.priority = "Normal"
-            item.createdDate = day
-            item.createdByName = "Alex Smith"
-            return item
+        switch record {
+        case .claim(let id): _ = try staff(id)
+        case .lead(let id): _ = try staffLead(id)
         }
-        let calls = (data.callsLogged[claimId] ?? []).enumerated().reversed().map { index, call in
-            done("00Tcall\(claimId.suffix(4))\(index)", call.subject, subtype: "Call", daysAgo: 0, description: call.description)
+        let recordId = record.id
+        // Seeded once, so edits stick; new tasks and events (in the agenda) and logged calls join it.
+        if activityStore[recordId] == nil {
+            activityStore[recordId] = seededHistory(for: record)
         }
-        let history = [
-            done("00Thist\(claimId.suffix(4))1", "Documents - Requested from insurance company", subtype: "Task", daysAgo: 3,
-                 description: "Asked the carrier for the full policy and the field adjuster's estimate."),
-            done("00Thist\(claimId.suffix(4))2", "Call - Initial contact with homeowner", subtype: "Call", daysAgo: 7,
-                 description: "Walked through the claims process and booked the inspection."),
-        ]
-        let open = data.agenda.items.filter { $0.relatedRecordId == claimId }.map { item -> AgendaItem in
+        let stored = activityStore[recordId] ?? []
+        let known = Set(stored.map(\.id))
+        let open = data.agenda.items.filter { $0.relatedRecordId == recordId && !known.contains($0.id) }.map { item -> AgendaItem in
             var item = item
             item.isClosed = false
             item.subtype = item.kind == .task ? "Task" : nil
             item.createdByName = item.assignedToName
+            item.assignedToId = data.assignees.first { $0.name == item.assignedToName }?.userId
             return item
         }
-        return open + calls + history
+        activityStore[recordId] = open + stored
+        let calls = (data.callsLogged[recordId] ?? []).enumerated().reversed().map { index, call in
+            pastTask("00Tcall\(recordId.suffix(4))\(index)", call.subject, subtype: "Call", daysAgo: 0, description: call.description, record: record)
+        }
+        let all = (activityStore[recordId] ?? []) + calls
+        let sorted = all.filter { $0.isClosed != true } + all.filter { $0.isClosed == true }
+        guard includeEmails else { return sorted }
+        return sorted + seededEmails(for: record)
+    }
+
+    public func editActivity(id: String, _ edit: ActivityEdit) async throws -> AgendaItem {
+        try await simulate()
+        guard let (recordId, index) = activityStore.lazy.compactMap({ key, items in items.firstIndex { $0.id == id }.map { (key, $0) } }).first,
+              var item = activityStore[recordId]?[index] else { throw PortalAPIError.notFound }
+        if let subject = edit.subject {
+            guard !subject.trimmingCharacters(in: .whitespaces).isEmpty else { throw PortalAPIError.invalidRequest }
+            item.subject = subject
+        }
+        if let status = edit.status { item.status = status; item.isClosed = status == "Completed" }
+        if let priority = edit.priority { item.priority = priority }
+        if edit.changesDueDate { item.dueDate = edit.dueDate }
+        if let description = edit.description { item.description = description.isEmpty ? nil : description }
+        if let location = edit.location { item.location = location.isEmpty ? nil : location }
+        if let start = edit.startDateTime { item.startDateTime = start }
+        if let end = edit.endDateTime { item.endDateTime = end }
+        if let assigneeId = edit.assignedToId {
+            guard let assignee = data.assignees.first(where: { $0.userId == assigneeId }) else {
+                throw PortalAPIError.rejected("Choose someone tasks can be assigned to.")
+            }
+            item.assignedToId = assignee.userId
+            item.assignedToName = assignee.name
+        }
+        item.isOverdue = item.kind == .task && item.isClosed != true && (item.dueDate.map { $0 < CalendarDate.today } ?? false)
+        activityStore[recordId]?[index] = item
+        return item
+    }
+
+    public func completeTask(id: String) async throws -> AgendaItem {
+        var edit = ActivityEdit()
+        edit.status = "Completed"
+        guard activityStore.values.contains(where: { $0.contains { $0.id == id && $0.kind == .task } }) else {
+            throw PortalAPIError.notFound
+        }
+        return try await editActivity(id: id, edit)
+    }
+
+    public func activityOptions() async throws -> ActivityOptions {
+        try await simulate()
+        return ActivityOptions(taskStatuses: ["Not Started", "Working", "Completed"], taskPriorities: ["High", "Normal"])
+    }
+
+    public func serverMeta() async throws -> ServerMeta {
+        try await simulate()
+        return .all
+    }
+
+    private func pastTask(_ id: String, _ subject: String, subtype: String, daysAgo: Int, description: String?, record: RecordRef) -> AgendaItem {
+        let day = Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date())!
+        let parts = Calendar.current.dateComponents([.year, .month, .day], from: day)
+        var item = AgendaItem(
+            id: id, kind: .task, subject: subject, dueDate: CalendarDate(year: parts.year!, month: parts.month!, day: parts.day!),
+            startDateTime: nil, endDateTime: nil, isAllDay: nil, location: nil, status: "Completed", isOverdue: false,
+            assignedToName: "Alex Smith", relatedRecordId: record.id, relatedRecordName: recordName(record), relatedRecordType: recordType(record)
+        )
+        item.description = description
+        item.subtype = subtype
+        item.isClosed = true
+        item.priority = "Normal"
+        item.createdDate = day
+        item.createdByName = "Alex Smith"
+        item.assignedToId = data.assignees.first { $0.name == "Alex Smith" }?.userId
+        return item
+    }
+
+    private func seededHistory(for record: RecordRef) -> [AgendaItem] {
+        let suffix = record.id.suffix(4)
+        switch record {
+        case .claim:
+            return [
+                pastTask("00Thist\(suffix)1", "Documents - Requested from insurance company", subtype: "Task", daysAgo: 3,
+                         description: "Asked the carrier for the full policy and the field adjuster's estimate.", record: record),
+                pastTask("00Thist\(suffix)2", "Call - Initial contact with homeowner", subtype: "Call", daysAgo: 7,
+                         description: "Walked through the claims process and booked the inspection.", record: record),
+            ]
+        case .lead:
+            return [
+                pastTask("00Thist\(suffix)1", "Call - Intro call with the homeowner", subtype: "Call", daysAgo: 2,
+                         description: "Explained how we work and sent the agreement.", record: record),
+            ]
+        }
+    }
+
+    private func seededEmails(for record: RecordRef) -> [AgendaItem] {
+        let sent = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+        var email = AgendaItem(
+            id: "02s\(record.id.suffix(12))1", kind: .email, subject: "RE: Estimate for \(recordName(record))", dueDate: nil,
+            startDateTime: sent, endDateTime: nil, isAllDay: nil, location: nil, status: nil, isOverdue: false,
+            assignedToName: nil, relatedRecordId: record.id, relatedRecordName: recordName(record), relatedRecordType: recordType(record)
+        )
+        email.fromName = "Pat Carrier"
+        email.fromAddress = "pat.carrier@example.com"
+        email.toAddress = "claims@example.com"
+        email.isIncoming = true
+        email.hasAttachment = true
+        email.isClosed = true
+        email.createdDate = sent
+        email.description = "Thanks for sending the estimate. We'll review it this week and come back to you with any questions."
+        return [email]
     }
 
     public func postToClaim(claimId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost {

@@ -250,9 +250,29 @@ public actor CachingPortalAPI: PortalAPI {
         return try await guarded { try await $0.claimFeed(claimId: claimId) }
     }
 
-    public func claimActivities(claimId: String) async throws -> [AgendaItem] {
+    public func activities(on record: RecordRef, includeEmails: Bool) async throws -> [AgendaItem] {
         try requireOnline()
-        return try await guarded { try await $0.claimActivities(claimId: claimId) }
+        return try await guarded { try await $0.activities(on: record, includeEmails: includeEmails) }
+    }
+
+    public func editActivity(id: String, _ edit: ActivityEdit) async throws -> AgendaItem {
+        try requireOnline()
+        return try await guarded { try await $0.editActivity(id: id, edit) }
+    }
+
+    public func completeTask(id: String) async throws -> AgendaItem {
+        try requireOnline()
+        return try await guarded { try await $0.completeTask(id: id) }
+    }
+
+    public func activityOptions() async throws -> ActivityOptions {
+        try requireOnline()
+        return try await guarded { try await $0.activityOptions() }
+    }
+
+    public func serverMeta() async throws -> ServerMeta {
+        try requireOnline()
+        return try await guarded { try await $0.serverMeta() }
     }
 
     public func postToClaim(claimId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost {

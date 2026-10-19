@@ -193,9 +193,15 @@ struct FilesList: View {
 struct PaymentsList: View {
     let payments: [Payment]
     let totalCollected: Decimal?
+    /// The claim's total RCV: payments are shown as progress towards it.
+    var totalRcv: Decimal? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            if let rcv = totalRcv, rcv > 0 {
+                PaymentProgress(collected: totalCollected ?? 0, totalRcv: rcv)
+                    .padding(.bottom, Theme.Spacing.m)
+            }
             if payments.isEmpty {
                 Text("No payment records have been found for this claim.")
                     .foregroundStyle(Color.textSecondary)
@@ -323,5 +329,42 @@ struct SectionHeading: View {
             .foregroundStyle(Color.textPrimary)
             .padding(.bottom, Theme.Spacing.xs)
             .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// "$12,500 of $48,000 collected": payments so far against the claim's total RCV.
+struct PaymentProgress: View {
+    let collected: Decimal
+    let totalRcv: Decimal
+
+    private var fraction: Double {
+        min(max(NSDecimalNumber(decimal: collected / totalRcv).doubleValue, 0), 1)
+    }
+
+    var body: some View {
+        let remaining = max(totalRcv - collected, 0)
+        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            AdaptiveStack(horizontalAlignment: .firstTextBaseline) {
+                Text("\(PortalFormat.currency(collected)) of \(PortalFormat.currency(totalRcv))")
+                    .font(.headline)
+                    .foregroundStyle(Color.textPrimary)
+                AdaptiveSpacer()
+                Text("\(Int((fraction * 100).rounded()))% collected")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(fraction >= 1 ? Color.success : Color.brandPrimary)
+            }
+            ProgressView(value: fraction)
+                .tint(fraction >= 1 ? Color.success : Color.brandPrimary)
+                .accessibilityHidden(true)
+            HStack(spacing: Theme.Spacing.xs) {
+                Text(remaining > 0 ? "\(PortalFormat.currency(remaining)) still to collect" : "Fully collected")
+                RCVHelpButton()
+            }
+            .font(.caption)
+            .foregroundStyle(Color.textSecondary)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(PortalFormat.currency(collected)) collected of \(PortalFormat.currency(totalRcv)) total RCV, \(Int((fraction * 100).rounded())) percent")
+        .accessibilityIdentifier("paymentProgress")
     }
 }

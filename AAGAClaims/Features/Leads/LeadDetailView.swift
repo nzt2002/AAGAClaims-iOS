@@ -7,6 +7,7 @@ struct LeadDetailView: View {
     /// Staff only: Convert, Post, the agreement e-sign preview, Edit and the Lead Feed.
     @State private var leadActions: LeadActionsViewModel
     @State private var leadFeed: ChatterFeedViewModel
+    @State private var activity: RecordActivityViewModel
     @State private var openAction: LeadAction?
     @State private var showingConvert = false
     @State private var convertedClaim: (id: String, name: String)?
@@ -18,6 +19,7 @@ struct LeadDetailView: View {
     @Environment(\.currentUserName) private var currentUserName
     @Environment(\.salesforcePage) private var salesforcePage
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.serverMeta) private var serverMeta
 
     enum UpdatesFilter: String, CaseIterable {
         case leadFeed = "Lead Feed"
@@ -32,7 +34,8 @@ struct LeadDetailView: View {
     init(leadId: String, fallbackName: String?, api: PortalAPI) {
         _viewModel = State(initialValue: LeadDetailViewModel(leadId: leadId, api: api))
         _leadActions = State(initialValue: LeadActionsViewModel(api: api, leadId: leadId))
-        _leadFeed = State(initialValue: ChatterFeedViewModel(api: api, source: .lead(leadId)))
+        _leadFeed = State(initialValue: ChatterFeedViewModel(api: api, source: .lead(leadId), outbox: .shared))
+        _activity = State(initialValue: RecordActivityViewModel(api: api, record: .lead(leadId), includeEmails: false))
         self.fallbackName = fallbackName
         self.api = api
     }
@@ -49,15 +52,20 @@ struct LeadDetailView: View {
                 if isInternal, leadFeed.feed.value == nil {
                     async let staff: Void = leadActions.load()
                     async let feed: Void = leadFeed.load()
-                    _ = await (staff, feed)
+                    async let activity: Void = loadActivity()
+                    _ = await (staff, feed, activity)
                 }
             }
             .sheet(item: $openAction) { action in
                 switch action {
                 case .task:
-                    NewTaskSheet(api: api, currentUserName: currentUserName, record: .lead(viewModel.leadId)) {}
+                    NewTaskSheet(api: api, currentUserName: currentUserName, record: .lead(viewModel.leadId)) {
+                        Task { await loadActivity() }
+                    }
                 case .event:
-                    NewEventSheet(api: api, currentUserName: currentUserName, record: .lead(viewModel.leadId)) {}
+                    NewEventSheet(api: api, currentUserName: currentUserName, record: .lead(viewModel.leadId)) {
+                        Task { await loadActivity() }
+                    }
                 case .edit:
                     if let staff = leadActions.staff.value {
                         EditLeadForm(staff: staff, actions: leadActions, api: api) {
@@ -127,6 +135,9 @@ struct LeadDetailView: View {
                     LeadQuickActions(isConverted: isConverted(detail)) { handle($0, detail) }
                 }
                 LeadLifecycleCard(position: detail.lifecycle, status: detail.prospectStatus)
+                if isInternal && serverMeta.supports(.leadActivities) {
+                    RecordActivitySection(model: activity, api: api, noun: "lead")
+                }
                 AgreementCard(agreement: detail.agreement)
                 SectionBar(selection: $viewModel.section)
                 sectionContent(detail)
@@ -145,6 +156,7 @@ struct LeadDetailView: View {
             if isInternal {
                 await leadActions.load()
                 await leadFeed.load()
+                await loadActivity()
             }
         }
         .toolbar {
@@ -226,6 +238,13 @@ struct LeadDetailView: View {
             .foregroundStyle(Color.textSecondary)
         }
         .accessibilityElement(children: .combine)
+    }
+
+    /// Emails are included once the server has them.
+    private func loadActivity() async {
+        guard isInternal, serverMeta.supports(.leadActivities) else { return }
+        activity.includeEmails = serverMeta.supports(.activityEmails)
+        await activity.load()
     }
 
     @ViewBuilder

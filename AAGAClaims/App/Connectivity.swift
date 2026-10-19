@@ -105,4 +105,6 @@ extension EnvironmentValues {
     @Entry var salesforcePage: SalesforcePageAction? = nil
     /// The signed-in user's name (the default assignee on New Task and New Event).
     @Entry var currentUserName: String? = nil
+    /// What the server supports (`GET /meta`). Features whose server side isn't live are hidden.
+    @Entry var serverMeta: ServerMeta = .legacy
 }

@@ -62,7 +62,7 @@ public enum DeepLink: Hashable, Sendable {
         return nil
     }
 
-    /// A push payload: `{ "type": "update" | "caseReply", "recordId": "...", "commentId": "..." }`.
+    /// A push payload: `{ "type": "update" | "caseReply" | "payment" | "mention" | "task", "recordId": "...", "commentId": "..." }`.
     public init?(pushPayload userInfo: [AnyHashable: Any]) {
         guard let type = userInfo["type"] as? String,
               let recordId = userInfo["recordId"] as? String, Self.isValidId(recordId) else { return nil }
@@ -80,6 +80,10 @@ public enum DeepLink: Hashable, Sendable {
         case "caseReply":
             guard recordId.hasPrefix(KeyPrefix.supportCase) else { return nil }
             self = .supportCase(id: recordId)
+        case "payment", "mention", "task":
+            // A payment on a claim, an @mention or a task on a claim or lead: open the record.
+            guard let record = Self.record(forId: recordId) else { return nil }
+            self = record
         default:
             return nil
         }

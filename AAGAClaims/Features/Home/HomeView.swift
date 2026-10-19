@@ -405,6 +405,8 @@ struct AgendaRow: View {
     /// "Due tomorrow", "Overdue · Due Oct 3", "Thu, Oct 9 · 10:00 AM – 11:00 AM"…
     static func whenText(_ item: AgendaItem) -> String {
         switch item.kind {
+        case .email:
+            return item.startDateTime.map { $0.formatted(date: .abbreviated, time: .shortened) } ?? ""
         case .task:
             guard let due = item.dueDate else { return "No due date" }
             let date = PortalFormat.date(due)

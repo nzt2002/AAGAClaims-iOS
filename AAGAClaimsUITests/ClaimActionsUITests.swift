@@ -178,6 +178,71 @@ final class ClaimActionsUITests: XCTestCase {
         XCTAssertEqual(edit.label, "Edit Claim")
     }
 
+    func testTaskPageMarkCompleteEditAndReassign() {
+        open("task")
+        let subject = app.textFields["newTaskSubject"]
+        XCTAssertTrue(subject.waitForExistence(timeout: 5))
+        subject.tap()
+        subject.typeText("Order roof measurements")
+        app.buttons["newTaskSave"].tap()
+        let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'claimActivity-' AND label CONTAINS 'Order roof measurements'")).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        app.scrollIntoView(row)
+        row.tap()
+
+        // Reassign to Jane Doe.
+        let reassign = app.buttons["activityReassign"]
+        XCTAssertTrue(reassign.waitForExistence(timeout: 5))
+        reassign.tap()
+        app.buttons["Jane Doe"].firstMatch.tap()
+        XCTAssertTrue(element(containing: "Jane Doe").waitForExistence(timeout: 5))
+
+        // Edit the subject.
+        app.buttons["activityEdit"].tap()
+        let field = app.textFields["editActivitySubject"].exists ? app.textFields["editActivitySubject"] : app.textViews["editActivitySubject"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        // Tap the end of the text so the cursor lands after it.
+        field.coordinate(withNormalizedOffset: CGVector(dx: 0.98, dy: 0.5)).tap()
+        sleep(1)
+        app.typeText(" and gutters")
+        app.buttons["actionSave"].tap()
+        let header = app.descendants(matching: .any)["activityHeader"]
+        XCTAssertTrue(NSPredicate(format: "label CONTAINS 'Order roof measurements and gutters'").evaluate(with: header) ||
+                      element(containing: "Order roof measurements and gutters").waitForExistence(timeout: 5))
+
+        // Mark Complete.
+        let complete = app.buttons["activityComplete"]
+        XCTAssertTrue(complete.exists)
+        complete.tap()
+        XCTAssertTrue(element(containing: "Completed").waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["activityComplete"].exists, "Done tasks can't be completed again")
+    }
+
+    func testEmailsShowInRecentActivity() {
+        let email = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'claimActivity-02s'")).firstMatch
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+        app.scrollIntoView(email)
+        XCTAssertTrue(email.label.contains("Received"), email.label)
+        email.tap()
+        XCTAssertTrue(element(containing: "Email details").waitForExistence(timeout: 5))
+        XCTAssertTrue(element(containing: "Pat Carrier").exists)
+        XCTAssertFalse(app.buttons["activityEdit"].exists, "Emails are read-only")
+    }
+
+    func testStageGuideAndPaymentProgress() {
+        let guide = app.descendants(matching: .any)["stageGuide"].firstMatch
+        app.scrollIntoView(guide)
+        XCTAssertTrue(guide.exists)
+        XCTAssertTrue(element(containing: "What's next").exists)
+
+        let payments = app.buttons["Payments"]
+        app.scrollIntoView(payments)
+        payments.tap()
+        let progress = app.descendants(matching: .any)["paymentProgress"].firstMatch
+        XCTAssertTrue(progress.waitForExistence(timeout: 5))
+        XCTAssertTrue(progress.label.contains("collected of"), progress.label)
+    }
+
     func testRecentActivityOpensTaskRecord() {
         // Open items first, then done ones; three at a time.
         let done = app.buttons["claimActivity-00Thist1AAA1"]
