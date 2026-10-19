@@ -117,7 +117,7 @@ final class LeadsUITests: XCTestCase {
 
         XCTAssertTrue(app.tabBars.buttons["Claims"].waitForExistence(timeout: 5))
         XCTAssertTrue(element(containing: "Jordan Reyes").waitForExistence(timeout: 5))
-        XCTAssertTrue(app.tabBars.buttons["Claims"].isSelected, "The new claim opens")
+        XCTAssertTrue(app.tabBars.buttons["Leads"].isSelected, "The new claim opens on top of the lead")
     }
 
     func testSubmitLeadValidatesThenOpensNewLead() {

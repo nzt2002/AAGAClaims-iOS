@@ -74,8 +74,8 @@ final class HomeUITests: XCTestCase {
         let lead = app.buttons["searchResult-a0r000000000001AAA"]
         XCTAssertTrue(lead.waitForExistence(timeout: 5))
         lead.tap()
-        XCTAssertTrue(app.tabBars.buttons["Leads"].isSelected)
         XCTAssertTrue(element(containing: "Jordan Reyes").waitForExistence(timeout: 5))
+        XCTAssertTrue(app.tabBars.buttons["Home"].isSelected, "Opened on top of Home")
     }
 
     func testChatterPostInRecentActivityOpensItsClaim() {
@@ -105,7 +105,34 @@ final class HomeUITests: XCTestCase {
         app.scrollIntoView(row)
         row.tap()
         XCTAssertTrue(element(containing: "Claim CLM-1234").waitForExistence(timeout: 5))
-        XCTAssertTrue(app.tabBars.buttons["Claims"].isSelected)
+        // Opened on top of Home, so Back returns there.
+        XCTAssertTrue(app.tabBars.buttons["Home"].isSelected)
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Welcome back, Alex!"].waitForExistence(timeout: 5), "Back returns to Home")
+    }
+
+    func testSearchOpensTheChosenClaimNotTheOneAlreadyOpen() {
+        app.tabBars.buttons["Claims"].tap()
+        let card = app.buttons["claimCard-a23000000000001AAA"]
+        XCTAssertTrue(card.waitForExistence(timeout: 10))
+        card.tap()
+        XCTAssertTrue(element(containing: "Claim CLM-1234").waitForExistence(timeout: 5))
+
+        app.tabBars.buttons["Home"].tap()
+        app.buttons["homeSearch"].tap()
+        let field = app.textFields["searchField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("CLM-2210")
+        let result = app.buttons["searchResult-a23000000000002AAA"]
+        XCTAssertTrue(result.waitForExistence(timeout: 5))
+        result.tap()
+        XCTAssertTrue(element(containing: "Claim CLM-2210").waitForExistence(timeout: 5), "The chosen claim opens")
+        XCTAssertFalse(element(containing: "Claim CLM-1234").exists)
+
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Welcome back, Alex!"].waitForExistence(timeout: 5), "Back returns to Home")
+        app.tabBars.buttons["Claims"].tap()
+        XCTAssertTrue(element(containing: "Claim CLM-1234").waitForExistence(timeout: 5), "The Claims tab is where it was")
     }
 
     func testUpcomingEventOpensItsClaim() {
@@ -177,9 +204,13 @@ final class HomeUITests: XCTestCase {
         XCTAssertTrue(element(containing: "Senior Field Adjuster").waitForExistence(timeout: 5))
         XCTAssertTrue(element(containing: "Heading to the Smith roof inspection").exists)
 
-        // Reply inline.
+        // Reply opens the reply box (and expands the post).
+        let replyButton = app.buttons["replyButton-0D5000000000011AAA"]
+        app.scrollIntoView(replyButton)
+        replyButton.tap()
         let reply = app.descendants(matching: .any)["replyField-0D5000000000011AAA"]
-        app.scrollIntoView(reply)
+        XCTAssertTrue(reply.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["attachReply-0D5000000000011AAA"].exists, "No files on profile feeds")
         reply.tap()
         reply.typeText("Photos are uploaded.")
         app.buttons["sendReply-0D5000000000011AAA"].tap()
@@ -245,7 +276,7 @@ final class HomeUITests: XCTestCase {
 
         app.buttons["openUpdateRecord"].tap()
         XCTAssertTrue(element(containing: "Claim CLM-1234").waitForExistence(timeout: 5))
-        XCTAssertTrue(app.tabBars.buttons["Claims"].isSelected)
+        XCTAssertTrue(app.tabBars.buttons["Home"].isSelected)
 
         // Opening the update marked it read.
         app.tabBars.buttons["Home"].tap()
@@ -319,7 +350,7 @@ final class HomeUITests: XCTestCase {
 
         XCTAssertTrue(app.tabBars.buttons["Claims"].waitForExistence(timeout: 5))
         XCTAssertTrue(element(containing: "Alex Smith - Fence").waitForExistence(timeout: 5))
-        XCTAssertTrue(app.tabBars.buttons["Claims"].isSelected)
+        XCTAssertTrue(app.tabBars.buttons["Home"].isSelected)
     }
 
     func testNewClaimExistingAccountWithMatchingContact() {
@@ -357,7 +388,7 @@ final class HomeUITests: XCTestCase {
         XCTAssertTrue(element(containing: "Morgan Field").exists)
         create.tap()
         XCTAssertTrue(element(containing: "Jordan Reyes").waitForExistence(timeout: 5))
-        XCTAssertTrue(app.tabBars.buttons["Claims"].isSelected)
+        XCTAssertTrue(app.tabBars.buttons["Home"].isSelected)
     }
 
     func testSearchScopesRecentsAndEmptyState() {

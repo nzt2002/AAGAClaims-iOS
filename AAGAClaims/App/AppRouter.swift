@@ -15,6 +15,7 @@ struct ClaimRoute: Hashable {
 @Observable
 final class AppRouter {
     var selection: AppTab = .home
+    var homePath = NavigationPath()
     var claimsPath = NavigationPath()
     var leadsPath = NavigationPath()
     var supportPath = NavigationPath()
@@ -99,20 +100,34 @@ final class AppRouter {
         }
     }
 
-    /// Closes any sheets and opens the claim or lead in its tab.
+    /// Closes any sheets and opens the claim or lead on top of the current screen, in the current
+    /// tab, so Back returns to where the user was (Home, a list, another claim…).
     func open(_ record: RecordRef, name: String?) {
         homeUpdate = nil
         notificationUpdate = nil
         showingNotifications = false
         switch record {
-        case .claim(let id):
-            claimsPath = NavigationPath()
-            claimsPath.append(ClaimRoute(id: id, name: name))
-            selection = .claims
-        case .lead(let id):
-            leadsPath = NavigationPath()
-            leadsPath.append(LeadRoute(id: id, name: name))
-            selection = .leads
+        case .claim(let id): push(ClaimRoute(id: id, name: name), recordTab: .claims)
+        case .lead(let id): push(LeadRoute(id: id, name: name), recordTab: .leads)
+        }
+    }
+
+    private func push<Route: Hashable>(_ route: Route, recordTab: AppTab) {
+        switch selection {
+        case .home: homePath.append(route)
+        case .claims: claimsPath.append(route)
+        case .leads: leadsPath.append(route)
+        case .support: supportPath.append(route)
+        case .account:
+            // Account has no stack of its own: open it in the record's tab.
+            if recordTab == .claims {
+                claimsPath = NavigationPath()
+                claimsPath.append(route)
+            } else {
+                leadsPath = NavigationPath()
+                leadsPath.append(route)
+            }
+            selection = recordTab
         }
     }
 
@@ -158,6 +173,26 @@ final class AppRouter {
         }
         selection = .support
         Task { await cases.load() }
+    }
+}
+
+/// Claim and lead pages, in every tab's stack (records open on top of the current screen).
+/// `.id` gives each record its own page state: opening another claim at the same place in the
+/// stack must not keep showing the previous one.
+struct RecordDestinations: ViewModifier {
+    let router: AppRouter
+    let api: PortalAPI
+
+    func body(content: Content) -> some View {
+        content
+            .navigationDestination(for: ClaimRoute.self) { route in
+                ClaimDetailView(claimId: route.id, summary: router.claims.claims.first { $0.recordId == route.id }, api: api)
+                    .id(route.id)
+            }
+            .navigationDestination(for: LeadRoute.self) { route in
+                LeadDetailView(leadId: route.id, fallbackName: route.name, api: api)
+                    .id(route.id)
+            }
     }
 }
 

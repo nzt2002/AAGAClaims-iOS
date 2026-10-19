@@ -488,10 +488,19 @@ public final class EmailComposerViewModel {
     private let api: PortalAPI
     private let claimId: String
 
-    public init(api: PortalAPI, claimId: String, defaultRecipient: String?) {
+    /// `referenceId` (the claim's Reference_ID__c) starts the body, below a gap for the message,
+    /// in brackets: replies that quote it are filed on the claim by the email service.
+    public init(api: PortalAPI, claimId: String, defaultRecipient: String?, referenceId: String? = nil) {
         self.api = api
         self.claimId = claimId
         if let defaultRecipient { to = [defaultRecipient] }
+        if let line = Self.referenceLine(referenceId) { body = "\n\n" + line }
+    }
+
+    /// "[ref_ (a23…)]".
+    public static func referenceLine(_ referenceId: String?) -> String? {
+        guard let id = referenceId?.trimmingCharacters(in: .whitespacesAndNewlines), !id.isEmpty else { return nil }
+        return "[\(id)]"
     }
 
     /// Adds typed addresses (comma, semicolon or space separated), skipping duplicates.

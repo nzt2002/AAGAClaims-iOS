@@ -111,6 +111,40 @@ struct FieldRow: View {
     }
 }
 
+/// A labelled value with a Copy button. Hidden when there's no value.
+struct CopyFieldRow: View {
+    let label: String
+    let value: String?
+    var systemImage: String?
+    @State private var copied = false
+
+    var body: some View {
+        if let value = PortalFormat.nonEmpty(value) {
+            HStack(spacing: Theme.Spacing.s) {
+                FieldRow(label: label, value: value, systemImage: systemImage)
+                    .textSelection(.enabled)
+                Button {
+                    UIPasteboard.general.string = value
+                    withAnimation { copied = true }
+                    Task {
+                        try? await Task.sleep(for: .seconds(2))
+                        withAnimation { copied = false }
+                    }
+                } label: {
+                    Label(copied ? "Copied" : "Copy", systemImage: copied ? "checkmark" : "doc.on.doc")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(minHeight: Theme.minTapTarget)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .sensoryFeedback(.success, trigger: copied) { _, new in new }
+                .accessibilityLabel(copied ? "Copied" : "Copy \(label)")
+                .accessibilityIdentifier("copy-\(label)")
+            }
+        }
+    }
+}
+
 /// An HTML update body, rendered safely (see `HTMLText`).
 struct RichText: View {
     let html: String?

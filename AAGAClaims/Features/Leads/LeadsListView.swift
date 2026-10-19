@@ -74,9 +74,7 @@ struct LeadsListView: View {
                 .accessibilityIdentifier("submitLead")
             }
         }
-        .navigationDestination(for: LeadRoute.self) { route in
-            LeadDetailView(leadId: route.id, fallbackName: route.name, api: api)
-        }
+        // LeadRoute is in RecordDestinations.
         .sheet(isPresented: $showingSubmit) {
             SubmitLeadView(api: api, userEmail: userEmail) { newLeadId, name in
                 showingSubmit = false

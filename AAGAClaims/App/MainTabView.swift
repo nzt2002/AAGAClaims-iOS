@@ -39,8 +39,9 @@ struct MainTabView: View {
     private var tabs: some View {
         TabView(selection: $router.selection) {
             Tab("Home", systemImage: "house", value: .home) {
-                NavigationStack {
+                NavigationStack(path: $router.homePath) {
                     HomeView(router: router, user: user)
+                        .modifier(RecordDestinations(router: router, api: session.api))
                         .statusBanners(session)
                         .toolbar { topBarButtons() }
                 }
@@ -48,6 +49,7 @@ struct MainTabView: View {
             Tab("Claims", systemImage: "doc.text", value: .claims) {
                 NavigationStack(path: $router.claimsPath) {
                     ClaimsListView(viewModel: router.claims, api: session.api, openSupport: { router.openSupport(caseId: nil) })
+                        .modifier(RecordDestinations(router: router, api: session.api))
                         .statusBanners(session)
                         .toolbar { topBarButtons() }
                 }
@@ -57,6 +59,7 @@ struct MainTabView: View {
                     LeadsListView(viewModel: router.leads, path: $router.leadsPath, showingSubmit: $router.showingSubmitLead,
                                   api: session.api, userEmail: user.email,
                                   openSupport: { router.openSupport(caseId: nil) })
+                        .modifier(RecordDestinations(router: router, api: session.api))
                         .statusBanners(session)
                         .toolbar { topBarButtons() }
                 }
@@ -65,6 +68,7 @@ struct MainTabView: View {
                 NavigationStack(path: $router.supportPath) {
                     SupportView(viewModel: router.cases, path: $router.supportPath,
                                 showingRequest: $router.showingRequestAssistance, api: session.api)
+                        .modifier(RecordDestinations(router: router, api: session.api))
                         .statusBanners(session)
                 }
             }

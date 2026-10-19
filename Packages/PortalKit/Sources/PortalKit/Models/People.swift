@@ -21,6 +21,27 @@ public struct Person: Codable, Hashable, Identifiable, Sendable {
     }
 }
 
+/// A file attached to a post or reply. Open it with `fileContent(contentDocumentId:)`.
+public struct ChatterAttachment: Codable, Hashable, Identifiable, Sendable {
+    public let id: String
+    public let title: String?
+    public let fileType: String?
+    public let fileExtension: String?
+    public let contentSize: Int?
+
+    public init(id: String, title: String?, fileType: String?, fileExtension: String? = nil, contentSize: Int?) {
+        self.id = id
+        self.title = title
+        self.fileType = fileType
+        self.fileExtension = fileExtension
+        self.contentSize = contentSize
+    }
+
+    public init(_ file: PortalFile) {
+        self.init(id: file.contentDocumentId, title: file.title, fileType: file.fileType, contentSize: file.contentSize)
+    }
+}
+
 /// A reply (Chatter comment) on a post.
 public struct ChatterReply: Codable, Hashable, Identifiable, Sendable {
     public let id: String
@@ -31,8 +52,11 @@ public struct ChatterReply: Codable, Hashable, Identifiable, Sendable {
     public let isMine: Bool?
     /// Names @mentioned in the text.
     public var mentions: [String]?
+    public var attachments: [ChatterAttachment]?
 
-    public init(id: String, authorName: String?, text: String?, createdDate: Date?, isMine: Bool?, mentions: [String]? = nil) {
+    public init(id: String, authorName: String?, text: String?, createdDate: Date?, isMine: Bool?, mentions: [String]? = nil,
+                attachments: [ChatterAttachment]? = nil) {
+        self.attachments = attachments
         self.id = id
         self.authorName = authorName
         self.text = text
@@ -53,9 +77,11 @@ public struct ChatterPost: Codable, Hashable, Identifiable, Sendable {
     public var replies: [ChatterReply]
     public var totalReplies: Int?
     public var mentions: [String]?
+    public var attachments: [ChatterAttachment]?
 
     public init(id: String, authorName: String?, text: String?, createdDate: Date?, parentName: String?,
-                replies: [ChatterReply], totalReplies: Int?, mentions: [String]? = nil) {
+                replies: [ChatterReply], totalReplies: Int?, mentions: [String]? = nil, attachments: [ChatterAttachment]? = nil) {
+        self.attachments = attachments
         self.mentions = mentions
         self.id = id
         self.authorName = authorName

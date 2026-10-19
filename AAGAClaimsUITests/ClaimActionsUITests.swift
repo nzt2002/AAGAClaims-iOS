@@ -125,6 +125,59 @@ final class ClaimActionsUITests: XCTestCase {
         XCTAssertFalse(app.buttons["newTaskSave"].exists)
     }
 
+    func testClaimFeedPostsCollapseAndReplyOpensTheReplyBox() {
+        let post = "0D5000000000001AAA"
+        let toggle = app.buttons["togglePost-\(post)"]
+        app.scrollIntoView(toggle)
+        XCTAssertTrue(toggle.exists)
+        XCTAssertFalse(app.descendants(matching: .any)["replyField-\(post)"].exists, "No reply box until Reply")
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'attachment-'")).firstMatch.exists,
+                       "Collapsed posts hide their files")
+        XCTAssertTrue(element(containing: "1 file").exists, "…but say they have one")
+
+        toggle.tap()
+        let file = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'attachment-'")).firstMatch
+        XCTAssertTrue(file.waitForExistence(timeout: 5), "Expanded posts show their files")
+
+        let reply = app.buttons["replyButton-\(post)"]
+        app.scrollIntoView(reply)
+        reply.tap()
+        let field = app.descendants(matching: .any)["replyField-\(post)"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        XCTAssertGreaterThan(field.frame.height, 60, "Three lines tall")
+        XCTAssertTrue(app.buttons["attachReply-\(post)"].exists, "Claim replies can have a file")
+        sleep(1)
+        app.typeText("Thanks, I'll chase them.")
+        app.buttons["sendReply-\(post)"].tap()
+        XCTAssertTrue(element(containing: "Thanks, I'll chase them.").waitForExistence(timeout: 5))
+        XCTAssertFalse(field.exists, "The box closes once sent")
+
+        toggle.tap()
+        XCTAssertFalse(element(containing: "Thanks, I'll chase them.").exists, "Collapsing hides the replies")
+        XCTAssertTrue(element(containing: "1 reply").exists)
+    }
+
+    func testIdFieldAndEmailQuotesIt() {
+        open("email")
+        let body = app.textViews["emailBody"].exists ? app.textViews["emailBody"] : app.textFields["emailBody"]
+        XCTAssertTrue(body.waitForExistence(timeout: 5))
+        XCTAssertTrue((body.value as? String ?? "").contains("[ref_ (a23000000000001AAA)]"), String(describing: body.value))
+        app.buttons["actionCancel"].tap()
+
+        let details = app.buttons["Details"]
+        app.scrollIntoView(details)
+        details.tap()
+        XCTAssertTrue(element(containing: "ref_ (a23000000000001AAA)").waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["copy-Id"].exists)
+    }
+
+    func testEditIsATextButtonInTheTopBar() {
+        // The visible title is "Edit" (VoiceOver says "Edit Claim").
+        let edit = app.navigationBars.buttons["claimAction-edit"]
+        XCTAssertTrue(edit.exists)
+        XCTAssertEqual(edit.label, "Edit Claim")
+    }
+
     func testRecentActivityOpensTaskRecord() {
         // Open items first, then done ones; three at a time.
         let done = app.buttons["claimActivity-00Thist1AAA1"]

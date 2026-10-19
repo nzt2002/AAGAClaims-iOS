@@ -65,6 +65,10 @@ All users sign in with their **existing portal credentials**. They are Salesforc
 
 **Global:** a bell icon in the navigation bar of Home, Claims and Leads opens **Notifications** and shows an unread badge count. Global **Search** opens from the search bar in the Home hero.
 
+**Opening records:** a claim or lead opened from anywhere else (Home, Search, Notifications, an update, a task, a converted lead, a link or a push) opens **on top of the current screen in the current tab**, so Back returns to where the user was. Each record page is its own screen, so opening a different claim never shows the one that was already open. From Account, which has no stack, the record opens in its own tab.
+
+**My Claims / My Leads:** besides the portal's contact, account and associated-party matches, they list every record that names the signed-in user in a user field: claims by owner, account manager, desk adjuster or creator (and, for portal users, the claim's contact); leads by owner, account manager, adjuster, desk adjuster or creator (and, for portal users, the subcontractor). "Last modified by" isn't included. The web portal uses the same lists.
+
 **Empty-state rule:** if a user has no claims, the Claims tab still appears with a friendly empty state ("No claims yet") and a link to Support. The same applies to Leads.
 
 ---
@@ -241,7 +245,8 @@ All return `404` unless the user is internal (user type Standard), and only for 
 - `GET /search?q=&includeUsers=true` also returns `{ "type": "User", "id", "title": name, "subtitle": "Title · Department" }` (SOSL on name fields, 20 at most). Without `includeUsers`, no people are returned, so older app builds never see the "User" type.
 - `GET /people/{id}` → `{ id, name, title, department, email, phone, mobilePhone, aboutMe, city, state, managerName, isMe }`.
 - `GET /people/{id}/feed` → their Chatter profile feed (ConnectApi, `UserProfile`, 20 newest): `[{ id, authorName, text, createdDate, parentName?, totalReplies, replies: [{ id, authorName, text, createdDate, isMine }] }]`. Posts without text are skipped. `parentName` is set when the post is on something other than their profile.
-- `POST /chatter/posts/{postId}/replies` `{ text }` → `201` the reply.
+- `POST /chatter/posts/{postId}/replies` `{ text, mentions?, fileIds? }` → `201` the reply. `fileIds` holds at most one file (Chatter allows one per reply); the text may then be empty and the file's name is used.
+- Posts and replies carry `attachments: [{ id, title, fileType, fileExtension, contentSize }]` (ContentDocument ids), opened with `GET /files/{id}/content`. Attached files must already be linked to one of the user's claims or leads (the app uploads them with `POST /claims/{id}/files` or `/leads/{id}/files` first, so they also appear in Files); anything else is `400 invalid_request`.
 - `POST /chatter/replies/{replyId}` `{ text }` → `201` the edited reply. Chatter decides who may edit (normally only the author, and only if comment editing is on); otherwise `400 edit_not_allowed`.
 - Text is required and at most 10,000 characters. Everything runs through ConnectApi as the user, so Chatter's own visibility rules apply.
 
@@ -255,7 +260,7 @@ All return `404` unless the user is internal (user type Standard), and only for 
 - `POST proof-of-loss` → the 13 fields of the proofOfLossDataEntry component. The expiration date must be after the effective date.
 - `GET payment-setup` and `POST payments {dateCollected, notes, applyDeductible, rows:[{rowType, amount}]}` → Apply Payments, saved through `PaymentCalculatorController2.savePaymentBundle2Json`, as the Apply_Payments_Mobile quick action. Blocked without a deductible; hidden types (ACV, Recoverable Depreciation, Deductible (Commissions)) are refused; no hand-entered Deductible row when the deductible is applied.
 - `GET contact-matches?firstName&lastName&email&mobile` and `POST contacts` → Add Contact (Add_Claim_Contact): matches on email, mobile phone, or first and last name; `409 already_linked` if the contact is already on the claim; new contacts follow New Claim's rules (duplicate rules, subcontractor company account).
-- `GET feed`, `POST posts {text}` → the claim's Chatter feed, and Add a Post. Replies use §5.6a.
+- `GET feed`, `POST posts {text, mentions?, fileIds?}` → the claim's Chatter feed, and Add a Post with up to 10 files (text optional with files). Replies use §5.6a.
 - `POST calls {subject, description?, contactId?}` → Log a Call: a completed Call task on the claim.
 - `POST emails {fromAddressId?, to[], cc[], bcc[], subject, body}` → Send an Email: sent through Salesforce and logged on the claim as an EmailMessage.
 
@@ -349,7 +354,7 @@ The Prospect Conversion Guided Process (`Prospect_Conversion_Guided_Process` flo
 - **Add Contact:** Existing (search) or New, with a role. New contacts are checked for matches (email, mobile phone, or name) first; then a company account for subcontractors; a duplicate-rule match lets the user add the existing contact or none.
 - **Edit Claim:** the core fields. **Update Address:** with address lookup as you type. **Change Owner:** searchable list of internal users.
 - **Proof of Loss:** the 13 fields with "n of 13 complete". *Generate Proof of Loss Document* (once all 13 are saved) opens Salesforce's DocMerge page (`/apex/hic_docmerge__Composer`) in an in-app browser; the user may need to sign in there. Not available in demo mode.
-- **Add a Post:** posts to the claim's Chatter feed (staff only; homeowners don't see it). **Log a Call:** subject, optional contact from the claim, notes. **Send an Email:** From (the user or an org-wide address), To (defaults to the claim's email, with one-tap suggestions for the account and claim contacts), Cc, subject and message; sent through Salesforce and logged on the claim.
+- **Add a Post:** posts to the claim's Chatter feed (staff only; homeowners don't see it). **Log a Call:** subject, optional contact from the claim, notes. **Send an Email:** From (the user or an org-wide address), To (defaults to the claim's email, with one-tap suggestions for the account and claim contacts), Cc, subject and message; sent through Salesforce and logged on the claim. The message starts with two blank lines and then the claim's Id in brackets, e.g. `[ref_ (a23…)]`, so replies that quote it are filed on the claim by the email service.
 
 **Header** also shows the **loss address** (map pin) directly under the claim name.
 
@@ -364,8 +369,8 @@ The card is **collapsible** and starts collapsed: the progress ring and the curr
 
 | Section | Content |
 |---|---|
-| **Updates** | Published updates (`/updates`), newest first, one card each with title, date and HTML body. Empty state: "No updates have been published for this claim yet." Both lists show **3 at a time** and scroll. Staff get a *Claim Feed / Portal Updates* filter that starts on **Claim Feed**: the claim's Chatter feed, with inline replies and editing of their own replies (§5.6a). |
-| **Details** | *Claim snapshot*: peril, date of claim, loss address (tap to open in Maps), main phone, email, business email. *Loss and documentation*: loss date, date claim filed, loss description (HTML), and the "Photos or documents" link (`photosUrl`) if present. |
+| **Updates** | Published updates (`/updates`), newest first, one card each with title, date and HTML body. Empty state: "No updates have been published for this claim yet." Both lists show **3 at a time** and scroll. Staff get a *Claim Feed / Portal Updates* filter that starts on **Claim Feed**: the claim's Chatter feed (§5.6a). Each post is a **collapsible** card: collapsed, the author, date, the first 3 lines and "N replies · N files"; tap to expand to the full text, its files and replies (with Edit on your own). **Reply** expands the post and opens a 3-line reply box with @mentions and a paperclip to attach one photo or file (camera, library or Files); Cancel discards the draft. Attachments open in Quick Look. |
+| **Details** | *Claim snapshot*: **Id** (Reference_ID__c, with a Copy button; staff emails quote it), peril, date of claim, loss address (tap to open in Maps), main phone, email, business email. *Loss and documentation*: loss date, date claim filed, loss description (HTML), and the "Photos or documents" link (`photosUrl`) if present. |
 | **Insurance** | Insurance company, insurance main phone (tap to call), claim number, policy number, deductible. |
 | **Files** | File list showing an icon by type, title, "{type} · {size} · Uploaded {date}" and "Uploaded by {name}". Tapping a file opens it in Quick Look. **Upload** button (§6.10). |
 | **Payments** | One row per payment: name, date of notice, net deposit, insured payment, total RCV. Footer: total payments collected. Empty state: "No payment records have been found for this claim." |

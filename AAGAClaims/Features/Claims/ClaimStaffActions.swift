@@ -145,6 +145,8 @@ struct ClaimActionSheet: View {
     let actions: ClaimActionsViewModel
     let feed: ChatterFeedViewModel
     let api: PortalAPI
+    /// The claim's Reference_ID__c, put in new emails.
+    var referenceId: String?
     let saved: () -> Void
 
     var body: some View {
@@ -178,7 +180,7 @@ struct ClaimActionSheet: View {
         case .address: UpdateAddressForm(staff: staff, actions: actions, saved: saved)
         case .owner: ChangeOwnerForm(staff: staff, actions: actions, saved: saved)
         case .proofOfLoss: ProofOfLossForm(staff: staff, actions: actions, saved: saved)
-        case .email: EmailForm(api: api, staff: staff, saved: saved)
+        case .email: EmailForm(api: api, staff: staff, referenceId: referenceId, saved: saved)
         case .payments, .addContact, .post, .task, .event: EmptyView()
         }
     }
@@ -953,16 +955,43 @@ struct AddPostForm: View {
             } footer: {
                 Text("Posts to the Chatter feed. Staff only; homeowners don't see it.")
             }
+            if feed.supportsAttachments {
+                Section {
+                    let id = ChatterFeedViewModel.newPostId
+                    let files = feed.attachments[id] ?? []
+                    if !files.isEmpty || feed.uploading.contains(id) {
+                        DraftAttachments(files: files, isUploading: feed.uploading.contains(id)) { file in
+                            feed.removeAttachment(file.id, from: id)
+                        }
+                    }
+                    FileSourceMenu(maxCount: feed.maxFiles(for: id) - files.count, onPicked: { uploads in
+                        Task { await feed.attach(uploads, to: id) }
+                    }) {
+                        Label("Attach Files", systemImage: "paperclip")
+                            .frame(minHeight: Theme.minTapTarget)
+                    }
+                    .disabled(!feed.canAttach(to: id))
+                    .accessibilityIdentifier("attachPost")
+                    if let error = feed.attachmentErrors[id] {
+                        Text(error).font(.footnote).foregroundStyle(Color.warning)
+                    }
+                } footer: {
+                    Text("Files are also added to the record's Files.")
+                }
+            }
             if feed.failedId == ChatterFeedViewModel.newPostId {
                 ErrorRow(message: "We couldn't post that. Please try again.")
             }
         }
         .toolbar {
-            FormToolbar(saveTitle: "Post", isSaving: feed.saving.contains(ChatterFeedViewModel.newPostId),
-                        canSave: !draft.trimmedText.isEmpty) {
+            let id = ChatterFeedViewModel.newPostId
+            FormToolbar(saveTitle: "Post", isSaving: feed.saving.contains(id),
+                        canSave: (!draft.trimmedText.isEmpty || !(feed.attachments[id] ?? []).isEmpty) && !feed.uploading.contains(id)) {
                 if await feed.post(draft) { dismiss() }
             }
         }
+        // Files picked for a post that wasn't sent stay in the record's Files, but not on the next draft.
+        .onDisappear { feed.discardDraft(ChatterFeedViewModel.newPostId) }
     }
 }
 
@@ -976,8 +1005,9 @@ private struct EmailForm: View {
     @State private var addressError: String?
     @Environment(\.dismiss) private var dismiss
 
-    init(api: PortalAPI, staff: StaffClaim, saved: @escaping () -> Void) {
-        _model = State(initialValue: EmailComposerViewModel(api: api, claimId: staff.id, defaultRecipient: staff.emailRecipients.first?.value))
+    init(api: PortalAPI, staff: StaffClaim, referenceId: String?, saved: @escaping () -> Void) {
+        _model = State(initialValue: EmailComposerViewModel(api: api, claimId: staff.id, defaultRecipient: staff.emailRecipients.first?.value,
+                                                            referenceId: referenceId))
         self.staff = staff
         self.saved = saved
     }

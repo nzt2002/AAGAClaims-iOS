@@ -74,7 +74,7 @@ public protocol PortalAPI: Sendable {
     func claimFeed(claimId: String) async throws -> [ChatterPost]
     /// Staff: the claim's tasks and events, open first.
     func claimActivities(claimId: String) async throws -> [AgendaItem]
-    func postToClaim(claimId: String, text: String, mentions: [Mention]) async throws -> ChatterPost
+    func postToClaim(claimId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost
     func logCall(claimId: String, _ call: CallLog) async throws
     func sendEmail(claimId: String, _ email: OutgoingEmail) async throws
 
@@ -82,7 +82,7 @@ public protocol PortalAPI: Sendable {
     func leadStaff(id: String) async throws -> LeadStaff
     func editLead(id: String, _ edit: LeadEdit) async throws
     func leadFeed(leadId: String) async throws -> [ChatterPost]
-    func postToLead(leadId: String, text: String, mentions: [Mention]) async throws -> ChatterPost
+    func postToLead(leadId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost
     /// Convert to Account: the account and claim contact as for New Claim; the claim comes from the lead.
     /// Returns the new claim id. Throws `.alreadyConverted` if the lead was converted already.
     func convertLead(id: String, account: NewClaimRequest.Account, contact: NewClaimRequest.Contact?) async throws -> String
@@ -98,7 +98,8 @@ public protocol PortalAPI: Sendable {
     /// `GET /people?q=`: people to @mention.
     func mentionCandidates(_ query: String) async throws -> [Mention]
     /// `POST /chatter/posts/{id}/replies`. Each "@Name" of a mention in the text becomes a real Chatter mention.
-    func addReply(toPost postId: String, text: String, mentions: [Mention]) async throws -> ChatterReply
+    /// `fileIds`: files already uploaded to the post's claim or lead (one per reply).
+    func addReply(toPost postId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterReply
     /// `POST /chatter/replies/{id}`: edit your own reply.
     func editReply(id: String, text: String, mentions: [Mention]) async throws -> ChatterReply
     /// `GET /feed`: Chatter posts from a staff member's news feed; empty for portal users.

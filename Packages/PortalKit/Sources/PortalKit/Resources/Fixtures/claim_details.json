@@ -11,7 +11,7 @@
     "dateClaimFiled": "2026-08-20", "dateOfClaim": "2026-08-15", "lossDate": "2026-08-14",
     "lossDescription": "Wind damage to the roof after the August storm.\nWater stains on the upstairs bedroom ceiling.",
     "photosUrl": "https://example.com/photos/clm-1234",
-    "adjusterFees": 10, "deductible": 1000.00, "paymentCollected": 12500.00, "totalRcv": 48000.00
+    "adjusterFees": 10, "deductible": 1000.00, "paymentCollected": 12500.00, "totalRcv": 48000.00, "referenceId": "ref_ (a23000000000001AAA)"
   },
   "a23000000000002AAA": {
     "claimName": "Smith - Kitchen Water", "claimStatus": "Negotiations", "peril": "Water",
@@ -25,7 +25,7 @@
     "dateClaimFiled": "2026-06-05", "dateOfClaim": "2026-06-03", "lossDate": "2026-06-02",
     "lossDescription": "Supply line under the kitchen sink burst overnight.",
     "photosUrl": null,
-    "adjusterFees": 10, "deductible": 2500.00, "paymentCollected": 0, "totalRcv": 22750.00
+    "adjusterFees": 10, "deductible": 2500.00, "paymentCollected": 0, "totalRcv": 22750.00, "referenceId": "ref_ (a23000000000002AAA)"
   },
   "a23000000000003AAA": {
     "claimName": "Smith - Garage Fire", "claimStatus": "Closed", "peril": "Fire",
@@ -39,7 +39,7 @@
     "dateClaimFiled": "2025-11-24", "dateOfClaim": "2025-11-21", "lossDate": "2025-11-20",
     "lossDescription": "Electrical fire in the detached garage.",
     "photosUrl": null,
-    "adjusterFees": 12.5, "deductible": 1000.00, "paymentCollected": 61200.50, "totalRcv": 68000.00
+    "adjusterFees": 12.5, "deductible": 1000.00, "paymentCollected": 61200.50, "totalRcv": 68000.00, "referenceId": "ref_ (a23000000000003AAA)"
   },
   "a23000000000004AAA": {
     "claimName": "Smith - Fence", "claimStatus": "On Hold", "peril": "Hail",
@@ -51,6 +51,6 @@
     "claimNumber": null, "policyNumber": null,
     "dateClaimFiled": null, "dateOfClaim": null, "lossDate": null,
     "lossDescription": null, "photosUrl": null,
-    "adjusterFees": null, "deductible": null, "paymentCollected": 0, "totalRcv": null
+    "adjusterFees": null, "deductible": null, "paymentCollected": 0, "totalRcv": null, "referenceId": "ref_ (a23000000000004AAA)"
   }
 }

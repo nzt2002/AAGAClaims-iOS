@@ -4,12 +4,28 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 
-/// Upload sources (spec §6.10): camera, photo library (multi-select) and Files. Prepares each
-/// pick with `FileUploadRules` and hands the results to the upload queue.
+/// Upload sources (spec §6.10) for a record's Files: picks go to the upload queue.
 struct UploadMenu: View {
     let record: RecordRef
-
     @Environment(UploadQueue.self) private var queue
+
+    var body: some View {
+        FileSourceMenu(maxCount: 10, onPicked: { queue.enqueue($0, to: record) }) {
+            Label("Upload", systemImage: "arrow.up.doc")
+                .font(.subheadline.weight(.semibold))
+                .frame(minHeight: Theme.minTapTarget)
+        }
+        .accessibilityIdentifier("uploadMenu")
+    }
+}
+
+/// Camera, photo library (multi-select) and Files. Prepares each pick with `FileUploadRules`
+/// and hands the results to `onPicked`.
+struct FileSourceMenu<MenuLabel: View>: View {
+    var maxCount = 10
+    let onPicked: ([FileUpload]) -> Void
+    @ViewBuilder let label: () -> MenuLabel
+
     @Environment(\.isOffline) private var isOffline
     @State private var showingCamera = false
     @State private var showingLibrary = false
@@ -25,19 +41,16 @@ struct UploadMenu: View {
             Button("Photo Library", systemImage: "photo.on.rectangle") { showingLibrary = true }
             Button("Files", systemImage: "folder") { showingFiles = true }
         } label: {
-            Label("Upload", systemImage: "arrow.up.doc")
-                .font(.subheadline.weight(.semibold))
-                .frame(minHeight: Theme.minTapTarget)
+            label()
         }
         .disabledWhenOffline(isOffline)
-        .accessibilityIdentifier("uploadMenu")
         .fullScreenCover(isPresented: $showingCamera) {
             CameraPicker { image in
                 add(cameraImage: image)
             }
             .ignoresSafeArea()
         }
-        .photosPicker(isPresented: $showingLibrary, selection: $libraryItems, maxSelectionCount: 10, matching: .images)
+        .photosPicker(isPresented: $showingLibrary, selection: $libraryItems, maxSelectionCount: maxCount, matching: .images)
         .onChange(of: libraryItems) { _, items in
             guard !items.isEmpty else { return }
             libraryItems = []
@@ -46,7 +59,7 @@ struct UploadMenu: View {
         .fileImporter(
             isPresented: $showingFiles,
             allowedContentTypes: FileUploadRules.allowedContentTypes,
-            allowsMultipleSelection: true
+            allowsMultipleSelection: maxCount > 1
         ) { result in
             if case .success(let urls) = result {
                 add(fileURLs: urls)
@@ -107,7 +120,7 @@ struct UploadMenu: View {
             }
         }
         if !uploads.isEmpty {
-            queue.enqueue(uploads, to: record)
+            onPicked(uploads)
         }
     }
 }

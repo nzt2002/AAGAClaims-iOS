@@ -431,11 +431,32 @@ public actor MockPortalAPI: PortalAPI {
         return names.isEmpty ? nil : names
     }
 
-    public func addReply(toPost postId: String, text: String, mentions: [Mention]) async throws -> ChatterReply {
+    public func addReply(toPost postId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterReply {
         try await simulate()
-        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw PortalAPIError.invalidRequest }
-        let reply = ChatterReply(id: makeId(prefix: "0D7"), authorName: "Alex Smith", text: text, createdDate: Date(), isMine: true,
-                                 mentions: mentionNames(text, mentions))
+        // As the server: one file per reply; the text may be empty with a file (the file's name is used).
+        guard fileIds.count <= 1 else { throw PortalAPIError.invalidRequest }
+        let attachments = try uploadedAttachments(fileIds)
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty || !attachments.isEmpty else { throw PortalAPIError.invalidRequest }
+        let reply = ChatterReply(id: makeId(prefix: "0D7"), authorName: "Alex Smith", text: trimmed.isEmpty ? attachments[0].title : text,
+                                 createdDate: Date(), isMine: true, mentions: mentionNames(text, mentions), attachments: attachments)
+        // Claim and lead feeds, then people's profile feeds.
+        for (claimId, var feed) in data.claimFeeds {
+            if let index = feed.firstIndex(where: { $0.id == postId }) {
+                feed[index].replies.append(reply)
+                feed[index].totalReplies = (feed[index].totalReplies ?? 0) + 1
+                data.claimFeeds[claimId] = feed
+                return reply
+            }
+        }
+        for (leadId, var feed) in data.leadFeeds {
+            if let index = feed.firstIndex(where: { $0.id == postId }) {
+                feed[index].replies.append(reply)
+                feed[index].totalReplies = (feed[index].totalReplies ?? 0) + 1
+                data.leadFeeds[leadId] = feed
+                return reply
+            }
+        }
         for (userId, var fixture) in data.people {
             if let index = fixture.feed.firstIndex(where: { $0.id == postId }) {
                 fixture.feed[index].replies.append(reply)
@@ -481,6 +502,16 @@ public actor MockPortalAPI: PortalAPI {
         }
         // Uploaded files come back as uploaded; fixture files are a small sample PDF.
         return fileContents[contentDocumentId] ?? Self.samplePDF
+    }
+
+    /// Files uploaded to a claim or lead, as attachments; anything else is refused, as on the server.
+    private func uploadedAttachments(_ fileIds: [String]) throws -> [ChatterAttachment] {
+        try fileIds.map { id in
+            guard let file = data.files.values.lazy.flatMap({ $0 }).first(where: { $0.contentDocumentId == id }) else {
+                throw PortalAPIError.invalidRequest
+            }
+            return ChatterAttachment(file)
+        }
     }
 
     public func uploadFile(_ upload: FileUpload, to record: RecordRef) async throws -> PortalFile {
@@ -835,9 +866,12 @@ public actor MockPortalAPI: PortalAPI {
         try await simulate()
         _ = try staff(claimId)
         if let feed = data.claimFeeds[claimId] { return feed }
-        let seeded = data.feed.filter { $0.parentId == claimId }.map {
-            ChatterPost(id: $0.id, authorName: $0.authorName, text: $0.text, createdDate: $0.createdDate,
-                        parentName: nil, replies: [], totalReplies: 0)
+        // The first post carries the claim's first file, to show attachments.
+        let firstFile = data.files[claimId]?.first.map(ChatterAttachment.init)
+        let seeded = data.feed.filter { $0.parentId == claimId }.enumerated().map { index, item in
+            ChatterPost(id: item.id, authorName: item.authorName, text: item.text, createdDate: item.createdDate,
+                        parentName: nil, replies: [], totalReplies: 0,
+                        attachments: index == 0 ? firstFile.map { [$0] } : nil)
         }
         data.claimFeeds[claimId] = seeded
         return seeded
@@ -882,11 +916,14 @@ public actor MockPortalAPI: PortalAPI {
         return open + calls + history
     }
 
-    public func postToClaim(claimId: String, text: String, mentions: [Mention]) async throws -> ChatterPost {
+    public func postToClaim(claimId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost {
         let existing = try await claimFeed(claimId: claimId)
-        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw PortalAPIError.invalidRequest }
-        let post = ChatterPost(id: makeId(prefix: "0D5"), authorName: "Alex Smith", text: text, createdDate: Date(),
-                               parentName: nil, replies: [], totalReplies: 0, mentions: mentionNames(text, mentions))
+        let attachments = try uploadedAttachments(fileIds)
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty || !attachments.isEmpty else { throw PortalAPIError.invalidRequest }
+        let post = ChatterPost(id: makeId(prefix: "0D5"), authorName: "Alex Smith", text: trimmed.isEmpty ? attachments[0].title : text,
+                               createdDate: Date(), parentName: nil, replies: [], totalReplies: 0, mentions: mentionNames(text, mentions),
+                               attachments: attachments)
         data.claimFeeds[claimId] = [post] + existing
         return post
     }
@@ -986,11 +1023,14 @@ public actor MockPortalAPI: PortalAPI {
         return seeded
     }
 
-    public func postToLead(leadId: String, text: String, mentions: [Mention]) async throws -> ChatterPost {
+    public func postToLead(leadId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost {
         let existing = try await leadFeed(leadId: leadId)
-        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw PortalAPIError.invalidRequest }
-        let post = ChatterPost(id: makeId(prefix: "0D5"), authorName: "Alex Smith", text: text, createdDate: Date(),
-                               parentName: nil, replies: [], totalReplies: 0, mentions: mentionNames(text, mentions))
+        let attachments = try uploadedAttachments(fileIds)
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty || !attachments.isEmpty else { throw PortalAPIError.invalidRequest }
+        let post = ChatterPost(id: makeId(prefix: "0D5"), authorName: "Alex Smith", text: trimmed.isEmpty ? attachments[0].title : text,
+                               createdDate: Date(), parentName: nil, replies: [], totalReplies: 0, mentions: mentionNames(text, mentions),
+                               attachments: attachments)
         data.leadFeeds[leadId] = [post] + existing
         return post
     }

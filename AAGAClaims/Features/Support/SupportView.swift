@@ -75,8 +75,8 @@ struct SupportView: View {
         }
         .navigationDestination(for: RelatedRecordRoute.self) { route in
             switch route.record {
-            case .claim(let id): ClaimDetailView(claimId: id, summary: nil, api: api)
-            case .lead(let id): LeadDetailView(leadId: id, fallbackName: route.name, api: api)
+            case .claim(let id): ClaimDetailView(claimId: id, summary: nil, api: api).id(id)
+            case .lead(let id): LeadDetailView(leadId: id, fallbackName: route.name, api: api).id(id)
             }
         }
         .sheet(isPresented: $showingRequest) {

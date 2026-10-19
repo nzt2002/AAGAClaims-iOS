@@ -51,6 +51,8 @@ public struct ClaimDetail: Codable, Hashable, Sendable {
     public let deductible: Decimal?
     public let paymentCollected: Decimal?
     public let totalRcv: Decimal?
+    /// Reference_ID__c, "ref_ (a23…)": shown as "Id" and put in emails so replies file on the claim.
+    public let referenceId: String?
 
     public var lifecycle: ClaimLifecycle.Position { ClaimLifecycle.position(for: claimStatus) }
 }

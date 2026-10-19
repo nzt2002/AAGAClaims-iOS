@@ -147,6 +147,34 @@ struct ClaimActionsTests {
         #expect(items.allSatisfy { $0.relatedRecordId == claimId })
     }
 
+    @Test("Claim feed: attach a file to a reply and a post; replies take one file")
+    func claimFeedAttachments() async throws {
+        let api = try mock()
+        let feed = ChatterFeedViewModel(api: api, source: .claim(claimId))
+        await feed.load()
+        let postId = try #require(feed.feed.value?.first?.id)
+        let photo = try FileUploadRules.prepare(data: Data(repeating: 1, count: 64), fileName: "roof.pdf", title: "roof")
+        let second = try FileUploadRules.prepare(data: Data(repeating: 2, count: 64), fileName: "gutter.pdf", title: "gutter")
+
+        #expect(feed.supportsAttachments)
+        await feed.attach([photo, second], to: postId)
+        #expect(feed.attachments[postId]?.count == 1, "One file per reply")
+        #expect(feed.attachmentErrors[postId] == "A reply can have one file.")
+        #expect(!feed.canAttach(to: postId))
+        #expect(feed.canSend(postId), "A file alone can be sent")
+        #expect(await feed.sendReply(to: postId))
+        let reply = try #require(feed.feed.value?.first?.replies.last)
+        #expect(reply.attachments?.first?.title == "roof")
+        #expect(feed.attachments[postId] == nil)
+
+        await feed.attach([photo, second], to: ChatterFeedViewModel.newPostId)
+        #expect(await feed.post(MentionDraft(text: "Photos from today")))
+        #expect(feed.feed.value?.first?.attachments?.count == 2)
+
+        let profile = ChatterFeedViewModel(api: api, source: .person("005000000000001AAA"))
+        #expect(!profile.supportsAttachments)
+    }
+
     @Test("Claim feed: post, then reply")
     func claimFeed() async throws {
         let api = try mock()
@@ -310,9 +338,11 @@ struct MentionTests {
             }
         }
         let recorder = Recorder()
-        _ = try await HTTPPortalAPI(transport: recorder).addReply(toPost: "0D5X", text: "hi @Jane Doe", mentions: [Mention(id: "005A", name: "Jane Doe")])
+        _ = try await HTTPPortalAPI(transport: recorder).addReply(toPost: "0D5X", text: "hi @Jane Doe", mentions: [Mention(id: "005A", name: "Jane Doe")],
+                                                                          fileIds: ["069A"])
         let body = try #require(await recorder.request?.jsonBody)
         let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+        #expect(json["fileIds"] as? [String] == ["069A"])
         let mentions = try #require(json["mentions"] as? [[String: Any]])
         #expect(mentions.first?["id"] as? String == "005A")
         #expect(mentions.first?["name"] as? String == "Jane Doe")

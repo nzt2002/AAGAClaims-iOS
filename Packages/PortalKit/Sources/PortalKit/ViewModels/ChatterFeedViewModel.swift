@@ -32,6 +32,14 @@ public final class ChatterFeedViewModel {
 
     public static let newPostId = "new-post"
 
+    /// Files attached to a draft, by post id (`newPostId` for a new post). They're uploaded to the
+    /// claim or lead as soon as they're picked, so they're also in its Files.
+    public private(set) var attachments: [String: [ChatterAttachment]] = [:]
+    /// Drafts with an upload in flight.
+    public private(set) var uploading: Set<String> = []
+    /// Why the last attachment for a draft couldn't be added.
+    public private(set) var attachmentErrors: [String: String] = [:]
+
     private let api: PortalAPI
 
     public init(api: PortalAPI, source: Source) {
@@ -46,6 +54,62 @@ public final class ChatterFeedViewModel {
         case .claim(let id): await PortalKit.load(self, \.feed) { try await api.claimFeed(claimId: id) }
         case .lead(let id): await PortalKit.load(self, \.feed) { try await api.leadFeed(leadId: id) }
         }
+    }
+
+    // MARK: - Attachments (claim and lead feeds)
+
+    private var record: RecordRef? {
+        switch source {
+        case .claim(let id): .claim(id)
+        case .lead(let id): .lead(id)
+        case .person: nil
+        }
+    }
+
+    /// Profile feeds have no record to keep files on.
+    public var supportsAttachments: Bool { record != nil }
+
+    /// Chatter allows one file per reply and ten per post.
+    public func maxFiles(for draftId: String) -> Int { draftId == Self.newPostId ? 10 : 1 }
+
+    public func canAttach(to draftId: String) -> Bool {
+        supportsAttachments && !uploading.contains(draftId) && (attachments[draftId]?.count ?? 0) < maxFiles(for: draftId)
+    }
+
+    /// Uploads the picked files to the claim or lead and adds them to the draft.
+    public func attach(_ uploads: [FileUpload], to draftId: String) async {
+        guard let record, !uploads.isEmpty else { return }
+        let room = maxFiles(for: draftId) - (attachments[draftId]?.count ?? 0)
+        attachmentErrors[draftId] = uploads.count > room
+            ? (draftId == Self.newPostId ? "A post can have up to 10 files." : "A reply can have one file.") : nil
+        uploading.insert(draftId)
+        defer { uploading.remove(draftId) }
+        for upload in uploads.prefix(max(room, 0)) {
+            do {
+                let file = try await api.uploadFile(upload, to: record)
+                attachments[draftId, default: []].append(ChatterAttachment(file))
+            } catch {
+                attachmentErrors[draftId] = "\(upload.title) couldn't be uploaded. Please try again."
+            }
+        }
+    }
+
+    /// Takes a file off the draft. It stays in the record's Files.
+    public func removeAttachment(_ fileId: String, from draftId: String) {
+        attachments[draftId]?.removeAll { $0.id == fileId }
+    }
+
+    /// Clears a reply draft: text, files and errors.
+    public func discardDraft(_ draftId: String) {
+        drafts[draftId] = nil
+        attachments[draftId] = nil
+        attachmentErrors[draftId] = nil
+        if failedId == draftId { clearFailure() }
+    }
+
+    /// An attachment's bytes, for Quick Look.
+    public func fileContent(_ fileId: String) async throws -> Data {
+        try await api.fileContent(contentDocumentId: fileId)
     }
 
     // MARK: - Posts (claims)
@@ -66,19 +130,21 @@ public final class ChatterFeedViewModel {
         if case .person = source { return false }
         let trimmed = draft.trimmedText
         let mentions = draft.resolvedMentions
-        guard !trimmed.isEmpty, !saving.contains(Self.newPostId) else { return false }
+        let fileIds = (attachments[Self.newPostId] ?? []).map(\.id)
+        guard !trimmed.isEmpty || !fileIds.isEmpty, !saving.contains(Self.newPostId), !uploading.contains(Self.newPostId) else { return false }
         saving.insert(Self.newPostId)
         clearFailure()
         defer { saving.remove(Self.newPostId) }
         do {
             let post: ChatterPost
             switch source {
-            case .claim(let id): post = try await api.postToClaim(claimId: id, text: trimmed, mentions: mentions)
-            case .lead(let id): post = try await api.postToLead(leadId: id, text: trimmed, mentions: mentions)
+            case .claim(let id): post = try await api.postToClaim(claimId: id, text: trimmed, mentions: mentions, fileIds: fileIds)
+            case .lead(let id): post = try await api.postToLead(leadId: id, text: trimmed, mentions: mentions, fileIds: fileIds)
             case .person: return false
             }
             let date = feed.loadedAt ?? Date()
             feed = .loaded([post] + (feed.value ?? []), at: date)
+            discardDraft(Self.newPostId)
             return true
         } catch {
             fail(Self.newPostId, error)
@@ -88,25 +154,30 @@ public final class ChatterFeedViewModel {
 
     // MARK: - Replies
 
+    /// Text or a file, and nothing uploading or sending.
     public func canSend(_ postId: String) -> Bool {
-        !(drafts[postId]?.trimmedText ?? "").isEmpty && !saving.contains(postId)
+        (!(drafts[postId]?.trimmedText ?? "").isEmpty || !(attachments[postId] ?? []).isEmpty)
+            && !saving.contains(postId) && !uploading.contains(postId)
     }
 
     @discardableResult
     public func sendReply(to postId: String) async -> Bool {
         let draft = drafts[postId] ?? MentionDraft()
         let text = draft.trimmedText
-        guard !text.isEmpty, !saving.contains(postId) else { return false }
+        let fileIds = (attachments[postId] ?? []).map(\.id)
+        guard canSend(postId) else { return false }
         saving.insert(postId)
         clearFailure()
         defer { saving.remove(postId) }
         do {
-            let reply = try await api.addReply(toPost: postId, text: text, mentions: draft.resolvedMentions)
+            let reply = try await api.addReply(toPost: postId, text: text, mentions: draft.resolvedMentions, fileIds: fileIds)
             updatePost(postId) { post in
                 post.replies.append(reply)
                 post.totalReplies = (post.totalReplies ?? post.replies.count - 1) + 1
             }
             drafts[postId] = nil
+            attachments[postId] = nil
+            attachmentErrors[postId] = nil
             return true
         } catch {
             fail(postId, error)

@@ -22,6 +22,19 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "0.2.3", items: [
+            Item(icon: "arrow.uturn.backward", title: "Back takes you back",
+                 detail: "Claims and leads open on top of the screen you're on, so Back returns there. Search now always opens the claim you tap."),
+            Item(icon: "person.crop.rectangle.stack", title: "Every claim and lead you're on",
+                 detail: "My Claims and My Leads now list every record you're named on, as owner, account manager, adjuster, desk adjuster or creator.",
+                 staffOnly: true),
+            Item(icon: "bubble.left.and.text.bubble.right", title: "A tidier Claim Feed",
+                 detail: "Posts fold up to a short preview; tap one to see it all. Reply opens a reply box, and you can attach a photo or file to posts and replies.",
+                 staffOnly: true),
+            Item(icon: "number", title: "Claim Id, ready to copy",
+                 detail: "A claim's Id is under Details with a Copy button, and new emails include it so replies file on the claim.",
+                 staffOnly: true),
+        ]),
         Release(version: "0.2.2", items: [
             Item(icon: "clock.arrow.circlepath", title: "Recent activity on claims",
                  detail: "A claim's tasks, calls and events are now on its page, open items first. Tap one to see its details.",

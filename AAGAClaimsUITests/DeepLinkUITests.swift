@@ -19,7 +19,7 @@ final class DeepLinkUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Welcome back, Alex!"].waitForExistence(timeout: 10))
         app.open(URL(string: "aagaclaims://claim/a23000000000002AAA")!)
         XCTAssertTrue(element(containing: "Claim CLM-2210").waitForExistence(timeout: 10))
-        XCTAssertTrue(app.tabBars.buttons["Claims"].isSelected)
+        XCTAssertTrue(app.tabBars.buttons["Home"].isSelected, "Opens on top of the current screen")
     }
 
     func testLeadLinkWhileRunning() {
@@ -27,7 +27,7 @@ final class DeepLinkUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Welcome back, Alex!"].waitForExistence(timeout: 10))
         app.open(URL(string: "aagaclaims://lead/a0r000000000002AAA")!)
         XCTAssertTrue(element(containing: "Morgan Chen").waitForExistence(timeout: 10))
-        XCTAssertTrue(app.tabBars.buttons["Leads"].isSelected)
+        XCTAssertTrue(app.tabBars.buttons["Home"].isSelected, "Opens on top of the current screen")
     }
 
     func testCaseLinkLaunchesApp() {

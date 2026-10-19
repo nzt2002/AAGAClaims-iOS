@@ -50,6 +50,8 @@ struct ClaimDetailsSection: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.l) {
             VStack(alignment: .leading, spacing: 0) {
                 SectionHeading("Claim snapshot")
+                // Reference_ID__c, labelled "Id": quoted in emails so replies file on the claim.
+                CopyFieldRow(label: "Id", value: detail.referenceId, systemImage: "number")
                 FieldRow(label: "Peril", value: detail.peril, systemImage: "cloud.bolt")
                 FieldRow(label: "Deductible", value: detail.deductible == nil ? nil : PortalFormat.currency(detail.deductible),
                          systemImage: "dollarsign.circle")

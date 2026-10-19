@@ -92,7 +92,7 @@ private func safeFileName(_ title: String?) -> String {
     return trimmed.isEmpty ? "File" : trimmed
 }
 
-private extension Optional where Wrapped == PreviewFile {
+extension Optional where Wrapped == PreviewFile {
     /// Quick Look binds to a URL; clearing it clears the preview.
     var url: URL? {
         get { self?.url }

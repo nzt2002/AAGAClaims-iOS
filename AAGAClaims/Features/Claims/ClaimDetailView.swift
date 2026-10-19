@@ -58,7 +58,8 @@ struct ClaimDetailView: View {
                         Task { await actions.loadActivities() }
                     }
                 default:
-                ClaimActionSheet(action: action, actions: actions, feed: claimFeed, api: api) {
+                ClaimActionSheet(action: action, actions: actions, feed: claimFeed, api: api,
+                                 referenceId: viewModel.detail.value?.referenceId) {
                     Task {
                         await viewModel.load()
                         if action == .post || action == .email { await claimFeed.load() }
@@ -130,7 +131,8 @@ struct ClaimDetailView: View {
         .toolbar {
             if isInternal {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { openAction = .edit } label: { Image(systemName: "square.and.pencil") }
+                    // A text label, as on leads.
+                    Button("Edit") { openAction = .edit }
                         .disabledWhenOffline(isOffline)
                         .accessibilityLabel("Edit Claim")
                         .accessibilityIdentifier("claimAction-edit")

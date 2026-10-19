@@ -50,11 +50,9 @@ struct ClaimsListView: View {
         }
         .navigationDestination(for: ClaimSummary.self) { claim in
             ClaimDetailView(claimId: claim.recordId, summary: claim, api: api)
+                .id(claim.recordId)
         }
-        .navigationDestination(for: ClaimRoute.self) { route in
-            // Opened from an update or a case: use the list row if it's loaded, for loss reason.
-            ClaimDetailView(claimId: route.id, summary: viewModel.claims.first { $0.recordId == route.id }, api: api)
-        }
+        // ClaimRoute (opened from Home, search, an update…) is in RecordDestinations.
         .task {
             if viewModel.state.value == nil {
                 await viewModel.load()

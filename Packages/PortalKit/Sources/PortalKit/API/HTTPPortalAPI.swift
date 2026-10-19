@@ -218,7 +218,9 @@ public struct HTTPPortalAPI: PortalAPI {
 
     public func claimFeed(claimId: String) async throws -> [ChatterPost] { try await get(claimPath(claimId, "feed")) }
     public func claimActivities(claimId: String) async throws -> [AgendaItem] { try await get(claimPath(claimId, "activities")) }
-    public func postToClaim(claimId: String, text: String, mentions: [Mention]) async throws -> ChatterPost { try await post(claimPath(claimId, "posts"), body: ChatterBody(text, mentions)) }
+    public func postToClaim(claimId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost {
+        try await post(claimPath(claimId, "posts"), body: ChatterBody(text, mentions, fileIds: fileIds))
+    }
     public func logCall(claimId: String, _ call: CallLog) async throws { let _: Ignored = try await post(claimPath(claimId, "calls"), body: call) }
     public func sendEmail(claimId: String, _ email: OutgoingEmail) async throws { let _: Ignored = try await post(claimPath(claimId, "emails"), body: email) }
 
@@ -229,7 +231,9 @@ public struct HTTPPortalAPI: PortalAPI {
     public func leadStaff(id: String) async throws -> LeadStaff { try await get(leadPath(id, "staff")) }
     public func editLead(id: String, _ edit: LeadEdit) async throws { let _: Ignored = try await post(leadPath(id, "edit"), body: edit) }
     public func leadFeed(leadId: String) async throws -> [ChatterPost] { try await get(leadPath(leadId, "feed")) }
-    public func postToLead(leadId: String, text: String, mentions: [Mention]) async throws -> ChatterPost { try await post(leadPath(leadId, "posts"), body: ChatterBody(text, mentions)) }
+    public func postToLead(leadId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost {
+        try await post(leadPath(leadId, "posts"), body: ChatterBody(text, mentions, fileIds: fileIds))
+    }
 
     public func convertLead(id: String, account: NewClaimRequest.Account, contact: NewClaimRequest.Contact?) async throws -> String {
         // New Claim's body, without the claim (the server builds it from the lead).
@@ -261,9 +265,12 @@ public struct HTTPPortalAPI: PortalAPI {
         struct Ref: Encodable { let id: String; let name: String }
         let text: String
         let mentions: [Ref]
-        init(_ text: String, _ mentions: [Mention]) {
+        /// Omitted when empty (edits can't change attachments).
+        let fileIds: [String]?
+        init(_ text: String, _ mentions: [Mention], fileIds: [String] = []) {
             self.text = text
             self.mentions = mentions.map { Ref(id: $0.id, name: $0.name) }
+            self.fileIds = fileIds.isEmpty ? nil : fileIds
         }
     }
 
@@ -271,8 +278,8 @@ public struct HTTPPortalAPI: PortalAPI {
         try await get("/people", query: [URLQueryItem(name: "q", value: query)])
     }
 
-    public func addReply(toPost postId: String, text: String, mentions: [Mention]) async throws -> ChatterReply {
-        try await post("/chatter/posts/\(escaped(postId))/replies", body: ChatterBody(text, mentions))
+    public func addReply(toPost postId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterReply {
+        try await post("/chatter/posts/\(escaped(postId))/replies", body: ChatterBody(text, mentions, fileIds: fileIds))
     }
 
     public func editReply(id: String, text: String, mentions: [Mention]) async throws -> ChatterReply {

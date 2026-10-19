@@ -189,9 +189,9 @@ public actor CachingPortalAPI: PortalAPI {
         return try await guarded { try await $0.leadFeed(leadId: leadId) }
     }
 
-    public func postToLead(leadId: String, text: String, mentions: [Mention]) async throws -> ChatterPost {
+    public func postToLead(leadId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost {
         try requireOnline()
-        return try await guarded { try await $0.postToLead(leadId: leadId, text: text, mentions: mentions) }
+        return try await guarded { try await $0.postToLead(leadId: leadId, text: text, mentions: mentions, fileIds: fileIds) }
     }
 
     public func convertLead(id: String, account: NewClaimRequest.Account, contact: NewClaimRequest.Contact?) async throws -> String {
@@ -255,9 +255,9 @@ public actor CachingPortalAPI: PortalAPI {
         return try await guarded { try await $0.claimActivities(claimId: claimId) }
     }
 
-    public func postToClaim(claimId: String, text: String, mentions: [Mention]) async throws -> ChatterPost {
+    public func postToClaim(claimId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost {
         try requireOnline()
-        return try await guarded { try await $0.postToClaim(claimId: claimId, text: text, mentions: mentions) }
+        return try await guarded { try await $0.postToClaim(claimId: claimId, text: text, mentions: mentions, fileIds: fileIds) }
     }
 
     public func logCall(claimId: String, _ call: CallLog) async throws {
@@ -286,9 +286,9 @@ public actor CachingPortalAPI: PortalAPI {
         return try await guarded { try await $0.mentionCandidates(query) }
     }
 
-    public func addReply(toPost postId: String, text: String, mentions: [Mention]) async throws -> ChatterReply {
+    public func addReply(toPost postId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterReply {
         try requireOnline()
-        return try await guarded { try await $0.addReply(toPost: postId, text: text, mentions: mentions) }
+        return try await guarded { try await $0.addReply(toPost: postId, text: text, mentions: mentions, fileIds: fileIds) }
     }
 
     public func editReply(id: String, text: String, mentions: [Mention]) async throws -> ChatterReply {
