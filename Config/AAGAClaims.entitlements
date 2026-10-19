@@ -7,6 +7,12 @@
 	<!-- Push notifications (spec §8). Xcode sets "production" in App Store and TestFlight builds. -->
 	<key>aps-environment</key>
 	<string>development</string>
+	<!-- Universal links (spec §8): app.accurateadjustmentsga.com serves the apple-app-site-association
+	     file from Tools/universal-links. Salesforce serves its own on the portal domain. -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:app.accurateadjustmentsga.com</string>
+	</array>
 	<key>keychain-access-groups</key>
 	<array>
 		<string>$(AppIdentifierPrefix)com.accurateadjustmentsga.claims</string>

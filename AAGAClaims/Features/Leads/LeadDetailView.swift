@@ -141,7 +141,6 @@ struct LeadDetailView: View {
                 AgreementCard(agreement: detail.agreement)
                 SectionBar(selection: $viewModel.section)
                 sectionContent(detail)
-                ReferralCard(detail: detail)
                 TeamCard(
                     adjuster: .init(name: detail.adjusterName, phone: detail.adjusterPhone, email: detail.adjusterEmail),
                     deskAdjuster: .init(name: detail.deskAdjusterName, phone: nil, email: detail.deskAdjusterEmail),
@@ -226,7 +225,14 @@ struct LeadDetailView: View {
                     StatusPill(text: status, tone: StatusPill.tone(forLeadStatus: status))
                 }
             }
-            HStack(spacing: Theme.Spacing.l) {
+            if let address = PortalFormat.nonEmpty(detail.lossAddress) {
+                Label(address, systemImage: "mappin.and.ellipse")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.textPrimary)
+                    .accessibilityLabel("Loss address: \(address)")
+                    .accessibilityIdentifier("leadHeaderLossAddress")
+            }
+            AdaptiveStack(horizontalAlignment: .firstTextBaseline, spacing: Theme.Spacing.m) {
                 if let number = PortalFormat.nonEmpty(detail.claimNumber) {
                     Text("Claim \(number)")
                 }
@@ -267,6 +273,8 @@ struct LeadDetailView: View {
             }
         case .details:
             LeadDetailsSection(detail: detail)
+        case .referredBy:
+            ReferralCard(detail: detail)
         case .insurance:
             LeadInsuranceSection(detail: detail)
         case .files:
@@ -277,20 +285,48 @@ struct LeadDetailView: View {
 
 // MARK: - Cards
 
+/// Collapsible, like the claim's: the status always shows; tap to see every stage.
 private struct LeadLifecycleCard: View {
     let position: LeadLifecycle.Position
     let status: String?
+    @State private var expanded = false
+
+    private var hasStages: Bool {
+        if case .stage = position { true } else { false }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                Text("Lead progress")
-                    .font(.caption)
-                    .foregroundStyle(Color.textSecondary)
-                Text(PortalFormat.nonEmpty(status) ?? "Status not set")
-                    .font(.headline)
+            Button {
+                withAnimation(.snappy) { expanded.toggle() }
+            } label: {
+                HStack {
+                    VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                        Text("Lead progress")
+                            .font(.caption)
+                            .foregroundStyle(Color.textSecondary)
+                        Text(PortalFormat.nonEmpty(status) ?? "Status not set")
+                            .font(.headline)
+                            .foregroundStyle(Color.textPrimary)
+                    }
+                    Spacer(minLength: 0)
+                    if hasStages {
+                        Image(systemName: "chevron.down")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color.brandPrimary)
+                            .rotationEffect(.degrees(expanded ? 180 : 0))
+                            .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
+                    }
+                }
+                .contentShape(Rectangle())
             }
-            if case .stage(_, let isUnqualified) = position {
+            .buttonStyle(.plain)
+            .disabled(!hasStages)
+            .accessibilityValue(expanded ? "Expanded" : "Collapsed")
+            .accessibilityHint(expanded ? "Hides the stages" : "Shows every stage")
+            .accessibilityIdentifier("leadProgressToggle")
+
+            if expanded, case .stage(_, let isUnqualified) = position {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(position.stages.enumerated()), id: \.offset) { index, stage in
                         StepRow(
@@ -302,6 +338,7 @@ private struct LeadLifecycleCard: View {
                         )
                     }
                 }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .cardStyle()
@@ -340,9 +377,13 @@ private struct ReferralCard: View {
 
     var body: some View {
         if [detail.associatedPartyName, detail.associatedPartyCompany, detail.associatedPartyEmail, detail.associatedPartyPhone]
-            .contains(where: { PortalFormat.nonEmpty($0) != nil }) {
+            .allSatisfy({ PortalFormat.nonEmpty($0) == nil }) {
+            Text("No one is recorded as referring this lead.")
+                .foregroundStyle(Color.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .cardStyle()
+        } else {
             VStack(alignment: .leading, spacing: 0) {
-                SectionHeading("Referred by")
                 FieldRow(label: "Name", value: detail.associatedPartyName, systemImage: "person")
                 FieldRow(label: "Company", value: detail.associatedPartyCompany, systemImage: "building.2")
                 LinkRow(label: "Phone", value: detail.associatedPartyPhone, url: ContactURL.phone(detail.associatedPartyPhone),

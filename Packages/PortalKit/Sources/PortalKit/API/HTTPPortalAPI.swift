@@ -13,13 +13,17 @@ public struct TransportRequest: Hashable, Sendable {
     public let body: Data?
     /// Content type of `body`, e.g. "application/json" or "multipart/form-data; boundary=…".
     public let contentType: String?
+    /// `path` is from the server root (e.g. "/services/data/…"), not under the portal API.
+    public let isAbsolutePath: Bool
 
-    public init(method: HTTPMethod, path: String, queryItems: [URLQueryItem] = [], body: Data? = nil, contentType: String? = nil) {
+    public init(method: HTTPMethod, path: String, queryItems: [URLQueryItem] = [], body: Data? = nil, contentType: String? = nil,
+                isAbsolutePath: Bool = false) {
         self.method = method
         self.path = path
         self.queryItems = queryItems
         self.body = body
         self.contentType = contentType
+        self.isAbsolutePath = isAbsolutePath
     }
 
     public init(method: HTTPMethod, path: String, jsonBody: Data) {
@@ -312,12 +316,30 @@ public struct HTTPPortalAPI: PortalAPI {
     }
 
     public func fileContent(contentDocumentId: String) async throws -> Data {
-        try await send(TransportRequest(method: .get, path: "/files/\(escaped(contentDocumentId))/content")).body
+        do {
+            return try await send(TransportRequest(method: .get, path: "/files/\(escaped(contentDocumentId))/content")).body
+        } catch PortalAPIError.invalidRequest {
+            // Too big for Apex (400 too_large): get access, then download from the standard API.
+            struct Access: Decodable { let contentVersionId: String }
+            let access: Access = try await post("/files/\(escaped(contentDocumentId))/access", body: [String: String]())
+            return try await send(TransportRequest(
+                method: .get, path: "/services/data/\(Self.dataAPIVersion)/sobjects/ContentVersion/\(escaped(access.contentVersionId))/VersionData",
+                isAbsolutePath: true
+            )).body
+        }
     }
 
-    /// The body is the file's bytes; `fileName` and `title` are query parameters. (Apex can't
-    /// parse multipart bodies, so the server takes the raw file.)
+    /// Salesforce's standard REST API version, for large files.
+    public static let dataAPIVersion = "v62.0"
+    /// Larger files than this go to the standard API, past Apex's 4 MB limit.
+    public static let apexUploadLimit = 3_500_000
+
+    /// Small files: the body is the file's bytes; `fileName` and `title` are query parameters (Apex
+    /// can't parse multipart bodies). Large files: uploaded to Salesforce directly, then linked.
     public func uploadFile(_ upload: FileUpload, to record: RecordRef) async throws -> PortalFile {
+        if upload.data.count > Self.apexUploadLimit {
+            return try await uploadLargeFile(upload, to: record)
+        }
         let response = try await send(TransportRequest(
             method: .post,
             path: "/\(record.collectionPath)/\(escaped(record.id))/files",
@@ -329,6 +351,49 @@ public struct HTTPPortalAPI: PortalAPI {
             contentType: upload.mimeType
         ))
         return try decode(response.body)
+    }
+
+    /// A ContentVersion created with the standard REST API (multipart, up to 25 MB here), then
+    /// linked to the claim or lead by the portal API, which checks access.
+    private func uploadLargeFile(_ upload: FileUpload, to record: RecordRef) async throws -> PortalFile {
+        struct Config: Decodable { let networkId: String?; let maxBytes: Int }
+        let config: Config
+        do {
+            config = try await get("/files/upload-config")
+        } catch PortalAPIError.notFound {
+            throw PortalAPIError.rejected("This file is larger than 4 MB. Make it smaller and try again.")
+        }
+        guard upload.data.count <= config.maxBytes else {
+            throw PortalAPIError.rejected("Files can be up to \(config.maxBytes / 1_048_576) MB.")
+        }
+        var entity: [String: String] = ["Title": upload.title, "PathOnClient": upload.fileName]
+        if let networkId = config.networkId { entity["NetworkId"] = networkId }
+        let boundary = "AAGA-\(UUID().uuidString)"
+        var body = Data()
+        func append(_ string: String) { body.append(Data(string.utf8)) }
+        append("--\(boundary)\r\nContent-Disposition: form-data; name=\"entity_content\"\r\nContent-Type: application/json\r\n\r\n")
+        body.append(try JSONSerialization.data(withJSONObject: entity))
+        append("\r\n--\(boundary)\r\nContent-Disposition: form-data; name=\"VersionData\"; filename=\"\(upload.fileName.replacingOccurrences(of: "\"", with: ""))\"\r\n")
+        append("Content-Type: \(upload.mimeType)\r\n\r\n")
+        body.append(upload.data)
+        append("\r\n--\(boundary)--\r\n")
+
+        struct Created: Decodable { let id: String }
+        let response = try await send(TransportRequest(
+            method: .post, path: "/services/data/\(Self.dataAPIVersion)/sobjects/ContentVersion",
+            body: body, contentType: "multipart/form-data; boundary=\(boundary)", isAbsolutePath: true
+        ))
+        let created: Created = try decode(response.body)
+        return try await post("/\(record.collectionPath)/\(escaped(record.id))/files/link", body: ["contentVersionId": created.id])
+    }
+
+    public func requestAccountDeletion(reason: String?) async throws -> AccountDeletionRequest {
+        try await post("/account/deletion-request", body: ["reason": reason ?? ""])
+    }
+
+    public func sendDiagnostics(_ report: DiagnosticsReport) async throws {
+        struct Received: Decodable { let received: Int }
+        let _: Received = try await post("/diagnostics", body: report)
     }
 
     // MARK: - Plumbing

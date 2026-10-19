@@ -187,7 +187,8 @@ struct ActivityDetailView: View {
         let state = item.activityState
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.l) {
-                HStack(alignment: .top, spacing: Theme.Spacing.m) {
+                // Icon above the title at large text, so long subjects aren't squeezed.
+                AdaptiveStack(horizontalAlignment: .top, spacing: Theme.Spacing.m) {
                     IconBadge(systemName: item.activityIcon, tint: item.isOverdue == true ? .warning : .brandPrimary, size: 48, filled: true)
                     VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                         Text(item.activityKindName)

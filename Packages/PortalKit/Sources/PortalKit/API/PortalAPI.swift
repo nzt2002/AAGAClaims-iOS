@@ -81,6 +81,10 @@ public protocol PortalAPI: Sendable {
     func activityOptions() async throws -> ActivityOptions
     /// What the server supports (`ServerMeta.legacy` for servers without `/meta`).
     func serverMeta() async throws -> ServerMeta
+    /// Account deletion (App Store 5.1.1(v)): opens a support case to delete the user's account.
+    func requestAccountDeletion(reason: String?) async throws -> AccountDeletionRequest
+    /// Crash and hang reports from MetricKit, for Mobile App Logs in Salesforce.
+    func sendDiagnostics(_ report: DiagnosticsReport) async throws
     func postToClaim(claimId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost
     func logCall(claimId: String, _ call: CallLog) async throws
     func sendEmail(claimId: String, _ email: OutgoingEmail) async throws
@@ -131,6 +135,45 @@ public struct FileUpload: Hashable, Sendable {
         self.title = title
         self.mimeType = mimeType
         self.data = data
+    }
+}
+
+/// `POST /account/deletion-request`.
+public struct AccountDeletionRequest: Codable, Hashable, Sendable {
+    public let caseId: String?
+    /// A request was already open; nothing new was created.
+    public let alreadyRequested: Bool
+
+    public init(caseId: String?, alreadyRequested: Bool) {
+        self.caseId = caseId
+        self.alreadyRequested = alreadyRequested
+    }
+}
+
+/// `POST /diagnostics`: at most 5 reports at a time.
+public struct DiagnosticsReport: Codable, Hashable, Sendable {
+    public struct Item: Codable, Hashable, Sendable {
+        /// "App crash" or "App hang".
+        public let kind: String
+        public let reason: String
+        /// MetricKit's JSON, truncated.
+        public let details: String
+
+        public init(kind: String, reason: String, details: String) {
+            self.kind = kind
+            self.reason = reason
+            self.details = details
+        }
+    }
+
+    public let appVersion: String
+    public let device: String
+    public let reports: [Item]
+
+    public init(appVersion: String, device: String, reports: [Item]) {
+        self.appVersion = appVersion
+        self.device = device
+        self.reports = Array(reports.prefix(5))
     }
 }
 

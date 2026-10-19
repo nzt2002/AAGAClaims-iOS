@@ -28,6 +28,7 @@ struct FileSourceMenu<MenuLabel: View>: View {
     @ViewBuilder let label: () -> MenuLabel
 
     @Environment(\.isOffline) private var isOffline
+    @Environment(\.serverMeta) private var serverMeta
     @State private var showingCamera = false
     @State private var showingLibrary = false
     @State private var showingFiles = false
@@ -98,6 +99,11 @@ struct FileSourceMenu<MenuLabel: View>: View {
         }
     }
 
+    /// Documents up to 25 MB once the server takes large files.
+    private var documentLimit: Int {
+        serverMeta.supports(.largeFiles) ? FileUploadRules.largeMaxBytes : FileUploadRules.maxBytes
+    }
+
     private func add(cameraImage image: UIImage) {
         // Keep HEIC where the device supports it (spec §6.10), otherwise JPEG.
         let (data, ext): (Data?, String) = if let heic = image.heicData() { (heic, "heic") } else { (image.jpegData(compressionQuality: 0.9), "jpg") }
@@ -140,7 +146,7 @@ struct FileSourceMenu<MenuLabel: View>: View {
         var uploads: [FileUpload] = []
         for pick in picks {
             do {
-                uploads.append(try FileUploadRules.prepare(data: pick.data, fileName: pick.fileName, title: pick.title))
+                uploads.append(try FileUploadRules.prepare(data: pick.data, fileName: pick.fileName, title: pick.title, documentLimit: documentLimit))
             } catch {
                 problems.append("\(pick.fileName): \(error.message)")
             }

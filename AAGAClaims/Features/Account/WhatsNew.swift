@@ -24,6 +24,18 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "0.4.0", date: "Oct 19, 2026", items: [
+            Item(icon: "person.text.rectangle", title: "A clearer lead page",
+                 detail: "The loss address is under the lead's name, lead progress folds away like a claim's, and Referred By has its own tab after Details."),
+            Item(icon: "doc.badge.arrow.up", title: "Bigger files",
+                 detail: "Upload documents and scans up to 25 MB, and open large files that wouldn't open before."),
+            Item(icon: "textformat.size", title: "Easier to read at large text sizes",
+                 detail: "Claim numbers, claim progress and task pages now lay out cleanly with the largest text settings."),
+            Item(icon: "person.crop.circle.badge.xmark", title: "Delete your account",
+                 detail: "You can ask us to delete your account and personal information from Account."),
+            Item(icon: "stethoscope", title: "Problems reported automatically",
+                 detail: "If the app crashes or stops responding, a report (with no personal information) is sent to our team so we can fix it."),
+        ]),
         Release(version: "0.3.0", date: "Oct 19, 2026", items: [
             Item(icon: "bell.badge", title: "Notifications",
                  detail: "Get notified when there's a new update on your claim or a payment is recorded. Staff are also notified about @mentions and tasks assigned to them. Turn them on in Account."),

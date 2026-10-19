@@ -13,7 +13,7 @@ nonisolated struct SalesforceTransport: PortalTransport {
         let restRequest = RestRequest(
             method: request.method == .get ? .GET : .POST,
             serviceHostType: .instance,
-            path: HTTPPortalAPI.basePath + request.path,
+            path: request.isAbsolutePath ? request.path : HTTPPortalAPI.basePath + request.path,
             queryParams: queryParams.isEmpty ? nil : queryParams
         )
         // The path is already absolute; don't prefix /services/data.
@@ -29,11 +29,23 @@ nonisolated struct SalesforceTransport: PortalTransport {
         } catch RestClientError.apiResponseIsEmpty {
             // 204 No Content.
             return TransportResponse(statusCode: 204, body: Data())
-        } catch RestClientError.apiFailed(_, let underlyingError, let urlResponse) {
+        } catch RestClientError.apiFailed(let body, let underlyingError, let urlResponse) {
             if let status = (urlResponse as? HTTPURLResponse)?.statusCode {
-                return TransportResponse(statusCode: status, body: Data())
+                // Keep the error body: it carries the code and any message for the user.
+                return TransportResponse(statusCode: status, body: Self.data(from: body))
             }
             throw underlyingError
+        }
+    }
+
+    /// The SDK hands back a failed response's body as data, text or parsed JSON.
+    private static func data(from body: Any?) -> Data {
+        switch body {
+        case let data as Data: return data
+        case let text as String: return Data(text.utf8)
+        case let object? where JSONSerialization.isValidJSONObject(object):
+            return (try? JSONSerialization.data(withJSONObject: object)) ?? Data()
+        default: return Data()
         }
     }
 }

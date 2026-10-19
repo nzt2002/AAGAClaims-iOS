@@ -134,6 +134,7 @@ public struct ServerMeta: Codable, Hashable, Sendable {
     public enum Feature: String, CaseIterable, Sendable {
         case claimActivities, chatterAttachments, claimReferenceId
         case leadActivities, activityEmails, activityEdit, push
+        case largeFiles, accountDeletion, diagnostics
     }
 }
 

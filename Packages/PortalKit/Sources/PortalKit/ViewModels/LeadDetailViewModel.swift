@@ -8,6 +8,7 @@ public final class LeadDetailViewModel {
     public enum Section: String, CaseIterable, Sendable {
         case updates = "Updates"
         case details = "Details"
+        case referredBy = "Referred By"
         case insurance = "Insurance"
         case files = "Files"
     }

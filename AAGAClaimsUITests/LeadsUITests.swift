@@ -46,6 +46,30 @@ final class LeadsUITests: XCTestCase {
         XCTAssertTrue(element(containing: "USAA").waitForExistence(timeout: 5))
     }
 
+    func testLeadHeaderProgressAndReferredByTab() {
+        let card = app.buttons["leadCard-a0r000000000001AAA"]
+        XCTAssertTrue(card.waitForExistence(timeout: 10))
+        card.tap()
+        let address = app.descendants(matching: .any)["leadHeaderLossAddress"].firstMatch
+        XCTAssertTrue(address.waitForExistence(timeout: 5))
+        XCTAssertTrue(address.label.contains("Peachtree"), address.label)
+
+        // Progress is collapsed; the status stays visible.
+        let toggle = app.buttons["leadProgressToggle"]
+        app.scrollIntoView(toggle)
+        XCTAssertFalse(app.staticTexts["Qualified"].exists)
+        toggle.tap()
+        XCTAssertTrue(app.staticTexts["Qualified"].waitForExistence(timeout: 5))
+
+        // Referred By is a tab, right after Details.
+        let details = app.buttons["Details"], referred = app.buttons["Referred By"]
+        app.scrollIntoView(referred)
+        XCTAssertTrue(referred.exists)
+        XCTAssertLessThan(details.frame.minX, referred.frame.minX)
+        referred.tap()
+        XCTAssertTrue(element(containing: "Company").waitForExistence(timeout: 5) || element(containing: "No one is recorded").exists)
+    }
+
     private func openJordan() {
         let card = app.buttons["leadCard-a0r000000000001AAA"]
         XCTAssertTrue(card.waitForExistence(timeout: 10))

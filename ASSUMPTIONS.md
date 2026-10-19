@@ -107,6 +107,12 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 92. **Offline outbox (2026-10-19):** text-only posts and replies. Files need a connection. A post or reply the server refuses (for example, a deleted post) stays as "Couldn't send" until it's discarded.
 93. **iPad (2026-10-19):** split views on Claims and Leads only; Home, Support and Account use the iPhone layout.
 94. **Record access alignment (2026-10-19):** PortalRecordAccess now allows the same people My Claims and My Leads list (desk adjuster, creator, claim contact; adjuster, desk adjuster, creator, subcontractor). Before this, a portal user could see a record in the list that wouldn't open.
+95. **Account deletion (2026-10-19):** a request, not instant deletion. It opens a support case for the team to deactivate the user and delete or anonymise their personal data within 30 days, keeping what the law requires for claims. Apple allows this when the app says so clearly. The user is signed out after asking.
+96. **Automatic app access (2026-10-19):** new or reactivated users get *Portal Mobile App* (portal users) or *Portal Mobile App (Staff)* (internal users), in a Queueable so it never blocks user creation. Existing users aren't changed until `PortalMobileAppAccess.assignAll()` is run. On 2026-10-19, 8 active internal users didn't have the staff set.
+97. **Universal links domain (2026-10-19):** app.accurateadjustmentsga.com. Salesforce controls the portal's apple-app-site-association, and Wix can't host one. Publishing Tools/universal-links (Cloudflare Pages) and switching email links to that domain is left to the team.
+98. **Error monitoring (2026-10-19):** only unexpected 500s are logged, not validation errors (400) or not-found (404). Crash reports carry call stacks and device and app versions, nothing typed by the user. Admin alert emails go to active System Administrators, at most once every 15 minutes.
+99. **Large files (2026-10-19):** documents up to 25 MB, through the standard REST API. Photos still stay under 4 MB (downscaled to 4,000 px). Opening a large file shares it view-only with the user, because the standard download needs record access the portal user may not have.
+100. **Accessibility pass (2026-10-19):** automated: the accessibility audit, plus screenshots and an unlabeled-button check at the largest accessibility text size on Home, Claims, the claim page, a task page, the lead page and Account. A person using VoiceOver on a device is still recommended before launch.
 
 ## Open questions
 
@@ -116,7 +122,7 @@ Decisions made where the spec ([SPEC.md](SPEC.md)) is silent or conflicts with r
 4. ~~**Consumer key**~~ **Resolved:** the External Client App is deployed and its key is in `bootconfig.plist`.
 5. **Files over 4 MB.** The Apex REST layer caps uploads and downloads at 4 MB. Larger files (big PDFs) need another route, e.g. the standard ContentVersion REST API once portal users have API access.
 6. **Push setup (needs you):** an APNs **Auth Key** (.p8) from developer.apple.com with its Key ID and Team ID 62Z8PRAHTS, entered on the External Client App AAGA_Claims_iOS's push settings in Salesforce (Setup → External Client App Manager → AAGA Claims iOS → Settings → Push Notifications: iOS, token-based, bundle id com.accurateadjustmentsga.claims, "Production" for TestFlight). The server trigger is built (assumption 87).
-7. **Universal links:** the portal must serve `/.well-known/apple-app-site-association` for the app's team and bundle id, and the app needs the Associated Domains entitlement (`applinks:portal.accurateadjustmentsga.com`). Both need the Apple team id.
+7. **Universal links (needs you):** publish Tools/universal-links on app.accurateadjustmentsga.com (Cloudflare Pages; steps in its README), then use that domain in email links (assumption 97).
 8. **Should location metadata be stripped from all photos before upload?** It's currently only dropped when a photo is downscaled.
 9. **Brand colours:** the designer should confirm the Salesforce-blue theme in assumption 66, including its dark-mode values.
 10. ~~**Should the API refuse internal users?**~~ **Decided 2026-10-12:** no. Staff use the app too, with the "Portal Mobile App (Staff)" permission set.

@@ -176,6 +176,9 @@ struct MainTabView: View {
                 serverMeta = meta
             }
             await Outbox.shared.send(using: session.api)
+            if !session.isDemo && serverMeta.supports(.diagnostics) {
+                await CrashReporter.shared.send(using: session.api)
+            }
         }
         .task {
             // What's new first; then, after the first sign-in, offer Face ID (spec §6.1).

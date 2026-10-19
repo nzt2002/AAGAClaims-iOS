@@ -17,6 +17,8 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationC
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         UNUserNotificationCenter.current().delegate = self
+        // Crash and hang reports from earlier sessions arrive through MetricKit.
+        CrashReporter.shared.start()
         return true
     }
 

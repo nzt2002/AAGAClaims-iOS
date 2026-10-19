@@ -270,6 +270,16 @@ public actor CachingPortalAPI: PortalAPI {
         return try await guarded { try await $0.activityOptions() }
     }
 
+    public func requestAccountDeletion(reason: String?) async throws -> AccountDeletionRequest {
+        try requireOnline()
+        return try await guarded { try await $0.requestAccountDeletion(reason: reason) }
+    }
+
+    public func sendDiagnostics(_ report: DiagnosticsReport) async throws {
+        try requireOnline()
+        try await guarded { try await $0.sendDiagnostics(report) }
+    }
+
     public func serverMeta() async throws -> ServerMeta {
         try requireOnline()
         return try await guarded { try await $0.serverMeta() }

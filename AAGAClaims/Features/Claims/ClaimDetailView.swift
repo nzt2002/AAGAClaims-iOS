@@ -212,7 +212,8 @@ private struct ClaimHeader: View {
                     .accessibilityLabel("Loss address: \(address)")
                     .accessibilityIdentifier("headerLossAddress")
             }
-            HStack(spacing: Theme.Spacing.l) {
+            // Side by side normally; one under the other at large text, so numbers don't split.
+            AdaptiveStack(horizontalAlignment: .firstTextBaseline, spacing: Theme.Spacing.m) {
                 if let number = PortalFormat.nonEmpty(detail.claimNumber) {
                     Text("Claim \(number)")
                 }
@@ -297,17 +298,21 @@ private struct LifecycleCard: View {
                 withAnimation(.snappy) { expanded.toggle() }
             } label: {
                 HStack(spacing: Theme.Spacing.l) {
-                    if let percent = position.percentComplete {
-                        ProgressRing(percent: percent)
-                    }
-                    VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                        Text("Claim progress")
-                            .font(.caption)
-                            .foregroundStyle(Color.textSecondary)
-                        Text(PortalFormat.nonEmpty(status) ?? "Status not set")
-                            .font(.title3.bold())
-                            .foregroundStyle(Color.textPrimary)
-                            .accessibilityIdentifier("claimStatusProminent")
+                    // The ring goes above the status at large text, so the status isn't squeezed.
+                    AdaptiveStack(spacing: Theme.Spacing.l) {
+                        if let percent = position.percentComplete {
+                            ProgressRing(percent: percent)
+                        }
+                        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                            Text("Claim progress")
+                                .font(.caption)
+                                .foregroundStyle(Color.textSecondary)
+                            Text(PortalFormat.nonEmpty(status) ?? "Status not set")
+                                .font(.title3.bold())
+                                .foregroundStyle(Color.textPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .accessibilityIdentifier("claimStatusProminent")
+                        }
                     }
                     Spacer(minLength: 0)
                     if case .stage = position {
@@ -380,6 +385,9 @@ struct ProgressRing: View {
             Text("\(percent)%")
                 .font(.subheadline.bold())
                 .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.4)
+                .padding(6)
         }
         .frame(width: 64, height: 64)
         .accessibilityElement(children: .ignore)

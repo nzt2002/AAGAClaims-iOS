@@ -504,6 +504,9 @@ public actor MockPortalAPI: PortalAPI {
         return fileContents[contentDocumentId] ?? Self.samplePDF
     }
 
+    private var deletionRequested = false
+    public private(set) var diagnosticsReceived: [DiagnosticsReport.Item] = []
+
     /// Claim and lead activity, seeded on first view (by record id).
     private var activityStore: [String: [AgendaItem]] = [:]
 
@@ -950,6 +953,17 @@ public actor MockPortalAPI: PortalAPI {
     public func activityOptions() async throws -> ActivityOptions {
         try await simulate()
         return ActivityOptions(taskStatuses: ["Not Started", "Working", "Completed"], taskPriorities: ["High", "Normal"])
+    }
+
+    public func requestAccountDeletion(reason: String?) async throws -> AccountDeletionRequest {
+        try await simulate()
+        defer { deletionRequested = true }
+        return AccountDeletionRequest(caseId: "500000000000099AAA", alreadyRequested: deletionRequested)
+    }
+
+    public func sendDiagnostics(_ report: DiagnosticsReport) async throws {
+        try await simulate()
+        diagnosticsReceived.append(contentsOf: report.reports)
     }
 
     public func serverMeta() async throws -> ServerMeta {

@@ -10,6 +10,9 @@ public enum FileUploadRules {
     public static let maxPhotoPixels = 4_000
     /// The server's limit: Apex REST bodies count against its 6 MB heap (PortalApiV1.MAX_FILE_BYTES).
     public static let maxBytes = 4 * 1_024 * 1_024
+    /// When the server takes large files (`ServerMeta.Feature.largeFiles`): documents and scans up
+    /// to 25 MB. Photos are still kept under `maxBytes`, which is plenty for 4,000 px.
+    public static let largeMaxBytes = 25 * 1_024 * 1_024
 
     public static let mimeTypes: [String: String] = [
         "pdf": "application/pdf",
@@ -36,7 +39,7 @@ public enum FileUploadRules {
         public var message: String {
             switch self {
             case .unsupportedType: "This file type can't be uploaded. Use PDF, photos (JPG, PNG, HEIC), Word or Excel."
-            case .tooLarge: "This file is too large to upload. Files must be under 4 MB."
+            case .tooLarge: "This file is too large to upload. Photos must be under 4 MB, and documents under 25 MB."
             case .empty: "This file is empty."
             }
         }
@@ -68,13 +71,13 @@ public enum FileUploadRules {
     }
 
     /// Checks type and size, downscales photos, and builds the upload.
-    public static func prepare(data: Data, fileName: String, title: String) throws(Problem) -> FileUpload {
+    public static func prepare(data: Data, fileName: String, title: String, documentLimit: Int = maxBytes) throws(Problem) -> FileUpload {
         guard !data.isEmpty else { throw .empty }
         let ext = fileExtension(of: fileName)
         guard allowedExtensions.contains(ext), let mimeType = mimeTypes[ext] else { throw .unsupportedType }
 
         guard ["jpg", "jpeg", "png", "heic"].contains(ext) else {
-            guard data.count <= maxBytes else { throw .tooLarge }
+            guard data.count <= documentLimit else { throw .tooLarge }
             return FileUpload(fileName: fileName, title: title, mimeType: mimeType, data: data)
         }
 

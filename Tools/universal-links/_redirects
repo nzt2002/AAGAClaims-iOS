@@ -1,0 +1,3 @@
+# Without the app (or on a computer), links go to the same page on the portal.
+/s/*  https://portal.accurateadjustmentsga.com/s/:splat  302
+/     https://portal.accurateadjustmentsga.com/s/      302

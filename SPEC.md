@@ -254,6 +254,14 @@ All return `404` unless the user is internal (user type Standard), and only for 
 
 `GET /meta` → `{ "apiVersion": 5, "features": ["claimActivities", "chatterAttachments", "claimReferenceId", "leadActivities", "activityEmails", "activityEdit", "push"] }`, for every signed-in user. The app loads it after sign-in and **hides any feature whose name isn't listed**, so an app build can go out before or after its server change. A server without `/meta` (404) is treated as having the first three. Add a name to `PortalApiV1.SERVER_FEATURES` with each new server feature and never remove one. `Tools/release.sh` in the app repo deploys the server first (after validating and asking), then uploads the app.
 
+### 5.6d Account, files and diagnostics
+
+- `POST /account/deletion-request { reason? }` → `{ caseId, alreadyRequested }`. This opens a support case ("Account deletion request - {name}") with the user's details and reason, and emails the user a confirmation. A second request while one is open returns the same case.
+- Large files: `GET /files/upload-config` → `{ networkId, maxBytes: 26214400, apexMaxBytes }`. Files over about 3.5 MB are created with the standard REST API (`POST /services/data/v62.0/sobjects/ContentVersion`, multipart, with `NetworkId` for portal users), then `POST /{claims|leads}/{id}/files/link { contentVersionId }` links them; only the user's own uploads from the last day can be linked. Downloads too big for Apex: `POST /files/{id}/access` (after the usual access check, shares the file view-only with the user) → `{ contentVersionId }`, then `GET /services/data/v62.0/sobjects/ContentVersion/{id}/VersionData`.
+- `POST /diagnostics { appVersion, device, reports: [{ kind, reason, details }] }` → `{ received }` (at most 5). Crash and hang reports from MetricKit, kept on the device until sent.
+- Unexpected API failures (500s) and diagnostics are published as `Mobile_App_Error__e` (kept even when the request fails) and saved as **Mobile App Logs** (`Mobile_App_Log__c`; tab and "Recent Errors" list view; permission set *Mobile App Monitoring*). Active System Administrators get an email when errors start, at most once every 15 minutes.
+- New and reactivated users get app access automatically (`PortalMobileAppAccess` trigger): portal users get *Portal Mobile App*, internal users *Portal Mobile App (Staff)*. `PortalMobileAppAccess.assignAll()` fixes everyone at once.
+
 ### 5.6c Activity (staff)
 
 `PortalActivityService` (with sharing). Staff only; everyone else gets `404`.
@@ -408,12 +416,13 @@ Same layout as the Claims list, with these differences:
 - Subtitle: "Leads connected to your email address."
 
 ### 6.7 Lead detail
-- **Header:** lead name, status pill, claim number, policy number.
-- **Lifecycle:** `New → Working → Qualified → Converted`. If the status is `Unqualified`, show `New → Working → Unqualified` with the last step in a neutral or warning style.
+- **Header:** lead name, status pill, **loss address**, claim number, policy number (stacked at large text sizes).
+- **Lifecycle:** a collapsible *Lead progress* card, as on claims: the status always shows; tap to see the stages `New → Working → Qualified → Converted`. If the status is `Unqualified`, show `New → Working → Unqualified` with the last step in a neutral or warning style.
 - **Agreement milestones:** Sent → Signed, with dates (`sentDate`, then `completedDate`). Steps not yet reached show as upcoming. When `hasAgreement` is `false`, show "Visible once an agreement has been sent."
 - **Sections:**
   - *Updates*
   - *Details*: lead name, peril, loss address, phone, mobile, email, loss description, created, last updated, and the supporting-documents link (`documentsUrl`)
+  - *Referred By* (after Details): the associated party's name, company, phone and email, or "No one is recorded as referring this lead."
   - *Insurance*: company, claim filed?, claim number, policy number
   - *Files*, with upload
 - **Team card**, and **Ask Question** as a top-bar icon, as on claims. There's no Add Comment on leads.
@@ -490,6 +499,7 @@ The app runs on iPad in every orientation. At regular width, Claims and Leads ar
 - Links: *Contact support* (opens Support), *Privacy policy*, *Terms*.
 - **Sign out**: revokes the token through the SDK logout and clears the cache and keychain.
 - App version and build number.
+- **Delete Account** (when the server supports it): explains what happens, takes an optional reason, sends the request (§5.6d), confirms, and signs out.
 - **What's New in {version}** (the current version's notes again) and **Release Notes**: every version's notes, newest first, with its date; the installed version is marked "Current". Staff-only items aren't listed for homeowners. Notes live in `WhatsNew.releases`; add one per version.
 
 ---
@@ -507,6 +517,7 @@ The app runs on iPad in every orientation. At regular width, Claims and Leads ar
 
 | Feature | Behaviour |
 |---|---|
+| **Universal links** | Salesforce serves its own apple-app-site-association on the portal domain (Salesforce apps only), and the Wix website can't serve one. So the app's links use **app.accurateadjustmentsga.com** (Associated Domains `applinks:app.accurateadjustmentsga.com`) with the portal's paths: `/s/detail/{id}` and `/s/my-case-detail?recordId={id}`. The small site in `Tools/universal-links` (Cloudflare Pages) serves the file and redirects to the same page on the portal when the app isn't installed. Email templates whose links should open the app use that domain. |
 | **Push notifications** | The Mobile SDK registers the device with Salesforce for the External Client App. The app asks for permission once after sign-in (after What's New and the Face ID offer), and in Account. `PortalPushService` sends, from a Queueable so saves never fail: **update**, when a portal update is published on a claim or lead (to its portal users; a portal user's own comment goes to the record's owner, account manager and desk adjuster); **payment**, when a payment is recorded on a claim (to its portal users, without the amount); **mention**, when someone is @mentioned in a Chatter post or reply; **task**, when a task is assigned to someone else. Nobody is notified about their own change. Payload: `{ "aps": { "alert": { "title", "body" }, "sound": "default" }, "type": "update" \| "payment" \| "mention" \| "task" \| "caseReply", "recordId": "...", "commentId"? }`. A tap opens the record on top of the current screen (an update is also marked read). The app's name and an on/off switch are the Custom Labels `Portal_Push_App_Name` and `Portal_Push_Enabled`. Delivery needs an APNs key on the External Client App (ASSUMPTIONS). |
 | **Face ID / Touch ID** | An optional app lock. Require it on launch and after 5 minutes in the background. Fall back to the device passcode. |
 | **Camera and photo uploads** | §6.10 |

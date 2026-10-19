@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["62Z8PRAHTS.com.accurateadjustmentsga.claims"],
+        "components": [
+          { "/": "/s/detail/*", "comment": "Claims and leads" },
+          { "/": "/s/my-case-detail", "?": { "recordId": "*" }, "comment": "Support cases" }
+        ]
+      }
+    ]
+  }
+}

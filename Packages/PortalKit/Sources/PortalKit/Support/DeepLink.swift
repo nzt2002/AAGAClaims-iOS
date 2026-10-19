@@ -10,6 +10,10 @@ public enum DeepLink: Hashable, Sendable {
 
     public static let scheme = "aagaclaims"
     public static let portalHost = "portal.accurateadjustmentsga.com"
+    /// Universal links: Salesforce serves its own apple-app-site-association on the portal domain,
+    /// so the app's links use this domain instead (Tools/universal-links). Same paths as the portal,
+    /// which it redirects to when the app isn't installed.
+    public static let appLinkHost = "app.accurateadjustmentsga.com"
 
     /// Key prefixes of the record ids the app can open, from the org's EntityDefinition.
     public enum KeyPrefix {
@@ -22,6 +26,7 @@ public enum DeepLink: Hashable, Sendable {
     /// - `aagaclaims://claim/{id}`, `aagaclaims://lead/{id}`, `aagaclaims://case/{id}`
     /// - `https://portal.accurateadjustmentsga.com/s/detail/{id}` (claim or lead, by key prefix)
     /// - `https://portal.accurateadjustmentsga.com/s/my-case-detail?recordId={id}`
+    /// - the same paths on `app.accurateadjustmentsga.com` (universal links)
     public init?(url: URL) {
         let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
 
@@ -40,7 +45,8 @@ public enum DeepLink: Hashable, Sendable {
             return
         }
 
-        guard url.scheme?.lowercased() == "https", url.host()?.lowercased() == Self.portalHost else { return nil }
+        guard url.scheme?.lowercased() == "https",
+              let host = url.host()?.lowercased(), host == Self.portalHost || host == Self.appLinkHost else { return nil }
         let path = url.pathComponents.filter { $0 != "/" }
 
         // /s/my-case-detail?recordId={id}
