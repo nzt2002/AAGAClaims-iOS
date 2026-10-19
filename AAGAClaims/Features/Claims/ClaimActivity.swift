@@ -74,7 +74,16 @@ extension AgendaItem {
         }
     }
 
-    var activityWhen: String {
+    /// The comments' first 90 characters, for the card.
+    var descriptionPreview: String? {
+        guard let text = PortalFormat.nonEmpty(description)?
+            .replacingOccurrences(of: "\n", with: " ") else { return nil }
+        guard text.count > 90 else { return text }
+        let cut = text.prefix(90)
+        return (cut.lastIndex(of: " ").map { String(cut[..<$0]) } ?? String(cut)) + "…"
+    }
+
+        var activityWhen: String {
         if kind == .task, isClosed == true, let due = dueDate {
             return PortalFormat.date(due)
         }
@@ -108,11 +117,12 @@ struct ActivityItemRow: View {
                         .font(.caption)
                         .foregroundStyle(Color.textSecondary)
                 }
-                if let description = PortalFormat.nonEmpty(item.description) {
-                    Text(description)
+                if let preview = item.descriptionPreview {
+                    // Shortened in code rather than with lineLimit, so large text sizes wrap instead of clipping.
+                    Text(preview)
                         .font(.caption)
                         .foregroundStyle(Color.textSecondary)
-                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             Image(systemName: "chevron.right")

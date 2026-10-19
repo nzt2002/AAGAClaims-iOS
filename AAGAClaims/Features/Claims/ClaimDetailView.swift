@@ -105,11 +105,11 @@ struct ClaimDetailView: View {
                 }
                 HighlightsRow(detail: detail)
                 LifecycleCard(position: detail.lifecycle, status: detail.claimStatus)
-                SectionBar(selection: $viewModel.section)
-                sectionContent(detail)
                 if isInternal {
                     ClaimActivitySection(actions: actions)
                 }
+                SectionBar(selection: $viewModel.section)
+                sectionContent(detail)
                 TeamCard(
                     adjuster: .init(name: detail.adjusterName, phone: detail.adjusterPhone, email: detail.adjusterEmail),
                     deskAdjuster: .init(name: detail.deskAdjusterName, phone: nil, email: detail.deskAdjusterEmail),
