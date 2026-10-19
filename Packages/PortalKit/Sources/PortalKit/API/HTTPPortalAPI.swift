@@ -217,6 +217,7 @@ public struct HTTPPortalAPI: PortalAPI {
     }
 
     public func claimFeed(claimId: String) async throws -> [ChatterPost] { try await get(claimPath(claimId, "feed")) }
+    public func claimActivities(claimId: String) async throws -> [AgendaItem] { try await get(claimPath(claimId, "activities")) }
     public func postToClaim(claimId: String, text: String, mentions: [Mention]) async throws -> ChatterPost { try await post(claimPath(claimId, "posts"), body: ChatterBody(text, mentions)) }
     public func logCall(claimId: String, _ call: CallLog) async throws { let _: Ignored = try await post(claimPath(claimId, "calls"), body: call) }
     public func sendEmail(claimId: String, _ email: OutgoingEmail) async throws { let _: Ignored = try await post(claimPath(claimId, "emails"), body: email) }

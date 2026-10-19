@@ -43,15 +43,20 @@ struct ClaimDetailView: View {
                 if isInternal, claimFeed.feed.value == nil {
                     async let staff: Void = actions.load()
                     async let feed: Void = claimFeed.load()
-                    _ = await (staff, feed)
+                    async let activity: Void = actions.loadActivities()
+                    _ = await (staff, feed, activity)
                 }
             }
             .sheet(item: $openAction) { action in
                 switch action {
                 case .task:
-                    NewTaskSheet(api: api, currentUserName: currentUserName, record: .claim(viewModel.claimId)) {}
+                    NewTaskSheet(api: api, currentUserName: currentUserName, record: .claim(viewModel.claimId)) {
+                        Task { await actions.loadActivities() }
+                    }
                 case .event:
-                    NewEventSheet(api: api, currentUserName: currentUserName, record: .claim(viewModel.claimId)) {}
+                    NewEventSheet(api: api, currentUserName: currentUserName, record: .claim(viewModel.claimId)) {
+                        Task { await actions.loadActivities() }
+                    }
                 default:
                 ClaimActionSheet(action: action, actions: actions, feed: claimFeed, api: api) {
                     Task {
@@ -102,6 +107,9 @@ struct ClaimDetailView: View {
                 LifecycleCard(position: detail.lifecycle, status: detail.claimStatus)
                 SectionBar(selection: $viewModel.section)
                 sectionContent(detail)
+                if isInternal {
+                    ClaimActivitySection(actions: actions)
+                }
                 TeamCard(
                     adjuster: .init(name: detail.adjusterName, phone: detail.adjusterPhone, email: detail.adjusterEmail),
                     deskAdjuster: .init(name: detail.deskAdjusterName, phone: nil, email: detail.deskAdjusterEmail),
@@ -113,7 +121,11 @@ struct ClaimDetailView: View {
         }
         .refreshable {
             await viewModel.load()
-            if isInternal { await claimFeed.load() }
+            if isInternal {
+                async let feed: Void = claimFeed.load()
+                async let activity: Void = actions.loadActivities()
+                _ = await (feed, activity)
+            }
         }
         .toolbar {
             if isInternal {

@@ -125,6 +125,38 @@ final class ClaimActionsUITests: XCTestCase {
         XCTAssertFalse(app.buttons["newTaskSave"].exists)
     }
 
+    func testRecentActivityOpensTaskRecord() {
+        // Open items first, then done ones; three at a time.
+        let done = app.buttons["claimActivity-00Thist1AAA1"]
+        XCTAssertTrue(done.waitForExistence(timeout: 10))
+        app.scrollIntoView(done)
+        XCTAssertTrue(done.label.contains("Documents - Requested from insurance company"), done.label)
+        XCTAssertTrue(done.label.contains("Completed"), done.label)
+        done.tap()
+
+        let header = app.descendants(matching: .any)["activityHeader"]
+        XCTAssertTrue(header.waitForExistence(timeout: 5))
+        XCTAssertTrue(header.label.contains("Documents - Requested from insurance company"), header.label)
+        XCTAssertTrue(element(containing: "Assigned to").exists)
+        XCTAssertTrue(element(containing: "full policy").exists)
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Claim CLM-1234"].waitForExistence(timeout: 5), "Back on the claim")
+    }
+
+    func testNewTaskShowsInRecentActivity() {
+        open("task")
+        let subject = app.textFields["newTaskSubject"]
+        XCTAssertTrue(subject.waitForExistence(timeout: 5))
+        subject.tap()
+        subject.typeText("Order roof measurements")
+        app.buttons["newTaskSave"].tap()
+        let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'claimActivity-' AND label CONTAINS 'Order roof measurements'")).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10), "The new task is listed first")
+        app.scrollIntoView(row)
+        row.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["activityHeader"].waitForExistence(timeout: 5))
+    }
+
     func testEditClaimShowsValidationAndSaves() {
         open("edit")
         let name = app.textFields["editClaimName"]

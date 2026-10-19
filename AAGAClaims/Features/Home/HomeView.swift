@@ -353,7 +353,7 @@ struct AgendaRow: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.textPrimary)
                         .multilineTextAlignment(.leading)
-                    Text(when)
+                    Text(Self.whenText(item))
                         .font(.caption)
                         .foregroundStyle(item.isOverdue == true ? Color.warning : Color.textSecondary)
                     if let name = PortalFormat.nonEmpty(item.relatedRecordName), let type = item.relatedRecordType {
@@ -402,7 +402,8 @@ struct AgendaRow: View {
         return day.formatted(.dateTime.month(.abbreviated).day())
     }
 
-    private var when: String {
+    /// "Due tomorrow", "Overdue · Due Oct 3", "Thu, Oct 9 · 10:00 AM – 11:00 AM"…
+    static func whenText(_ item: AgendaItem) -> String {
         switch item.kind {
         case .task:
             guard let due = item.dueDate else { return "No due date" }

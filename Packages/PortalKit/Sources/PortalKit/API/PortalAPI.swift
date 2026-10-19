@@ -72,6 +72,8 @@ public protocol PortalAPI: Sendable {
     func claimContactMatches(claimId: String, firstName: String?, lastName: String, email: String?, mobile: String?) async throws -> [ContactMatch]
     func addClaimContact(claimId: String, _ contact: NewClaimRequest.Contact) async throws
     func claimFeed(claimId: String) async throws -> [ChatterPost]
+    /// Staff: the claim's tasks and events, open first.
+    func claimActivities(claimId: String) async throws -> [AgendaItem]
     func postToClaim(claimId: String, text: String, mentions: [Mention]) async throws -> ChatterPost
     func logCall(claimId: String, _ call: CallLog) async throws
     func sendEmail(claimId: String, _ email: OutgoingEmail) async throws

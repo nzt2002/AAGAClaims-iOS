@@ -131,6 +131,22 @@ struct ClaimActionsTests {
         #expect(again.errorMessage == "This contact is already on the claim.")
     }
 
+    @Test("Recent activity: open items first, then logged calls and history")
+    func claimActivities() async throws {
+        let api = try mock()
+        let actions = ClaimActionsViewModel(api: api, claimId: claimId)
+        try await api.logCall(claimId: claimId, CallLog(subject: "Called the carrier", description: "Left a voicemail", contactId: nil))
+        await actions.loadActivities()
+        let items = try #require(actions.activities.value)
+        let call = try #require(items.first { $0.subject == "Called the carrier" })
+        #expect(call.subtype == "Call")
+        #expect(call.isClosed == true)
+        #expect(call.description == "Left a voicemail")
+        let firstClosed = try #require(items.firstIndex { $0.isClosed == true })
+        #expect(items[..<firstClosed].allSatisfy { $0.isClosed == false })
+        #expect(items.allSatisfy { $0.relatedRecordId == claimId })
+    }
+
     @Test("Claim feed: post, then reply")
     func claimFeed() async throws {
         let api = try mock()

@@ -8,6 +8,8 @@ import Observation
 public final class ClaimActionsViewModel {
     public let claimId: String
     public private(set) var staff: LoadState<StaffClaim> = .idle
+    /// The claim's tasks and events, for Recent activity.
+    public private(set) var activities: LoadState<[AgendaItem]> = .idle
     public private(set) var isSaving = false
     /// A message for the open form, e.g. a validation rule's.
     public private(set) var errorMessage: String?
@@ -22,6 +24,11 @@ public final class ClaimActionsViewModel {
     public func load() async {
         let api = self.api, id = claimId
         await PortalKit.load(self, \.staff) { try await api.staffClaim(id: id) }
+    }
+
+    public func loadActivities() async {
+        let api = self.api, id = claimId
+        await PortalKit.load(self, \.activities) { try await api.claimActivities(claimId: id) }
     }
 
     public func clearError() { errorMessage = nil }

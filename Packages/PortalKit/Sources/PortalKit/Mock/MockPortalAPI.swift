@@ -843,6 +843,45 @@ public actor MockPortalAPI: PortalAPI {
         return seeded
     }
 
+    public func claimActivities(claimId: String) async throws -> [AgendaItem] {
+        try await simulate()
+        _ = try staff(claimId)
+        let name = recordName(.claim(claimId))
+        func done(_ id: String, _ subject: String, subtype: String, daysAgo: Int, description: String?) -> AgendaItem {
+            let day = Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date())!
+            let parts = Calendar.current.dateComponents([.year, .month, .day], from: day)
+            var item = AgendaItem(
+                id: id, kind: .task, subject: subject, dueDate: CalendarDate(year: parts.year!, month: parts.month!, day: parts.day!), startDateTime: nil, endDateTime: nil,
+                isAllDay: nil, location: nil, status: "Completed", isOverdue: false, assignedToName: "Alex Smith",
+                relatedRecordId: claimId, relatedRecordName: name, relatedRecordType: .claim
+            )
+            item.description = description
+            item.subtype = subtype
+            item.isClosed = true
+            item.priority = "Normal"
+            item.createdDate = day
+            item.createdByName = "Alex Smith"
+            return item
+        }
+        let calls = (data.callsLogged[claimId] ?? []).enumerated().reversed().map { index, call in
+            done("00Tcall\(claimId.suffix(4))\(index)", call.subject, subtype: "Call", daysAgo: 0, description: call.description)
+        }
+        let history = [
+            done("00Thist\(claimId.suffix(4))1", "Documents - Requested from insurance company", subtype: "Task", daysAgo: 3,
+                 description: "Asked the carrier for the full policy and the field adjuster's estimate."),
+            done("00Thist\(claimId.suffix(4))2", "Call - Initial contact with homeowner", subtype: "Call", daysAgo: 7,
+                 description: "Walked through the claims process and booked the inspection."),
+        ]
+        let open = data.agenda.items.filter { $0.relatedRecordId == claimId }.map { item -> AgendaItem in
+            var item = item
+            item.isClosed = false
+            item.subtype = item.kind == .task ? "Task" : nil
+            item.createdByName = item.assignedToName
+            return item
+        }
+        return open + calls + history
+    }
+
     public func postToClaim(claimId: String, text: String, mentions: [Mention]) async throws -> ChatterPost {
         let existing = try await claimFeed(claimId: claimId)
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw PortalAPIError.invalidRequest }

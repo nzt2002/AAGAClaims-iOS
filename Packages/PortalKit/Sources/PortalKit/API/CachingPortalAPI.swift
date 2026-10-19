@@ -250,6 +250,11 @@ public actor CachingPortalAPI: PortalAPI {
         return try await guarded { try await $0.claimFeed(claimId: claimId) }
     }
 
+    public func claimActivities(claimId: String) async throws -> [AgendaItem] {
+        try requireOnline()
+        return try await guarded { try await $0.claimActivities(claimId: claimId) }
+    }
+
     public func postToClaim(claimId: String, text: String, mentions: [Mention]) async throws -> ChatterPost {
         try requireOnline()
         return try await guarded { try await $0.postToClaim(claimId: claimId, text: text, mentions: mentions) }

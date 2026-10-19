@@ -34,6 +34,15 @@ public struct AgendaItem: Codable, Hashable, Identifiable, Sendable {
     public let relatedRecordId: String?
     public let relatedRecordName: String?
     public let relatedRecordType: RelatedRecordType?
+    /// `GET /claims/{id}/activities` only: the record page's details.
+    public var description: String? = nil
+    public var priority: String? = nil
+    /// Tasks: "Call", "Email" or "Task".
+    public var subtype: String? = nil
+    /// Completed tasks and past events.
+    public var isClosed: Bool? = nil
+    public var createdDate: Date? = nil
+    public var createdByName: String? = nil
 
     public var recordRef: RecordRef? {
         guard let relatedRecordId, let relatedRecordType else { return nil }
