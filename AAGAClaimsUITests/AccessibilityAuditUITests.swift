@@ -21,7 +21,17 @@ final class AccessibilityAuditUITests: XCTestCase {
         // Content under the navigation bar, the bottom action bar or the floating tab bar, or
         // scrolled partly off screen, is measured against the blurred bar. Those aren't real issues.
         let visible = CGRect(x: 0, y: screen.height * 0.12, width: screen.width, height: screen.height * 0.68)
+        // "Three at a time" lists (ScrollingStack): rows scrolled out of their window are measured
+        // against whatever covers them. They're checked when scrolled into view on other screens.
+        let stackWindows = app.scrollViews.matching(identifier: "scrollingStack").allElementsBoundByIndex.map(\.frame)
         try app.performAccessibilityAudit { issue in
+            if let frame = issue.element?.frame, [.contrast, .textClipped].contains(issue.auditType),
+               stackWindows.contains(where: { window in
+                   frame.minX >= window.minX - 1 && frame.maxX <= window.maxX + 1 && frame.minY >= window.minY - 2
+                       && !window.insetBy(dx: -1, dy: -1).contains(frame)
+               }) {
+                return true
+            }
             if let frame = issue.element?.frame, !visible.contains(frame),
                [.contrast, .textClipped, .dynamicType].contains(issue.auditType) {
                 return true
