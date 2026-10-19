@@ -7,6 +7,11 @@ import UIKit
 final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
     private let session = AppSession(environment: .current)
+    /// True while the SDK's login screen is up. Leaving the app during login (to copy a
+    /// verification code from Authenticator, Messages or Mail, or for a password prompt) brings
+    /// it back through `sceneWillEnterForeground`; without this, that started a second login
+    /// that replaced the first and lost what was typed.
+    private var isSigningIn = false
 
     func scene(
         _ scene: UIScene,
@@ -37,7 +42,15 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             }
             AuthHelper.registerBlock(forLogoutNotifications: scene) { [weak self] in
                 self?.session.didSignOut()
+                // A new login after sign-out or an expired session.
+                self?.isSigningIn = false
                 self?.signInIfNeeded(scene)
+            }
+            // A cancelled login never calls back; let the next return to the app start a fresh one.
+            NotificationCenter.default.addObserver(
+                forName: UserAccountManager.userCancelledAuthentication, object: nil, queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated { self?.isSigningIn = false }
             }
         }
     }
@@ -86,8 +99,14 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     /// Shows the SDK login (pointed at the portal domain via `SFDCOAuthLoginHost`) when there's
     /// no session, then publishes the user.
     private func signInIfNeeded(_ scene: UIScene) {
+        let hasSession = UserAccountManager.shared.currentUserAccount?.credentials.accessToken != nil
+        // A login is already on screen: leave it alone.
+        if isSigningIn && !hasSession { return }
+        if !hasSession { isSigningIn = true }
         AuthHelper.loginIfRequired(scene) { [weak self] in
-            guard let self, let user = Self.currentUser() else { return }
+            guard let self else { return }
+            self.isSigningIn = false
+            guard let user = Self.currentUser() else { return }
             self.session.didSignIn(user)
             Task { await PushNotifications.registerIfAllowed(registerWithSalesforce: true) }
         }
