@@ -21,10 +21,18 @@ public actor FileResponseCache: ResponseCache {
         return FileResponseCache(directory: caches.appending(path: "PortalCache", directoryHint: .isDirectory))
     }
 
+    /// Encrypted at rest on iOS. macOS (where only the unit tests run) refuses complete file
+    /// protection, so a plain atomic write there.
+    #if os(iOS)
+    static let writeOptions: Data.WritingOptions = [.atomic, .completeFileProtection]
+    #else
+    static let writeOptions: Data.WritingOptions = [.atomic]
+    #endif
+
     public func store(_ data: Data, for key: String) {
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            try data.write(to: url(for: key), options: [.atomic, .completeFileProtection])
+            try data.write(to: url(for: key), options: Self.writeOptions)
         } catch {
             // A failed cache write only means less offline data.
         }
