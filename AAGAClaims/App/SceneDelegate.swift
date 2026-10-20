@@ -37,6 +37,17 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         case .demo:
             self.session.didSignIn(.demo)
         case .salesforce:
+            if BootConfigCheck.usesNativeLogin, let key = BootConfigCheck.consumerKey {
+                // The SDK shows our sign-in screen instead of the web page whenever sign-in is needed.
+                self.session.usesNativeLogin = true
+                SalesforceManager.shared.useNativeLogin(
+                    withConsumerKey: key,
+                    callbackUrl: NativeSignIn.callbackURL,
+                    communityUrl: NativeSignIn.portalURL,
+                    nativeLoginViewController: NativeSignIn.makeViewController(),
+                    scene: scene
+                )
+            }
             self.session.startSignIn = { [weak self, weak scene] in
                 guard let self, let scene else { return }
                 self.signIn(scene)
@@ -45,17 +56,23 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 self?.restoreSession(scene)
             }
             AuthHelper.registerBlock(forLogoutNotifications: scene) { [weak self] in
-                // Back to the welcome screen after sign-out or an expired session.
+                // Back to the welcome screen (or native sign-in) after sign-out or an expired session.
                 self?.session.didSignOut()
                 self?.setSigningIn(false)
+                self?.showNativeSignInIfNeeded(scene)
             }
-            // A cancelled login never calls back: back to the welcome screen's Sign In button.
+            // A cancelled login never calls back: back to the welcome screen's Sign In button, or
+            // (native) back to the app's sign-in screen, e.g. after closing the staff web sign-in.
             NotificationCenter.default.addObserver(
                 forName: UserAccountManager.userCancelledAuthentication, object: nil, queue: .main
-            ) { [weak self] _ in
-                MainActor.assumeIsolated { self?.setSigningIn(false) }
+            ) { [weak self, weak scene] _ in
+                MainActor.assumeIsolated {
+                    self?.setSigningIn(false)
+                    if let scene { self?.showNativeSignInIfNeeded(scene) }
+                }
             }
             restoreSession(scene)
+            showNativeSignInIfNeeded(scene)
         }
     }
 
@@ -116,6 +133,12 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         if case .signedIn = session.state { return }
         session.isRestoringSession = true
         login(scene)
+    }
+
+    /// Native login: the app's sign-in screen is the welcome screen, so show it straight away.
+    private func showNativeSignInIfNeeded(_ scene: UIScene) {
+        guard session.usesNativeLogin, !hasSavedSession else { return }
+        signIn(scene)
     }
 
     /// Sign In on the welcome screen: the SDK's login, pointed at the portal (`SFDCOAuthLoginHost`).

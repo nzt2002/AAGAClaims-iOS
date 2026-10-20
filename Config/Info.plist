@@ -31,6 +31,8 @@
 	<string>live</string>
 	<key>SFDCOAuthLoginHost</key>
 	<string>portal.accurateadjustmentsga.com</string>
+	<key>UseNativeLogin</key>
+	<true/>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>

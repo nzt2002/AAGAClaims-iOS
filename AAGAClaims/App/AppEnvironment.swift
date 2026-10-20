@@ -48,11 +48,21 @@ nonisolated enum BootConfigCheck {
     static let placeholder = "REPLACE_WITH_CONSUMER_KEY"
 
     static var hasConsumerKey: Bool {
+        consumerKey != nil
+    }
+
+    static var consumerKey: String? {
         guard let url = Bundle.main.url(forResource: "bootconfig", withExtension: "plist"),
               let dict = NSDictionary(contentsOf: url),
-              let key = dict["remoteAccessConsumerKey"] as? String else {
-            return false
+              let key = dict["remoteAccessConsumerKey"] as? String, !key.isEmpty, key != placeholder else {
+            return nil
         }
-        return !key.isEmpty && key != placeholder
+        return key
+    }
+
+    /// Info.plist `UseNativeLogin`: the app's own sign-in screen (Headless Login) instead of the
+    /// web page. Off falls back to the welcome screen and Salesforce's web sign-in.
+    static var usesNativeLogin: Bool {
+        Bundle.main.object(forInfoDictionaryKey: "UseNativeLogin") as? Bool ?? false
     }
 }

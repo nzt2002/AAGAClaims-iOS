@@ -40,6 +40,8 @@ final class AppSession {
     var startSignIn: (() -> Void)?
     /// Salesforce's sign-in is on screen.
     var isSigningIn = false
+    /// The app's own sign-in screen (native login) is used instead of the web page.
+    var usesNativeLogin = false
     /// A saved session is being restored: keep the splash up rather than flash the welcome screen.
     var isRestoringSession = false
 
