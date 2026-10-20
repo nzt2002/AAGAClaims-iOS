@@ -1,4 +1,4 @@
-// Draws the temporary app icon (light, dark and tinted, 1024 px).
+// Draws the app icon (light, dark and tinted, 1024 px): the house-and-check mark on Lightning blues.
 // Run: swift Tools/make-app-icon.swift AAGAClaims/Resources/Assets.xcassets/AppIcon.appiconset
 import CoreGraphics
 import Foundation
@@ -54,18 +54,28 @@ func render(_ v: Variant, _ name: String) {
 
     switch v {
     case .light:
-        // Brand gradient, top-left to bottom-right, as in the Home hero.
-        let g = CGGradient(colorsSpace: CGColorSpace(name: CGColorSpace.sRGB)!, colors: [rgb(0x0A62C2), rgb(0x014486)] as CFArray, locations: [0, 1])!
+        // Lightning blues, top-left to bottom-right.
+        let space = CGColorSpace(name: CGColorSpace.sRGB)!
+        let g = CGGradient(colorsSpace: space, colors: [rgb(0x1B96FF), rgb(0x0176D3), rgb(0x014486)] as CFArray, locations: [0, 0.45, 1])!
         ctx.drawLinearGradient(g, start: CGPoint(x: 0, y: 1024), end: CGPoint(x: 1024, y: 0), options: [])
-        // Decorative ring, top right.
-        ctx.setStrokeColor(rgb(0xFFFFFF, 0.10)); ctx.setLineWidth(70)
-        ctx.strokeEllipse(in: CGRect(x: 700, y: 700, width: 520, height: 520))
-        // Soft shadow under the house.
+        // Soft light from the top left.
+        let glow = CGGradient(colorsSpace: space, colors: [rgb(0xFFFFFF, 0.28), rgb(0xFFFFFF, 0)] as CFArray, locations: [0, 1])!
+        ctx.drawRadialGradient(glow, startCenter: CGPoint(x: 230, y: 860), startRadius: 0, endCenter: CGPoint(x: 230, y: 860), endRadius: 620, options: [])
+        // Cloud shapes, as on the sign-in screen.
+        ctx.setFillColor(rgb(0xFFFFFF, 0.07))
+        for (x, y, r) in [(860.0, 120.0, 300.0), (600.0, 40.0, 240.0), (1010.0, 380.0, 220.0)] as [(CGFloat, CGFloat, CGFloat)] {
+            ctx.fillEllipse(in: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2))
+        }
+        // The mark, slightly larger, with a soft shadow.
         ctx.saveGState()
-        ctx.setShadow(offset: CGSize(width: 0, height: -18), blur: 40, color: rgb(0x00163A, 0.35))
+        ctx.translateBy(x: 512, y: 512); ctx.scaleBy(x: 1.08, y: 1.08); ctx.translateBy(x: -512, y: -500)
+        ctx.setShadow(offset: CGSize(width: 0, height: -22), blur: 48, color: rgb(0x00163A, 0.40))
         ctx.addPath(house()); ctx.setFillColor(rgb(0xFFFFFF)); ctx.fillPath()
         ctx.restoreGState()
-        ctx.addPath(check()); ctx.setFillColor(rgb(0x0B5CAB)); ctx.fillPath()
+        ctx.saveGState()
+        ctx.translateBy(x: 512, y: 512); ctx.scaleBy(x: 1.08, y: 1.08); ctx.translateBy(x: -512, y: -500)
+        ctx.addPath(check()); ctx.setFillColor(rgb(0x0176D3)); ctx.fillPath()
+        ctx.restoreGState()
     case .dark:
         // iOS draws its own dark background; the mark is light blue on transparent.
         ctx.clear(full)
