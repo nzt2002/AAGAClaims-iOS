@@ -24,6 +24,12 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "1.0.0", date: "Oct 20, 2026", items: [
+            Item(icon: "star.fill", title: "AAGA Claims 1.0",
+                 detail: "Thank you for testing. This is the version going to the App Store, with a new app icon."),
+            Item(icon: "location.slash", title: "Photos stay private",
+                 detail: "Photos you upload no longer include where they were taken."),
+        ]),
         Release(version: "0.4.2", date: "Oct 19, 2026", items: [
             Item(icon: "person.badge.key", title: "Sign in right in the app",
                  detail: "Enter your username and password on the app's own sign-in screen. No more web page. Staff sign in with \"Staff? Sign in with Salesforce\"."),

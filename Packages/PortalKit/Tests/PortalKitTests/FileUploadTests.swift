@@ -211,4 +211,26 @@ struct FileEndpointTests {
             _ = try await api.fileContent(contentDocumentId: "069000000000001AAA")
         }
     }
+
+    @Test("Photos lose their GPS location, even when they're small enough to keep as they are")
+    func stripsLocation() throws {
+        // A 10×10 JPEG with a GPS block.
+        let ctx = CGContext(data: nil, width: 10, height: 10, bitsPerComponent: 8, bytesPerRow: 0,
+                            space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)!
+        ctx.setFillColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1)); ctx.fill(CGRect(x: 0, y: 0, width: 10, height: 10))
+        let out = NSMutableData()
+        let dest = CGImageDestinationCreateWithData(out, "public.jpeg" as CFString, 1, nil)!
+        let gps: [CFString: Any] = [kCGImagePropertyGPSLatitude: 33.75, kCGImagePropertyGPSLatitudeRef: "N",
+                                    kCGImagePropertyGPSLongitude: 84.39, kCGImagePropertyGPSLongitudeRef: "W"]
+        CGImageDestinationAddImage(dest, ctx.makeImage()!, [kCGImagePropertyGPSDictionary: gps] as CFDictionary)
+        CGImageDestinationFinalize(dest)
+        func hasGPS(_ data: Data) -> Bool {
+            let source = CGImageSourceCreateWithData(data as CFData, nil)!
+            let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] ?? [:]
+            return props[kCGImagePropertyGPSDictionary] != nil
+        }
+        #expect(hasGPS(out as Data), "The fixture has a location")
+        let upload = try FileUploadRules.prepare(data: out as Data, fileName: "roof.jpg", title: "Roof")
+        #expect(!hasGPS(upload.data))
+    }
 }

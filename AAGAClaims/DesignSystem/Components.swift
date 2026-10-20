@@ -169,7 +169,8 @@ extension View {
                 if session.offline.isOffline {
                     OfflineBanner(showingDataFrom: session.offline.showingDataFrom)
                 }
-                if session.isDemo {
+                // -AppStoreScreenshots YES hides it for App Store screenshots of the demo data.
+                if session.isDemo && !UserDefaults.standard.bool(forKey: "AppStoreScreenshots") {
                     DemoBanner()
                 }
             }

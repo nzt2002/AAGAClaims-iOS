@@ -81,7 +81,9 @@ public enum FileUploadRules {
             return FileUpload(fileName: fileName, title: title, mimeType: mimeType, data: data)
         }
 
-        let downscaled = ImageDownscaler.downscale(data, maxPixels: maxPhotoPixels) ?? data
+        // Photos never carry their location to Salesforce (App Privacy: location isn't collected).
+        let located = ImageDownscaler.downscale(data, maxPixels: maxPhotoPixels) ?? data
+        let downscaled = ImageDownscaler.stripLocation(located) ?? located
         if downscaled.count <= maxBytes {
             return FileUpload(fileName: fileName, title: title, mimeType: mimeType, data: downscaled)
         }
@@ -118,6 +120,18 @@ public enum FileUploadRules {
 /// Shrinks photos so the longest side is at most `maxPixels`, keeping the original format
 /// (HEIC stays HEIC). Returns nil when the image is already small enough or can't be read.
 public enum ImageDownscaler {
+    /// The photo without its GPS location, copied losslessly (no re-encoding). Nil if it can't be read.
+    public static func stripLocation(_ data: Data) -> Data? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let type = CGImageSourceGetType(source) else { return nil }
+        let output = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(output, type, 1, nil) else { return nil }
+        let options: [CFString: Any] = [kCGImageMetadataShouldExcludeGPS: true]
+        var error: Unmanaged<CFError>?
+        guard CGImageDestinationCopyImageSource(destination, source, options as CFDictionary, &error) else { return nil }
+        return output as Data
+    }
+
     public static func downscale(_ data: Data, maxPixels: Int) -> Data? {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
               let type = CGImageSourceGetType(source),
