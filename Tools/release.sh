@@ -5,8 +5,10 @@
 #   Tools/release.sh            validate the server, deploy it (asks first), bump the build, upload to TestFlight
 #   Tools/release.sh --app-only skip the server (nothing changed there)
 #
-# Needs: the sf CLI signed in to the "prod" org, Xcode signed in to the Apple ID for team 62Z8PRAHTS,
-# and the Salesforce project at ../Portal-customerClaims (override with PORTAL_DIR).
+# Needs: the sf CLI signed in to the "prod" org, and the Salesforce project at ../Portal-customerClaims
+# (override with PORTAL_DIR). Uploads use the App Store Connect API key in
+# ~/.appstoreconnect/aaga-claims.env (ASC_KEY_ID, ASC_ISSUER_ID; the .p8 in ~/.appstoreconnect/private_keys,
+# Admin role for cloud signing). Without it, Xcode's signed-in Apple ID for team 62Z8PRAHTS is used.
 set -euo pipefail
 
 IOS_DIR=${0:A:h:h}
@@ -64,13 +66,20 @@ grep -q "version: \"$version\"" AAGAClaims/Features/Account/WhatsNew.swift \
   || echo "  ⚠️  No release notes for $version in WhatsNew.swift. Users will see none for this version."
 
 echo "▶ Archiving and uploading to TestFlight…"
+auth_args=()
+ASC_ENV=~/.appstoreconnect/aaga-claims.env
+if [[ -f $ASC_ENV ]]; then
+  source $ASC_ENV
+  auth_args=(-authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8
+             -authenticationKeyID $ASC_KEY_ID -authenticationKeyIssuerID $ASC_ISSUER_ID)
+fi
 OUT=$(mktemp -d)
 export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.bareRepository GIT_CONFIG_VALUE_0=all
 xcodebuild archive -project AAGAClaims.xcodeproj -scheme AAGAClaims -configuration Release \
   -destination 'generic/platform=iOS' -archivePath "$OUT/AAGAClaims.xcarchive" \
-  -clonedSourcePackagesDirPath .build/spm -allowProvisioningUpdates DEVELOPMENT_TEAM=62Z8PRAHTS -quiet
+  -clonedSourcePackagesDirPath .build/spm -allowProvisioningUpdates $auth_args DEVELOPMENT_TEAM=62Z8PRAHTS -quiet
 xcodebuild -exportArchive -archivePath "$OUT/AAGAClaims.xcarchive" -exportOptionsPlist Tools/ExportOptions.plist \
-  -exportPath "$OUT/export" -allowProvisioningUpdates -quiet
+  -exportPath "$OUT/export" -allowProvisioningUpdates $auth_args -quiet
 rm -rf "$OUT"
 
 git commit -qam "Build $next for TestFlight"
