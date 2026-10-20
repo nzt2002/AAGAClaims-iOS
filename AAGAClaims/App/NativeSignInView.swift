@@ -11,12 +11,12 @@ struct NativeSignInView: View {
     @State private var showingPassword = false
     @State private var isSigningIn = false
     @State private var errorMessage: String?
+    /// A confirmation, e.g. after a password reset.
+    @State private var notice: String?
     @State private var showingReset = false
     @FocusState private var focus: Field?
 
     private enum Field { case username, password }
-
-    private static let forgotPasswordURL = URL(string: "https://portal.accurateadjustmentsga.com/s/login/ForgotPassword")!
 
     private var canSubmit: Bool {
         !username.trimmingCharacters(in: .whitespaces).isEmpty && !password.isEmpty && !isSigningIn
@@ -50,7 +50,12 @@ struct NativeSignInView: View {
             }
         }
         .sheet(isPresented: $showingReset) {
-            SafariView(url: Self.forgotPasswordURL).ignoresSafeArea()
+            ResetPasswordView(username: username.trimmingCharacters(in: .whitespaces)) { user in
+                username = user
+                password = ""
+                errorMessage = nil
+                notice = "Your password has been changed. Sign in with your new password."
+            }
         }
     }
 
@@ -101,6 +106,12 @@ struct NativeSignInView: View {
                 .accessibilityLabel(showingPassword ? "Hide password" : "Show password")
             }
 
+            if let notice, errorMessage == nil {
+                Label(notice, systemImage: "checkmark.circle.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.success)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if let errorMessage {
                 Label(errorMessage, systemImage: "exclamationmark.circle.fill")
                     .font(.subheadline)

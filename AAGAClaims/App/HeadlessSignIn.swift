@@ -124,3 +124,60 @@ enum HeadlessSignIn {
             .replacingOccurrences(of: "=", with: "")
     }
 }
+
+/// In-app password reset (Salesforce Headless Forgot Password API): a code is emailed to the user,
+/// who enters it with a new password. Needs "forgot password" allowed for headless use on the portal;
+/// when the portal refuses, the app offers the portal's reset page instead.
+enum HeadlessPasswordReset {
+    enum Outcome: Equatable {
+        case done
+        /// The portal doesn't allow it (setting off, or it wants reCAPTCHA): use the web page.
+        case unavailable
+        /// The code is wrong or expired.
+        case invalidCode
+        /// The new password doesn't meet the portal's rules (message from Salesforce when given).
+        case weakPassword(String?)
+        case network
+        case failed(String?)
+    }
+
+    private static let endpoint = URL(string: NativeSignIn.portalURL + "/services/auth/headless/forgot_password")!
+
+    /// Step 1: email a code. Salesforce answers the same for unknown usernames, so it can't be used
+    /// to find out who has an account.
+    static func sendCode(username: String) async -> Outcome {
+        await post(["username": username])
+    }
+
+    /// Step 2: the emailed code and the new password.
+    static func reset(username: String, code: String, newPassword: String) async -> Outcome {
+        await post(["username": username, "otp": code, "newPassword": newPassword])
+    }
+
+    private static func post(_ body: [String: String]) async -> Outcome {
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        let session = URLSession(configuration: .ephemeral)
+        defer { session.finishTasksAndInvalidate() }
+        do {
+            let (data, response) = try await session.data(for: request)
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
+            if (200..<300).contains(status), (json["status"] as? String)?.lowercased() != "failed" {
+                return .done
+            }
+            let code = (json["status_code"] as? String ?? json["error"] as? String ?? "").lowercased()
+            let message = json["message"] as? String ?? json["error_description"] as? String
+            if code.contains("auth") || code.contains("recaptcha") || code.contains("not_allowed") || status == 404 || status == 403 {
+                return .unavailable
+            }
+            if code.contains("otp") || code.contains("code") { return .invalidCode }
+            if code.contains("password") { return .weakPassword(message) }
+            return .failed(message)
+        } catch {
+            return .network
+        }
+    }
+}
