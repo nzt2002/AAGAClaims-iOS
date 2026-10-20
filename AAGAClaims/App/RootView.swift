@@ -10,8 +10,9 @@ struct RootView: View {
         ZStack {
             switch session.state {
             case .signingIn:
-                if session.isRestoringSession {
-                    // A saved session is coming back: no welcome screen flash.
+                if session.isRestoringSession || session.usesNativeLogin {
+                    // A saved session is coming back, or the app's sign-in screen is shown over this:
+                    // no welcome screen (and no second Sign In button).
                     BrandBackdrop { BrandLogo(layout: .stacked).padding(Theme.Spacing.xl) }
                 } else {
                     WelcomeView(

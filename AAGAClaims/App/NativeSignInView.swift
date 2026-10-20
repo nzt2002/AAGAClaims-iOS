@@ -24,19 +24,30 @@ struct NativeSignInView: View {
 
     var body: some View {
         BrandBackdrop {
-            ScrollView {
-                VStack(spacing: 0) {
-                    BrandLogo(layout: .stacked)
-                        .padding(.top, 64)
-                        .padding(.bottom, Theme.Spacing.xl)
-                        .padding(.horizontal, Theme.Spacing.xl)
-                    Spacer(minLength: Theme.Spacing.l)
-                    card
+            // The visible height: it shrinks when the keyboard is up, so the card ends just above it.
+            GeometryReader { geo in
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            // Smaller while typing, so the fields and Sign In fit above the keyboard.
+                            BrandLogo(layout: focus == nil ? .stacked : .compact, showsTagline: focus == nil)
+                                .padding(.top, focus == nil ? 48 : Theme.Spacing.m)
+                                .padding(.bottom, focus == nil ? Theme.Spacing.xl : Theme.Spacing.m)
+                                .padding(.horizontal, Theme.Spacing.xl)
+                            Spacer(minLength: Theme.Spacing.m)
+                            card
+                        }
+                        .frame(minHeight: geo.size.height)
+                    }
+                    .scrollDismissesKeyboard(.interactively)
+                    .scrollBounceBehavior(.basedOnSize)
+                    .onChange(of: focus) { _, field in
+                        guard field != nil else { return }
+                        withAnimation(.snappy) { proxy.scrollTo("signInButton", anchor: .bottom) }
+                    }
+                    .animation(.snappy, value: focus)
                 }
-                .frame(minHeight: UIScreen.main.bounds.height)
             }
-            .scrollDismissesKeyboard(.interactively)
-            .scrollBounceBehavior(.basedOnSize)
         }
         .sheet(isPresented: $showingReset) {
             SafariView(url: Self.forgotPasswordURL).ignoresSafeArea()
@@ -111,6 +122,7 @@ struct NativeSignInView: View {
             .buttonBorderShape(.roundedRectangle(radius: 14))
             .tint(.brandPrimary)
             .disabled(!canSubmit)
+            .id("signInButton")
             .accessibilityIdentifier("nativeSignIn")
 
             HStack {
@@ -130,13 +142,13 @@ struct NativeSignInView: View {
                 .frame(maxWidth: .infinity)
         }
         .padding(Theme.Spacing.xl)
-        .padding(.bottom, Theme.Spacing.xl)
         .frame(maxWidth: .infinity)
         .background {
+            // White to the bottom edge, under the home indicator or keyboard.
             UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28, style: .continuous)
                 .fill(Color.surface)
                 .shadow(color: .black.opacity(0.18), radius: 20, y: -4)
-                .ignoresSafeArea(edges: .bottom)
+                .padding(.bottom, -400)
         }
     }
 

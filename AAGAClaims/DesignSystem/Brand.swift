@@ -108,6 +108,7 @@ struct BrandBackdrop<Content: View>: View {
                     : [Color(red: 0x01 / 255, green: 0x76 / 255, blue: 0xD3 / 255), Color(red: 0x01 / 255, green: 0x44 / 255, blue: 0x86 / 255)],
                 startPoint: .top, endPoint: .bottom
             )
+            .ignoresSafeArea()
             GeometryReader { geo in
                 let w = geo.size.width
                 ZStack {
@@ -118,10 +119,11 @@ struct BrandBackdrop<Content: View>: View {
                 .blur(radius: 2)
                 .frame(width: w, height: geo.size.height, alignment: .top)
             }
+            .ignoresSafeArea()
             .accessibilityHidden(true)
+            // The content keeps the safe areas, including the keyboard, so fields stay visible.
             content()
         }
-        .ignoresSafeArea(edges: .all)
     }
 }
 

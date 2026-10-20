@@ -53,6 +53,9 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 self.signIn(scene)
             }
             AuthHelper.registerBlock(forCurrentUserChangeNotifications: scene) { [weak self] in
+                // Native sign-in ends here (the SDK doesn't call loginIfRequired's completion for it):
+                // clear the in-progress flag so the new session is picked up straight away.
+                self?.setSigningIn(false)
                 self?.restoreSession(scene)
             }
             AuthHelper.registerBlock(forLogoutNotifications: scene) { [weak self] in
