@@ -316,7 +316,9 @@ The Prospect Conversion Guided Process (`Prospect_Conversion_Guided_Process` flo
 ## 6. Screens
 
 ### 6.1 Login
-- Use the Mobile SDK's login screen pointed at the portal domain. Show the Accurate Adjustments logo above it.
+- **Launch:** the launch screen shows the house-and-check mark on the brand blue (#014486). An animated splash picks up from it in the same place and brings in the wordmark **Accurate Adjustments** with a **GA** badge and "CLAIMS PORTAL", in a Salesforce Lightning style: brand blues, soft cloud shapes, heavy clean type. It's not Salesforce's logo. The splash lasts about 1.4 s, then fades into the app; with a saved session it goes straight to Home, with no login.
+- **Welcome (signed out):** the logo on the brand backdrop, three benefits ("Follow every step of your claim", "Get updates and payments as they happen", "Share photos and documents with your team"), and a white card with **Sign In**, **Trouble signing in?** (the portal's forgot-password page in an in-app browser) and "Secure sign-in with Salesforce". The app never opens onto a web page: the Mobile SDK's login, pointed at the portal domain, appears only after Sign In. Cancelling it, signing out or an expired session returns here. Demo mode shows "Continue in demo mode" instead.
+- The login sheet is the portal's Experience Cloud login page; restyle it in Experience Builder to match. When the SDK uses its in-app login view instead, the bar is brand blue with white text and no settings gear.
 - After the first successful login, offer **Face ID** (§8).
 
 ### 6.2 Home

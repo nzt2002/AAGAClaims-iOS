@@ -19,6 +19,14 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationC
         UNUserNotificationCenter.current().delegate = self
         // Crash and hang reports from earlier sessions arrive through MetricKit.
         CrashReporter.shared.start()
+        // Salesforce's in-app sign-in screen (when the browser sheet isn't used): brand colours, no gear.
+        if AppEnvironment.current.auth == .salesforce {
+            let login = UserAccountManager.shared.loginViewControllerConfig
+            login.navigationBarColor = UIColor(red: 0x01 / 255, green: 0x44 / 255, blue: 0x86 / 255, alpha: 1)
+            login.navigationTitleColor = UIColor.white
+            login.navigationBarTintColor = UIColor.white
+            login.showsSettingsIcon = false
+        }
         return true
     }
 

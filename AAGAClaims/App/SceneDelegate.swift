@@ -2,8 +2,8 @@ import SalesforceSDKCore
 import SwiftUI
 import UIKit
 
-/// Follows the Mobile SDK's native template: the SDK presents its login screen over this
-/// scene's window, and we swap in the SwiftUI app once a user is signed in.
+/// Follows the Mobile SDK's native template, with one change: signed-out users see the app's own
+/// welcome screen, and the SDK's login appears only when they tap Sign In.
 final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
     private let session = AppSession(environment: .current)
@@ -37,21 +37,25 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         case .demo:
             self.session.didSignIn(.demo)
         case .salesforce:
+            self.session.startSignIn = { [weak self, weak scene] in
+                guard let self, let scene else { return }
+                self.signIn(scene)
+            }
             AuthHelper.registerBlock(forCurrentUserChangeNotifications: scene) { [weak self] in
-                self?.signInIfNeeded(scene)
+                self?.restoreSession(scene)
             }
             AuthHelper.registerBlock(forLogoutNotifications: scene) { [weak self] in
+                // Back to the welcome screen after sign-out or an expired session.
                 self?.session.didSignOut()
-                // A new login after sign-out or an expired session.
-                self?.isSigningIn = false
-                self?.signInIfNeeded(scene)
+                self?.setSigningIn(false)
             }
-            // A cancelled login never calls back; let the next return to the app start a fresh one.
+            // A cancelled login never calls back: back to the welcome screen's Sign In button.
             NotificationCenter.default.addObserver(
                 forName: UserAccountManager.userCancelledAuthentication, object: nil, queue: .main
             ) { [weak self] _ in
-                MainActor.assumeIsolated { self?.isSigningIn = false }
+                MainActor.assumeIsolated { self?.setSigningIn(false) }
             }
+            restoreSession(scene)
         }
     }
 
@@ -77,7 +81,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func sceneWillEnterForeground(_ scene: UIScene) {
         session.lock.willEnterForeground()
         if session.environment.auth == .salesforce {
-            signInIfNeeded(scene)
+            restoreSession(scene)
         }
     }
 
@@ -96,16 +100,37 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         session.isShielded = false
     }
 
-    /// Shows the SDK login (pointed at the portal domain via `SFDCOAuthLoginHost`) when there's
-    /// no session, then publishes the user.
-    private func signInIfNeeded(_ scene: UIScene) {
-        let hasSession = UserAccountManager.shared.currentUserAccount?.credentials.accessToken != nil
+    private var hasSavedSession: Bool {
+        UserAccountManager.shared.currentUserAccount?.credentials.accessToken != nil
+    }
+
+    private func setSigningIn(_ value: Bool) {
+        isSigningIn = value
+        session.isSigningIn = value
+    }
+
+    /// A saved session (launch, return to the app): carry on without showing any login.
+    /// Without one, the welcome screen stays up until the user taps Sign In.
+    private func restoreSession(_ scene: UIScene) {
+        guard hasSavedSession, !isSigningIn else { return }
+        if case .signedIn = session.state { return }
+        session.isRestoringSession = true
+        login(scene)
+    }
+
+    /// Sign In on the welcome screen: the SDK's login, pointed at the portal (`SFDCOAuthLoginHost`).
+    private func signIn(_ scene: UIScene) {
         // A login is already on screen: leave it alone.
-        if isSigningIn && !hasSession { return }
-        if !hasSession { isSigningIn = true }
+        guard !isSigningIn else { return }
+        setSigningIn(true)
+        login(scene)
+    }
+
+    private func login(_ scene: UIScene) {
         AuthHelper.loginIfRequired(scene) { [weak self] in
             guard let self else { return }
-            self.isSigningIn = false
+            self.setSigningIn(false)
+            self.session.isRestoringSession = false
             guard let user = Self.currentUser() else { return }
             self.session.didSignIn(user)
             Task { await PushNotifications.registerIfAllowed(registerWithSalesforce: true) }

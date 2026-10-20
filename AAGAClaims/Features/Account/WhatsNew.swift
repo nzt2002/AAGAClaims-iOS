@@ -24,6 +24,10 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "0.4.1", date: "Oct 19, 2026", items: [
+            Item(icon: "sparkles", title: "A fresh welcome",
+                 detail: "AAGA Claims opens with the Accurate Adjustments GA look, and sign-in starts from a welcome screen instead of a web page."),
+        ]),
         Release(version: "0.4.0", date: "Oct 19, 2026", items: [
             Item(icon: "person.text.rectangle", title: "A clearer lead page",
                  detail: "The loss address is under the lead's name, lead progress folds away like a claim's, and Referred By has its own tab after Details."),

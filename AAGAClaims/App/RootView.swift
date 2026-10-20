@@ -3,13 +3,23 @@ import SwiftUI
 
 struct RootView: View {
     let session: AppSession
+    /// The animated splash, picking up from the launch screen.
+    @State private var showingSplash = true
 
     var body: some View {
         ZStack {
             switch session.state {
             case .signingIn:
-                SplashView(isDemo: session.isDemo) {
-                    session.didSignIn(.demo)
+                if session.isRestoringSession {
+                    // A saved session is coming back: no welcome screen flash.
+                    BrandBackdrop { BrandLogo(layout: .stacked).padding(Theme.Spacing.xl) }
+                } else {
+                    WelcomeView(
+                        isDemo: session.isDemo,
+                        isSigningIn: session.isSigningIn,
+                        signIn: { session.startSignIn?() },
+                        continueInDemo: { session.didSignIn(.demo) }
+                    )
                 }
             case .signedIn(let user):
                 MainTabView(session: session, user: user)
@@ -18,54 +28,21 @@ struct RootView: View {
                     LockScreen(lock: session.lock)
                 }
             }
+            if showingSplash {
+                BrandSplash()
+                    .transition(.opacity)
+                    .zIndex(1)
+            }
             if session.isShielded {
                 PrivacyShield()
+                    .zIndex(2)
             }
         }
-    }
-}
-
-/// Shown behind the SDK's login screen, and after signing out in demo mode.
-struct SplashView: View {
-    let isDemo: Bool
-    let continueInDemo: () -> Void
-
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        VStack(spacing: Theme.Spacing.l) {
-            Spacer()
-            // Placeholder until the designer supplies the vector logo (spec §9).
-            Image(systemName: "house.and.flag.fill")
-                .font(.system(size: 56, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(Theme.Spacing.xl)
-                .background(.white.opacity(0.15), in: Circle())
-                .accessibilityHidden(true)
-            Text("Accurate Adjustments")
-                .font(.largeTitle.bold())
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.center)
-            Text("We're here to help with your claim")
-                .foregroundStyle(.white)
-            Spacer()
-            if isDemo {
-                Button(action: continueInDemo) {
-                    Text("Continue in demo mode")
-                        .font(.headline)
-                        .foregroundStyle(Color(red: 0x01 / 255, green: 0x44 / 255, blue: 0x86 / 255))
-                        .frame(maxWidth: .infinity, minHeight: 52)
-                        .background(.white, in: Capsule())
-                }
-                .accessibilityIdentifier("continueDemo")
-            } else {
-                ProgressView()
-                    .tint(.white)
-                    .accessibilityLabel("Signing in")
-            }
+        .task {
+            // Long enough to read the name; UI tests don't wait for it.
+            let delay = UserDefaults.standard.bool(forKey: "UITestDemo") ? 0.2 : 1.4
+            try? await Task.sleep(for: .seconds(delay))
+            withAnimation(.easeOut(duration: 0.45)) { showingSplash = false }
         }
-        .padding(Theme.Spacing.xl)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(BrandGradient.hero(colorScheme).ignoresSafeArea())
     }
 }

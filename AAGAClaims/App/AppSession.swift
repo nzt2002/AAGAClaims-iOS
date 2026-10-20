@@ -36,6 +36,12 @@ final class AppSession {
     let uploads: UploadQueue
     /// Covers the UI while the app is inactive, so the app switcher snapshot shows no data.
     var isShielded = false
+    /// Opens Salesforce's sign-in (set by the scene). Nil in demo mode.
+    var startSignIn: (() -> Void)?
+    /// Salesforce's sign-in is on screen.
+    var isSigningIn = false
+    /// A saved session is being restored: keep the splash up rather than flash the welcome screen.
+    var isRestoringSession = false
 
     init(environment: AppEnvironment) {
         self.environment = environment
