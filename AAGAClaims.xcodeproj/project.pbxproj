@@ -11,6 +11,7 @@
 		AA0000000000000000000102 /* PortalKit in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000302 /* PortalKit */; };
 		AA0000000000000000000103 /* SalesforceSDKCommon in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000303 /* SalesforceSDKCommon */; };
 		AA0000000000000000000104 /* SalesforceAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000304 /* SalesforceAnalytics */; };
+		AA0000000000000000000105 /* RecaptchaEnterprise in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000305 /* RecaptchaEnterprise */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -52,6 +53,7 @@
 				AA0000000000000000000102 /* PortalKit in Frameworks */,
 				AA0000000000000000000103 /* SalesforceSDKCommon in Frameworks */,
 				AA0000000000000000000104 /* SalesforceAnalytics in Frameworks */,
+				AA0000000000000000000105 /* RecaptchaEnterprise in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,6 +127,7 @@
 				AA0000000000000000000302 /* PortalKit */,
 				AA0000000000000000000303 /* SalesforceSDKCommon */,
 				AA0000000000000000000304 /* SalesforceAnalytics */,
+				AA0000000000000000000305 /* RecaptchaEnterprise */,
 			);
 			productName = AAGAClaims;
 			productReference = AA0000000000000000000201 /* AAGAClaims.app */;
@@ -182,6 +185,7 @@
 			packageReferences = (
 				AA0000000000000000000901 /* XCRemoteSwiftPackageReference "SalesforceMobileSDK-iOS-SPM" */,
 				AA0000000000000000000902 /* XCLocalSwiftPackageReference "Packages/PortalKit" */,
+				AA0000000000000000000903 /* XCRemoteSwiftPackageReference "recaptcha-enterprise-mobile-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AA0000000000000000000003 /* Products */;
@@ -440,6 +444,14 @@
 				minimumVersion = 14.0.0;
 			};
 		};
+		AA0000000000000000000903 /* XCRemoteSwiftPackageReference "recaptcha-enterprise-mobile-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/GoogleCloudPlatform/recaptcha-enterprise-mobile-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 18.9.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -461,6 +473,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA0000000000000000000901 /* XCRemoteSwiftPackageReference "SalesforceMobileSDK-iOS-SPM" */;
 			productName = SalesforceAnalytics;
+		};
+		AA0000000000000000000305 /* RecaptchaEnterprise */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000903 /* XCRemoteSwiftPackageReference "recaptcha-enterprise-mobile-sdk" */;
+			productName = RecaptchaEnterprise;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

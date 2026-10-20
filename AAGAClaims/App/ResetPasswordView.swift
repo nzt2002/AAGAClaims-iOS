@@ -76,6 +76,7 @@ struct ResetPasswordView: View {
                 }
             }
             .navigationTitle("Reset Password")
+            .onAppear { HeadlessRecaptcha.prepare() }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

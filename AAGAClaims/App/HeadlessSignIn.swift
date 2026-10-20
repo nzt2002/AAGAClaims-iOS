@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import RecaptchaEnterprise
 import SalesforceSDKCore
 import UIKit
 
@@ -145,8 +146,10 @@ enum HeadlessPasswordReset {
 
     /// Step 1: email a code. Salesforce answers the same for unknown usernames, so it can't be used
     /// to find out who has an account.
+    /// The portal requires a reCAPTCHA Enterprise token with this step.
     static func sendCode(username: String) async -> Outcome {
-        await post(["username": username])
+        guard let event = await HeadlessRecaptcha.event() else { return .unavailable }
+        return await post(["username": username, "recaptchaEvent": event])
     }
 
     /// Step 2: the emailed code and the new password.
@@ -154,7 +157,7 @@ enum HeadlessPasswordReset {
         await post(["username": username, "otp": code, "newPassword": newPassword])
     }
 
-    private static func post(_ body: [String: String]) async -> Outcome {
+    private static func post(_ body: [String: Any]) async -> Outcome {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -178,6 +181,40 @@ enum HeadlessPasswordReset {
             return .failed(message)
         } catch {
             return .network
+        }
+    }
+}
+
+/// Google reCAPTCHA Enterprise for the headless endpoints that the portal protects with it (forgot
+/// password). The key is the portal's iOS key in Google Cloud project proclaimer-512222; Salesforce
+/// checks the token with Google, using the API key saved in the portal's Login & Registration settings.
+enum HeadlessRecaptcha {
+    static let siteKey = "6Lf-3fgtAAAAAG-PuKusjBY1JTDZ8bPwcY9dcFj6"
+    static let projectId = "proclaimer-512222"
+
+    private static let client = ClientCache()
+
+    /// Starts loading the client early (it takes a moment), e.g. when the reset screen opens.
+    static func prepare() {
+        Task { _ = await client.get() }
+    }
+
+    /// The `recaptchaEvent` object Salesforce expects, or nil when no token could be had.
+    /// Salesforce's own SDK sends the action "login" for every headless request.
+    static func event() async -> [String: String]? {
+        guard let recaptcha = await client.get(),
+              let token = try? await recaptcha.execute(withAction: .login) else { return nil }
+        return ["token": token, "siteKey": siteKey, "expectedAction": "login", "projectId": projectId]
+    }
+
+    private actor ClientCache {
+        private var client: RecaptchaClient?
+
+        func get() async -> RecaptchaClient? {
+            if let client { return client }
+            // Not kept on failure, so the next attempt retries.
+            client = try? await Recaptcha.fetchClient(withSiteKey: HeadlessRecaptcha.siteKey)
+            return client
         }
     }
 }

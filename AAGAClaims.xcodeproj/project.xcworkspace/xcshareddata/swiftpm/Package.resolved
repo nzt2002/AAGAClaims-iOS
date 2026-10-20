@@ -1,5 +1,5 @@
 {
-  "originHash" : "344598def65faa2a76105fd38625f9d4b484582067d18574e38ade46a28ccf4d",
+  "originHash" : "34d9abb34f6e2aff77bcbf568fc6c2df37ac24e0fdd0d65db2624ba3bdd5ff76",
   "pins" : [
     {
       "identity" : "fmdb",
@@ -8,6 +8,24 @@
       "state" : {
         "revision" : "192f63fad2b22f55893609829c828e9b9e06c20c",
         "version" : "2.7.12-sqlcipher"
+      }
+    },
+    {
+      "identity" : "interop-ios-for-google-sdks",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/google/interop-ios-for-google-sdks.git",
+      "state" : {
+        "revision" : "040d087ac2267d2ddd4cca36c757d1c6a05fdbfe",
+        "version" : "101.0.0"
+      }
+    },
+    {
+      "identity" : "recaptcha-enterprise-mobile-sdk",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/GoogleCloudPlatform/recaptcha-enterprise-mobile-sdk",
+      "state" : {
+        "revision" : "85588690041e63784be7bcb4b631c32565127ba2",
+        "version" : "18.9.1"
       }
     },
     {
