@@ -159,21 +159,27 @@ struct NativeSignInView: View {
         focus = nil
         isSigningIn = true
         errorMessage = nil
-        let result = await SalesforceManager.shared.nativeLoginManager()
-            .login(username: username.trimmingCharacters(in: .whitespaces), password: password)
+        let scene = UIApplication.shared.connectedScenes.first { $0.activationState == .foregroundActive }
+            ?? UIApplication.shared.connectedScenes.first
+        guard let clientId = BootConfigCheck.consumerKey else {
+            isSigningIn = false
+            errorMessage = Self.message(for: .other("no client id"))
+            return
+        }
+        let failure = await HeadlessSignIn.signIn(username: username.trimmingCharacters(in: .whitespaces),
+                                                  password: password, clientId: clientId, scene: scene)
         isSigningIn = false
         // On success the SDK finishes signing in and closes this screen.
-        errorMessage = Self.message(for: result)
-        if result != .success { password = "" }
+        errorMessage = failure.map(Self.message(for:))
+        if failure != nil { password = "" }
     }
 
-    static func message(for result: NativeLoginResult) -> String? {
-        switch result {
-        case .success: nil
-        case .invalidUsername, .invalidEmail: "Enter your username. It's usually the email address you use for the portal."
-        case .invalidPassword: "Enter your password."
+    static func message(for failure: HeadlessSignIn.Failure) -> String {
+        switch failure {
         case .invalidCredentials: "That username and password don't match. Try again, or reset your password."
-        default: "We couldn't sign you in. Check your connection and try again, or use \"Staff? Sign in with Salesforce\"."
+        case .notApproved: "Your account doesn't have access to the app yet. Contact Accurate Adjustments and we'll set it up."
+        case .network: "We couldn't reach the server. Check your connection and try again."
+        case .other: "We couldn't sign you in. Try again, or use \"Staff? Sign in with Salesforce\"."
         }
     }
 }
