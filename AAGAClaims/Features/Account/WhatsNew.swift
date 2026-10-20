@@ -24,6 +24,10 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "0.4.2", date: "Oct 19, 2026", items: [
+            Item(icon: "person.badge.key", title: "Sign in right in the app",
+                 detail: "Enter your username and password on the app's own sign-in screen. No more web page. Staff sign in with \"Staff? Sign in with Salesforce\"."),
+        ]),
         Release(version: "0.4.1", date: "Oct 19, 2026", items: [
             Item(icon: "sparkles", title: "A fresh welcome",
                  detail: "AAGA Claims opens with the Accurate Adjustments GA look, and sign-in starts from a welcome screen instead of a web page."),

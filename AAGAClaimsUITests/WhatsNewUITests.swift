@@ -16,7 +16,7 @@ final class WhatsNewUITests: XCTestCase {
         let items = app.descendants(matching: .any).matching(identifier: "whatsNewItem")
         // The current version's notes; staff see the staff items too.
         XCTAssertEqual(items.count, 1)
-        XCTAssertTrue(items.element(boundBy: 0).label.contains("A fresh welcome"), items.element(boundBy: 0).label)
+        XCTAssertTrue(items.element(boundBy: 0).label.contains("Sign in right in the app"), items.element(boundBy: 0).label)
         continueButton.tap()
         XCTAssertFalse(continueButton.waitForExistence(timeout: 2))
 
