@@ -217,7 +217,7 @@ struct LeadDetailView: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
             AdaptiveStack(horizontalAlignment: .firstTextBaseline) {
                 Text(detail.prospectName ?? "Lead")
-                    .font(.title2.bold())
+                    .font(.heroTitle)
                     .fixedSize(horizontal: false, vertical: true)
                     .foregroundStyle(Color.textPrimary)
                 AdaptiveSpacer()

@@ -160,7 +160,7 @@ private struct CaseHeader: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
             AdaptiveStack(horizontalAlignment: .firstTextBaseline) {
                 Text(detail.subject ?? "Support request")
-                    .font(.title3.bold())
+                    .font(.sectionTitle)
                     .fixedSize(horizontal: false, vertical: true)
                     .foregroundStyle(Color.textPrimary)
                 AdaptiveSpacer()

@@ -50,7 +50,7 @@ struct PersonView: View {
             VStack(alignment: .leading, spacing: Theme.Spacing.m) {
                 HStack(spacing: Theme.Spacing.m) {
                     Text(person.initials)
-                        .font(.title2.bold())
+                        .font(.heroTitle)
                         .foregroundStyle(.white)
                         .frame(width: 64, height: 64)
                         .background(BrandGradient.hero(.light), in: Circle())

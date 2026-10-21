@@ -265,7 +265,7 @@ struct UnreadBadge: View {
             .foregroundStyle(Color.white)
             .padding(.horizontal, 5)
             .frame(minWidth: 18, minHeight: 18)
-            .background(Color.red, in: Capsule())
+            .background(Color.danger, in: Capsule())
             .offset(x: 4, y: 2)
             .accessibilityHidden(true)
     }

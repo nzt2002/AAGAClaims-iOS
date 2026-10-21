@@ -197,7 +197,7 @@ private struct ClaimHeader: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
             AdaptiveStack(horizontalAlignment: .firstTextBaseline) {
                 Text(detail.claimName ?? "Claim")
-                    .font(.title2.bold())
+                    .font(.heroTitle)
                     .fixedSize(horizontal: false, vertical: true)
                     .foregroundStyle(Color.textPrimary)
                 AdaptiveSpacer()
@@ -308,7 +308,7 @@ private struct LifecycleCard: View {
                                 .font(.caption)
                                 .foregroundStyle(Color.textSecondary)
                             Text(PortalFormat.nonEmpty(status) ?? "Status not set")
-                                .font(.title3.bold())
+                                .font(.sectionTitle)
                                 .foregroundStyle(Color.textPrimary)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .accessibilityIdentifier("claimStatusProminent")

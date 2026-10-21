@@ -12,8 +12,19 @@ enum Theme {
     }
 
     enum Radius {
-        static let card: CGFloat = 16
+        /// Rounder on iOS 26, to sit with Liquid Glass.
+        static var card: CGFloat {
+            if #available(iOS 26, *) { 20 } else { 16 }
+        }
         static let pill: CGFloat = 999
+    }
+
+    /// Fixed colours for content on the white Home search capsule (white in both modes).
+    enum OnWhite {
+        /// 6.4:1 on white.
+        static let brand = Color(red: 0x0B / 255, green: 0x5C / 255, blue: 0xAB / 255)
+        /// 6.9:1 on white.
+        static let secondary = Color(red: 0x54 / 255, green: 0x60 / 255, blue: 0x6E / 255)
     }
 
     /// Minimum tap target (spec §7).
@@ -21,6 +32,18 @@ enum Theme {
 }
 
 // Colours come from Assets.xcassets; Xcode generates `Color.brandPrimary`, `Color.textSecondary` etc.
+
+/// Type styles, so headings and cards read the same everywhere. All scale with Dynamic Type.
+extension Font {
+    /// Record and Home hero titles: rounded, for a friendlier, more current look.
+    static let heroTitle = Font.system(.title, design: .rounded).weight(.bold)
+    /// Section headings.
+    static let sectionTitle = Font.system(.title3, design: .rounded).weight(.bold)
+    /// The main line of a card or row.
+    static let cardTitle = Font.headline
+    /// Small labels above values (e.g. "LOSS DATE").
+    static let metaLabel = Font.caption.weight(.semibold)
+}
 
 /// A row that lays out side by side, and stacks vertically from xxLarge text up (and at every
 /// accessibility size), so two-column layouts never clip (spec §7). A size threshold rather than
@@ -94,10 +117,9 @@ extension View {
 enum BrandGradient {
     static func hero(_ colorScheme: ColorScheme) -> LinearGradient {
         // White text on these stops is at least 5.9:1 (light) and 6.7:1 (dark).
-        let stops: [Color] = colorScheme == .dark
-            ? [Color(red: 0x0B / 255, green: 0x5C / 255, blue: 0xAB / 255), Color(red: 0x0A / 255, green: 0x2A / 255, blue: 0x55 / 255)]
-            : [Color(red: 0x0A / 255, green: 0x62 / 255, blue: 0xC2 / 255), Color(red: 0x01 / 255, green: 0x44 / 255, blue: 0x86 / 255)]
-        return LinearGradient(colors: stops, startPoint: .topLeading, endPoint: .bottomTrailing)
+        // The asset colours have light and dark variants; the scheme is resolved by the environment.
+        _ = colorScheme
+        return LinearGradient(colors: [.heroStart, .heroEnd], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 }
 
@@ -135,7 +157,7 @@ struct SectionHeader<Trailing: View>: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(title)
-                .font(.title3.bold())
+                .font(.sectionTitle)
                 .foregroundStyle(Color.textPrimary)
                 .accessibilityAddTraits(.isHeader)
             Spacer()

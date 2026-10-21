@@ -167,7 +167,7 @@ struct SearchSheet: View {
         if viewModel.recentSearches.isEmpty {
             VStack(alignment: .leading, spacing: Theme.Spacing.m) {
                 Text("Find anything")
-                    .font(.title3.bold())
+                    .font(.sectionTitle)
                 tip("doc.text", "A claim by name or claim number, like \"CLM-1234\"")
                 tip("mappin.and.ellipse", "A property by street address")
                 tip("person.2", "A lead by name or email")

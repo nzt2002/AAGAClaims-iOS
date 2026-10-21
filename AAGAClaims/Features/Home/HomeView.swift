@@ -44,7 +44,7 @@ struct HomeView: View {
                     .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
                 Text("Welcome back, \(user.firstName ?? user.fullName)!")
-                    .font(.title.bold())
+                    .font(.heroTitle)
                     .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
                 Text("We're here to help with your claim")
@@ -60,10 +60,10 @@ struct HomeView: View {
                 HStack(spacing: Theme.Spacing.s) {
                     Image(systemName: "magnifyingglass")
                         .font(.headline)
-                        .foregroundStyle(Color(red: 0x0B / 255, green: 0x5C / 255, blue: 0xAB / 255))
+                        .foregroundStyle(Theme.OnWhite.brand)
                     Text("Search claims, leads and cases")
                         .font(.subheadline)
-                        .foregroundStyle(Color(red: 0x54 / 255, green: 0x60 / 255, blue: 0x6E / 255))
+                        .foregroundStyle(Theme.OnWhite.secondary)
                     Spacer(minLength: 0)
                 }
                 .padding(.horizontal, Theme.Spacing.l)
