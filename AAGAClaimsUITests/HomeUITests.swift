@@ -78,6 +78,23 @@ final class HomeUITests: XCTestCase {
         XCTAssertTrue(app.tabBars.buttons["Home"].isSelected, "Opened on top of Home")
     }
 
+    /// Needs attention: the demo's overdue task can be completed right on Home.
+    func testNeedsAttentionShowsOverdueTaskAndCompletesIt() {
+        let section = app.descendants(matching: .any)["needsAttention"]
+        XCTAssertTrue(section.waitForExistence(timeout: 10))
+        let overdue = app.buttons["attention-overdueTasks"]
+        XCTAssertTrue(overdue.exists)
+        XCTAssertTrue(overdue.label.contains("overdue"), overdue.label)
+        // Above Upcoming.
+        XCTAssertLessThan(overdue.frame.minY, element(containing: "Upcoming").frame.minY)
+        let complete = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'attentionComplete-'")).firstMatch
+        if complete.exists {
+            app.scrollIntoView(complete)
+            complete.tap()
+            XCTAssertTrue(app.buttons["attention-overdueTasks"].waitForNonExistence(timeout: 10))
+        }
+    }
+
     /// The Search tab: results open inside it, and Back returns to the results.
     func testSearchTabOpensRecordInPlace() {
         app.tabBars.buttons["Search"].tap()

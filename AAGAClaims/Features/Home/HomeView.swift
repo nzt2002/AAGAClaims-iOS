@@ -18,6 +18,7 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                     hero
                     quickActions
+                    NeedsAttentionSection(viewModel: viewModel, router: router)
                     upcoming
                     recentClaims
                     recentActivity

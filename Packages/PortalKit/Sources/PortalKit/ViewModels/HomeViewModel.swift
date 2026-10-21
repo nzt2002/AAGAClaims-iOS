@@ -65,7 +65,7 @@ public final class HomeViewModel {
     public let isInternalUser: Bool
     public var activityFilter: ActivityFilter
 
-    private let api: PortalAPI
+    let api: PortalAPI
 
     public init(api: PortalAPI, isInternalUser: Bool = false) {
         self.api = api
