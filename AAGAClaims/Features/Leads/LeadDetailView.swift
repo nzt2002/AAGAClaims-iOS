@@ -213,36 +213,47 @@ struct LeadDetailView: View {
         openRecord(.claim(claim.id), name: claim.name)
     }
 
+    /// The lead's hero, matching the claim page: status, name, address and numbers on the brand gradient.
     private func header(_ detail: LeadDetail) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-            AdaptiveStack(horizontalAlignment: .firstTextBaseline) {
-                Text(detail.prospectName ?? "Lead")
-                    .font(.heroTitle)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .foregroundStyle(Color.textPrimary)
-                AdaptiveSpacer()
-                if let status = PortalFormat.nonEmpty(detail.prospectStatus) {
-                    StatusPill(text: status, tone: StatusPill.tone(forLeadStatus: status))
-                }
+            if let status = PortalFormat.nonEmpty(detail.prospectStatus) {
+                Text(status.uppercased())
+                    .font(.caption.weight(.bold))
+                    .tracking(0.6)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, Theme.Spacing.s)
+                    .padding(.vertical, 4)
+                    .background(.white.opacity(0.2), in: Capsule())
             }
+            Text(detail.prospectName ?? "Lead")
+                .font(.heroTitle)
+                .fixedSize(horizontal: false, vertical: true)
+                .foregroundStyle(.white)
             if let address = PortalFormat.nonEmpty(detail.lossAddress) {
                 Label(address, systemImage: "mappin.and.ellipse")
                     .font(.subheadline)
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(.white)
                     .accessibilityLabel("Loss address: \(address)")
                     .accessibilityIdentifier("leadHeaderLossAddress")
             }
-            AdaptiveStack(horizontalAlignment: .firstTextBaseline, spacing: Theme.Spacing.m) {
+            // One fact per line, so numbers never split.
+            VStack(alignment: .leading, spacing: 2) {
                 if let number = PortalFormat.nonEmpty(detail.claimNumber) {
                     Text("Claim \(number)")
                 }
                 if let policy = PortalFormat.nonEmpty(detail.policyNumber) {
                     Text("Policy \(policy)")
                 }
+                if detail.lossDate != nil {
+                    Text("Loss date \(PortalFormat.date(detail.lossDate))")
+                }
             }
             .font(.subheadline)
-            .foregroundStyle(Color.textSecondary)
+            .foregroundStyle(.white.opacity(0.92))
         }
+        .padding(Theme.Spacing.l)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(BrandGradient.hero(.light), in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 

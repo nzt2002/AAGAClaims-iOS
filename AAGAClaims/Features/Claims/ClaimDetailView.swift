@@ -1,3 +1,4 @@
+import Charts
 import PortalKit
 import SwiftUI
 
@@ -103,11 +104,11 @@ struct ClaimDetailView: View {
     private func loaded(_ detail: ClaimDetail) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.l) {
-                ClaimHeader(detail: detail)
+                ClaimHeader(detail: detail, position: detail.lifecycle)
                 if isInternal {
                     ClaimQuickActions { openAction = $0 }
                 }
-                HighlightsRow(detail: detail)
+                PaymentsCard(detail: detail, payments: viewModel.payments.value ?? [])
                 LifecycleCard(position: detail.lifecycle, status: detail.claimStatus)
                 if isInternal {
                     if serverMeta.supports(.claimActivities) {
@@ -190,75 +191,166 @@ struct ClaimDetailView: View {
 
 // MARK: - Header, highlights, lifecycle
 
+/// The claim's hero: name, status, address, numbers and loss date on the brand gradient, with
+/// the progress ring. The step-by-step lifecycle stays in the card below.
 private struct ClaimHeader: View {
     let detail: ClaimDetail
+    let position: ClaimLifecycle.Position
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-            AdaptiveStack(horizontalAlignment: .firstTextBaseline) {
+        HStack(alignment: .top, spacing: Theme.Spacing.l) {
+            VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                if let status = PortalFormat.nonEmpty(detail.claimStatus) {
+                    Text(status.uppercased())
+                        .font(.caption.weight(.bold))
+                        .tracking(0.6)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, Theme.Spacing.s)
+                        .padding(.vertical, 4)
+                        .background(.white.opacity(0.2), in: Capsule())
+                }
                 Text(detail.claimName ?? "Claim")
                     .font(.heroTitle)
+                    .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
-                    .foregroundStyle(Color.textPrimary)
-                AdaptiveSpacer()
-                if let status = PortalFormat.nonEmpty(detail.claimStatus) {
-                    StatusPill(text: status, tone: StatusPill.tone(forClaimStatus: status))
+                if let address = PortalFormat.nonEmpty(detail.lossAddress) {
+                    Label(address, systemImage: "mappin.and.ellipse")
+                        .font(.subheadline)
+                        .foregroundStyle(.white)
+                        .accessibilityLabel("Loss address: \(address)")
+                        .accessibilityIdentifier("headerLossAddress")
+                }
+                // One fact per line, so numbers never split.
+                VStack(alignment: .leading, spacing: 2) {
+                    if let number = PortalFormat.nonEmpty(detail.claimNumber) {
+                        Text("Claim \(number)")
+                    }
+                    if let policy = PortalFormat.nonEmpty(detail.policyNumber) {
+                        Text("Policy \(policy)")
+                    }
+                    if detail.lossDate != nil {
+                        Text("Loss date \(PortalFormat.date(detail.lossDate))")
+                    }
+                }
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.92))
+            }
+            Spacer(minLength: 0)
+            if let percent = position.percentComplete, case .stage(let index) = position {
+                VStack(spacing: Theme.Spacing.xs) {
+                    ProgressRing(percent: percent, onBrand: true)
+                    Text("Stage \(index + 1) of \(ClaimLifecycle.stages.count)")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.9))
                 }
             }
-            if let address = PortalFormat.nonEmpty(detail.lossAddress) {
-                Label(address, systemImage: "mappin.and.ellipse")
-                    .font(.subheadline)
-                    .foregroundStyle(Color.textPrimary)
-                    .accessibilityLabel("Loss address: \(address)")
-                    .accessibilityIdentifier("headerLossAddress")
-            }
-            // Side by side normally; one under the other at large text, so numbers don't split.
-            AdaptiveStack(horizontalAlignment: .firstTextBaseline, spacing: Theme.Spacing.m) {
-                if let number = PortalFormat.nonEmpty(detail.claimNumber) {
-                    Text("Claim \(number)")
-                }
-                if let policy = PortalFormat.nonEmpty(detail.policyNumber) {
-                    Text("Policy \(policy)")
-                }
-            }
-            .font(.subheadline)
-            .foregroundStyle(Color.textSecondary)
         }
+        .padding(Theme.Spacing.l)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(BrandGradient.hero(colorScheme), in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 }
 
-private struct HighlightsRow: View {
+/// Payments at a glance: collected against the claim's total (RCV) as a bar, the key amounts,
+/// and the payments over time once there are two or more.
+private struct PaymentsCard: View {
     let detail: ClaimDetail
+    let payments: [Payment]
 
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Theme.Spacing.m) {
-                tile("Loss Date", PortalFormat.date(detail.lossDate))
-                tile("Total RCV", PortalFormat.currency(detail.totalRcv), help: true)
-                tile("Payments Collected", PortalFormat.currency(detail.paymentCollected))
+    private var collected: Double { (detail.paymentCollected as NSDecimalNumber?)?.doubleValue ?? 0 }
+    private var total: Double { (detail.totalRcv as NSDecimalNumber?)?.doubleValue ?? 0 }
+    private var deductible: Double { (detail.deductible as NSDecimalNumber?)?.doubleValue ?? 0 }
+
+    /// Running total by notice date.
+    private var timeline: [(date: Date, amount: Double)] {
+        var running = 0.0
+        return payments
+            .compactMap { payment -> (Date, Double)? in
+                guard let day = payment.dateOfNotice, let date = Calendar.current.date(from: DateComponents(year: day.year, month: day.month, day: day.day)) else { return nil }
+                return (date, (payment.netDeposit as NSDecimalNumber?)?.doubleValue ?? 0)
             }
-        }
+            .sorted { $0.0 < $1.0 }
+            .map { running += $0.1; return (date: $0.0, amount: running) }
     }
 
-    private func tile(_ title: String, _ value: String, help: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-            HStack(spacing: Theme.Spacing.xs) {
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(Color.textSecondary)
-                if help {
-                    RCVHelpButton()
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Payments")
+                    .font(.cardTitle)
+                    .foregroundStyle(Color.textPrimary)
+                Spacer()
+                if total > 0 {
+                    Text("\(Int((min(collected / total, 1) * 100).rounded()))% collected")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.brandPrimary)
+                        .contentTransition(.numericText())
                 }
             }
+            if total > 0 {
+                Chart {
+                    BarMark(xStart: .value("Start", 0), xEnd: .value("Collected", min(collected, total)), y: .value("Claim", "RCV"))
+                        .foregroundStyle(Color.brandPrimary)
+                    BarMark(xStart: .value("Collected", min(collected, total)), xEnd: .value("Total", total), y: .value("Claim", "RCV"))
+                        .foregroundStyle(Color.surfaceTintedStrong)
+                }
+                .chartXAxis(.hidden)
+                .chartYAxis(.hidden)
+                .chartXScale(domain: 0...total)
+                .frame(height: 28)
+                .clipShape(Capsule())
+                .accessibilityHidden(true)
+            }
+            AdaptiveStack(horizontalAlignment: .top, spacing: Theme.Spacing.l) {
+                figure("Collected", PortalFormat.currency(detail.paymentCollected))
+                figure("Total RCV", PortalFormat.currency(detail.totalRcv), help: true)
+                if deductible > 0 {
+                    figure("Deductible", PortalFormat.currency(detail.deductible))
+                }
+            }
+            if timeline.count >= 2 {
+                Chart(timeline, id: \.date) { point in
+                    AreaMark(x: .value("Date", point.date), y: .value("Collected", point.amount))
+                        .foregroundStyle(LinearGradient(colors: [Color.brandPrimary.opacity(0.3), .clear], startPoint: .top, endPoint: .bottom))
+                        .interpolationMethod(.stepEnd)
+                    LineMark(x: .value("Date", point.date), y: .value("Collected", point.amount))
+                        .foregroundStyle(Color.brandPrimary)
+                        .interpolationMethod(.stepEnd)
+                }
+                .chartYAxis(.hidden)
+                .chartXAxis {
+                    AxisMarks(values: .automatic(desiredCount: 3)) { _ in
+                        AxisValueLabel(format: .dateTime.month(.abbreviated).day())
+                    }
+                }
+                .frame(height: 70)
+                .accessibilityLabel("Payments over time")
+                .accessibilityValue("\(timeline.count) payments, \(PortalFormat.currency(detail.paymentCollected)) in total")
+            }
+        }
+        .cardStyle()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("paymentsChart")
+    }
+
+    private func figure(_ title: String, _ value: String, help: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            // Same height with or without the ⓘ button, so the amounts line up.
+            HStack(spacing: Theme.Spacing.xs) {
+                Text(title)
+                    .font(.metaLabel)
+                    .foregroundStyle(Color.textSecondary)
+                if help { RCVHelpButton() }
+            }
+            .frame(minHeight: 28, alignment: .leading)
             Text(value)
                 .font(.headline)
+                .monospacedDigit()
                 .foregroundStyle(Color.textPrimary)
+                .contentTransition(.numericText())
         }
-        .padding(Theme.Spacing.m)
-        .frame(minWidth: 140, alignment: .leading)
-        .background(Color.surfaceTinted, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.border, lineWidth: 1))
         .accessibilityElement(children: .combine)
     }
 }
@@ -286,7 +378,7 @@ struct RCVHelpButton: View {
     }
 }
 
-/// Claim progress. Collapsible: the ring and the current status stay visible when collapsed.
+/// Claim progress. Collapsible: the current status and its guide stay visible when collapsed.
 private struct LifecycleCard: View {
     let position: ClaimLifecycle.Position
     let status: String?
@@ -299,10 +391,8 @@ private struct LifecycleCard: View {
             } label: {
                 HStack(spacing: Theme.Spacing.l) {
                     // The ring goes above the status at large text, so the status isn't squeezed.
+                    // The ring is in the hero above; this card is the step-by-step view.
                     AdaptiveStack(spacing: Theme.Spacing.l) {
-                        if let percent = position.percentComplete {
-                            ProgressRing(percent: percent)
-                        }
                         VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                             Text("Claim progress")
                                 .font(.caption)
@@ -373,17 +463,21 @@ private struct LifecycleCard: View {
 
 struct ProgressRing: View {
     let percent: Int
+    /// White, for the brand gradient (the claim hero).
+    var onBrand = false
 
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.border, lineWidth: 6)
+                .stroke(onBrand ? Color.white.opacity(0.25) : Color.border, lineWidth: 6)
             Circle()
                 .trim(from: 0, to: CGFloat(percent) / 100)
-                .stroke(percent == 100 ? Color.success : Color.brandPrimary, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                .stroke(onBrand ? Color.white : (percent == 100 ? Color.success : Color.brandPrimary),
+                        style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             Text("\(percent)%")
                 .font(.subheadline.bold())
+                .foregroundStyle(onBrand ? Color.white : Color.textPrimary)
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.4)
