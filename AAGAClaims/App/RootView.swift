@@ -45,6 +45,16 @@ struct RootView: View {
                     .zIndex(2)
             }
         }
+        .task(id: session.isShielded) {
+            // Safety net: the shield is only for the app switcher. If the app is in use, take it
+            // down, even if iOS didn't send the "became active" call (seen after Face ID on phones).
+            while session.isShielded, !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(500))
+                if UIApplication.shared.applicationState == .active {
+                    session.isShielded = false
+                }
+            }
+        }
         .task {
             // Long enough to read the name; UI tests don't wait for it.
             let delay = UserDefaults.standard.bool(forKey: "UITestDemo") ? 0.2 : 1.4

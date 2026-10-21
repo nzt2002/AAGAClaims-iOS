@@ -133,7 +133,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     /// Mask content in the app switcher when the lock is on (spec §10).
     func sceneWillResignActive(_ scene: UIScene) {
-        if session.lock.isEnabled {
+        if session.lock.isEnabled, !session.lock.isInAuthentication {
             session.isShielded = true
         }
     }

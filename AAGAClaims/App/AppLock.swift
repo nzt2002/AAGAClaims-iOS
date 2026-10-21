@@ -17,7 +17,17 @@ final class AppLock {
     /// Shown on the lock screen when unlocking fails.
     private(set) var message: String?
     private var backgroundedAt: Date?
-    private var isAuthenticating = false
+    /// True while Face ID / passcode is on screen. iOS makes the app inactive for it, which must
+    /// not put up the privacy shield (that left the app covered after turning the lock on).
+    private(set) var isAuthenticating = false
+    private var authenticationEndedAt: Date?
+
+    /// Face ID is up, or has just closed (its inactive/active notifications can arrive late).
+    var isInAuthentication: Bool {
+        if isAuthenticating { return true }
+        guard let authenticationEndedAt else { return false }
+        return Date().timeIntervalSince(authenticationEndedAt) < 2
+    }
 
     init() {
         let enabled = UserDefaults.standard.bool(forKey: Keys.enabled)
@@ -111,7 +121,10 @@ final class AppLock {
 
     private func authenticate(reason: String) async -> Bool {
         isAuthenticating = true
-        defer { isAuthenticating = false }
+        defer {
+            isAuthenticating = false
+            authenticationEndedAt = Date()
+        }
         // .deviceOwnerAuthentication falls back to the device passcode.
         return (try? await LAContext().evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason)) ?? false
     }
