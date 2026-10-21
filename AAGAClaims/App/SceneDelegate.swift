@@ -74,6 +74,16 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                     if let scene { self?.showNativeSignInIfNeeded(scene) }
                 }
             }
+            // The app's sign-in screen succeeded: don't rely on the SDK calling back (it may
+            // announce the new user before the session or profile is saved).
+            NotificationCenter.default.addObserver(
+                forName: NativeSignIn.didSucceed, object: nil, queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.setSigningIn(false)
+                    self?.finishSignIn()
+                }
+            }
             restoreSession(scene)
             showNativeSignInIfNeeded(scene)
         }
@@ -156,22 +166,77 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         AuthHelper.loginIfRequired(scene) { [weak self] in
             guard let self else { return }
             self.setSigningIn(false)
+            self.finishSignIn()
+        }
+    }
+
+    private var finishing: Task<Void, Never>?
+
+    /// Shows the app once the session and the user's profile are saved. On a phone the profile
+    /// can arrive a moment after sign-in reports success; giving up then left the app on the
+    /// splash until it was reopened.
+    private func finishSignIn() {
+        if case .signedIn = session.state { return }
+        guard finishing == nil else { return }
+        finishing = Task { @MainActor [weak self] in
+            defer { self?.finishing = nil }
+            var user: CurrentUser?
+            // Up to about 10 seconds for the SDK to save the session and profile.
+            for _ in 0..<40 {
+                if let found = Self.currentUser() { user = found; break }
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+            if user == nil { user = await Self.fetchCurrentUser() }
+            guard let self else { return }
             self.session.isRestoringSession = false
-            guard let user = Self.currentUser() else { return }
+            guard let user else {
+                // No profile at all: sign out so the sign-in screen comes back instead of a stuck splash.
+                SalesforceSession.signOut()
+                return
+            }
+            if case .signedIn = self.session.state { return }
             self.session.didSignIn(user)
             Task { await PushNotifications.registerIfAllowed(registerWithSalesforce: true) }
         }
     }
 
     private static func currentUser() -> CurrentUser? {
-        guard let identity = UserAccountManager.shared.currentUserAccount?.idData else { return nil }
+        guard let account = UserAccountManager.shared.currentUserAccount,
+              account.credentials.accessToken != nil,
+              let identity = UserAccountManager.shared.currentUserAccount?.idData,
+              !identity.email.isEmpty else { return nil }
         return CurrentUser(
             firstName: identity.firstName,
             fullName: identity.displayName ?? identity.email,
             email: identity.email,
             // "STANDARD" for internal users; portal licences have other types.
             isInternal: identity.userType.caseInsensitiveCompare("STANDARD") == .orderedSame,
-            instanceURL: UserAccountManager.shared.currentUserAccount?.credentials.instanceUrl
+            instanceURL: account.credentials.instanceUrl
+        )
+    }
+
+    /// The profile straight from Salesforce's identity URL, when the SDK hasn't saved one.
+    private static func fetchCurrentUser() async -> CurrentUser? {
+        guard let credentials = UserAccountManager.shared.currentUserAccount?.credentials,
+              let token = credentials.accessToken, let url = credentials.identityUrl else { return nil }
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        struct Identity: Decodable {
+            let first_name: String?
+            let display_name: String?
+            let email: String?
+            let user_type: String?
+        }
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              (response as? HTTPURLResponse)?.statusCode == 200,
+              let identity = try? JSONDecoder().decode(Identity.self, from: data),
+              let email = identity.email else { return nil }
+        return CurrentUser(
+            firstName: identity.first_name,
+            fullName: identity.display_name ?? email,
+            email: email,
+            isInternal: identity.user_type?.caseInsensitiveCompare("STANDARD") == .orderedSame,
+            instanceURL: credentials.instanceUrl
         )
     }
 }

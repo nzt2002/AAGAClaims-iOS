@@ -132,8 +132,9 @@ enum HeadlessSignIn {
 enum HeadlessPasswordReset {
     enum Outcome: Equatable {
         case done
-        /// The portal doesn't allow it (setting off, or it wants reCAPTCHA): use the web page.
-        case unavailable
+        /// The portal doesn't allow it (setting off, or reCAPTCHA failed): use the web page.
+        /// The reason is a short technical note (no personal data) shown under the message.
+        case unavailable(String?)
         /// The code is wrong or expired.
         case invalidCode
         /// The new password doesn't meet the portal's rules (message from Salesforce when given).
@@ -148,7 +149,11 @@ enum HeadlessPasswordReset {
     /// to find out who has an account.
     /// The portal requires a reCAPTCHA Enterprise token with this step.
     static func sendCode(username: String) async -> Outcome {
-        guard let event = await HeadlessRecaptcha.event() else { return .unavailable }
+        let event: [String: String]
+        switch await HeadlessRecaptcha.event() {
+        case .success(let value): event = value
+        case .failure(let error): return .unavailable("reCAPTCHA: \(error.reason)")
+        }
         return await post(["username": username, "recaptchaEvent": event])
     }
 
@@ -174,7 +179,7 @@ enum HeadlessPasswordReset {
             let code = (json["status_code"] as? String ?? json["error"] as? String ?? "").lowercased()
             let message = json["message"] as? String ?? json["error_description"] as? String
             if code.contains("auth") || code.contains("recaptcha") || code.contains("not_allowed") || status == 404 || status == 403 {
-                return .unavailable
+                return .unavailable("Salesforce: \(status) \(code)")
             }
             if code.contains("otp") || code.contains("code") { return .invalidCode }
             if code.contains("password") { return .weakPassword(message) }
@@ -188,33 +193,70 @@ enum HeadlessPasswordReset {
 /// Google reCAPTCHA Enterprise for the headless endpoints that the portal protects with it (forgot
 /// password). The key is the portal's iOS key in Google Cloud project proclaimer-512222; Salesforce
 /// checks the token with Google, using the API key saved in the portal's Login & Registration settings.
+@MainActor
 enum HeadlessRecaptcha {
     static let siteKey = "6Lf-3fgtAAAAAG-PuKusjBY1JTDZ8bPwcY9dcFj6"
     static let projectId = "proclaimer-512222"
 
-    private static let client = ClientCache()
+    /// Set up on the main actor, as in Salesforce's native login template.
+    private static var client: RecaptchaClient?
+    private static var loading: Task<Result<RecaptchaClient, Failure>, Never>?
+
+    struct Failure: Error {
+        let reason: String
+
+        init(_ step: String, _ error: Error) {
+            let error = error as NSError
+            reason = "\(step) failed (\(error.code)): \(error.localizedDescription)"
+        }
+    }
 
     /// Starts loading the client early (it takes a moment), e.g. when the reset screen opens.
     static func prepare() {
-        Task { _ = await client.get() }
+        Task { _ = await loadClient() }
     }
 
-    /// The `recaptchaEvent` object Salesforce expects, or nil when no token could be had.
+    /// The `recaptchaEvent` object Salesforce expects.
     /// Salesforce's own SDK sends the action "login" for every headless request.
-    static func event() async -> [String: String]? {
-        guard let recaptcha = await client.get(),
-              let token = try? await recaptcha.execute(withAction: .login) else { return nil }
-        return ["token": token, "siteKey": siteKey, "expectedAction": "login", "projectId": projectId]
+    static func event() async -> Result<[String: String], Failure> {
+        let recaptcha: RecaptchaClient
+        switch await loadClient() {
+        case .success(let value): recaptcha = value
+        case .failure(let error): return .failure(error)
+        }
+        // The completion-handler call: the SDK's async variants have had task-allocation bugs.
+        let result: Result<String, Failure> = await withCheckedContinuation { continuation in
+            recaptcha.execute(withAction: .login) { token, error in
+                if let token {
+                    continuation.resume(returning: .success(token))
+                } else {
+                    continuation.resume(returning: .failure(Failure("token", error ?? NSError(domain: "recaptcha", code: -1))))
+                }
+            }
+        }
+        return result.map { ["token": $0, "siteKey": siteKey, "expectedAction": "login", "projectId": projectId] }
     }
 
-    private actor ClientCache {
-        private var client: RecaptchaClient?
-
-        func get() async -> RecaptchaClient? {
-            if let client { return client }
-            // Not kept on failure, so the next attempt retries.
-            client = try? await Recaptcha.fetchClient(withSiteKey: HeadlessRecaptcha.siteKey)
-            return client
+    private static func loadClient() async -> Result<RecaptchaClient, Failure> {
+        if let client { return .success(client) }
+        if let loading { return await loading.value }
+        let task = Task { @MainActor () -> Result<RecaptchaClient, Failure> in
+            do {
+                return .success(try await withCheckedThrowingContinuation { continuation in
+                    Recaptcha.fetchClient(withSiteKey: siteKey) { client, error in
+                        if let client { continuation.resume(returning: client) }
+                        else { continuation.resume(throwing: error ?? NSError(domain: "recaptcha", code: -1)) }
+                    }
+                })
+            } catch {
+                return .failure(Failure("setup", error))
+            }
         }
+        loading = task
+        let result = await task.value
+        loading = nil
+        // Not kept on failure, so the next attempt retries.
+        if case .success(let value) = result { client = value }
+        return result
     }
 }

@@ -192,7 +192,8 @@ struct NativeSignInView: View {
         let failure = await HeadlessSignIn.signIn(username: username.trimmingCharacters(in: .whitespaces),
                                                   password: password, clientId: clientId, scene: scene)
         isSigningIn = false
-        // On success the SDK finishes signing in and closes this screen.
+        // On success the SDK closes this screen; the scene then shows the app.
+        if failure == nil { NotificationCenter.default.post(name: NativeSignIn.didSucceed, object: nil) }
         errorMessage = failure.map(Self.message(for:))
         if failure != nil { password = "" }
     }
@@ -212,6 +213,8 @@ enum NativeSignIn {
     static let portalURL = "https://portal.accurateadjustmentsga.com"
     /// Headless login's redirect: the site's echo endpoint, also listed as the app's callback URL in Salesforce.
     static let callbackURL = "https://portal.accurateadjustmentsga.com/services/oauth2/echo"
+    /// Posted when the app's own sign-in has handed a new session to the SDK.
+    static let didSucceed = Notification.Name("NativeSignInDidSucceed")
 
     static func makeViewController() -> UIViewController {
         let controller = UIHostingController(rootView: NativeSignInView())

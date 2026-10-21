@@ -17,6 +17,8 @@ struct ResetPasswordView: View {
     @State private var errorMessage: String?
     @State private var showingWebReset = false
     @State private var offerWebReset = false
+    /// A short technical reason under the message, for support.
+    @State private var errorDetail: String?
     @Environment(\.dismiss) private var dismiss
 
     private static let webResetURL = URL(string: "https://portal.accurateadjustmentsga.com/s/login/ForgotPassword")!
@@ -69,6 +71,13 @@ struct ResetPasswordView: View {
                         Label(errorMessage, systemImage: "exclamationmark.circle.fill")
                             .foregroundStyle(Color.warning)
                             .accessibilityIdentifier("resetError")
+                        if let errorDetail {
+                            Text(errorDetail)
+                                .font(.caption)
+                                .foregroundStyle(Color.textSecondary)
+                                .textSelection(.enabled)
+                                .accessibilityIdentifier("resetErrorDetail")
+                        }
                         if offerWebReset {
                             Button("Reset on the portal website") { showingWebReset = true }
                         }
@@ -111,6 +120,7 @@ struct ResetPasswordView: View {
     private func sendCode() async {
         isWorking = true
         errorMessage = nil
+        errorDetail = nil
         offerWebReset = false
         let outcome = await HeadlessPasswordReset.sendCode(username: user.trimmingCharacters(in: .whitespaces))
         isWorking = false
@@ -127,6 +137,7 @@ struct ResetPasswordView: View {
         }
         isWorking = true
         errorMessage = nil
+        errorDetail = nil
         let outcome = await HeadlessPasswordReset.reset(username: user.trimmingCharacters(in: .whitespaces),
                                                         code: code.trimmingCharacters(in: .whitespaces), newPassword: newPassword)
         isWorking = false
@@ -139,9 +150,11 @@ struct ResetPasswordView: View {
     }
 
     private func show(_ outcome: HeadlessPasswordReset.Outcome) {
+        errorDetail = nil
         switch outcome {
         case .done: errorMessage = nil
-        case .unavailable:
+        case .unavailable(let reason):
+            errorDetail = reason
             errorMessage = "Password reset isn't available in the app right now."
             offerWebReset = true
         case .invalidCode: errorMessage = "That code is wrong or has expired. Check the email, or send a new code."
