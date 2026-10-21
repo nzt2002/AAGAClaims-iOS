@@ -52,7 +52,18 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 guard let self, let scene else { return }
                 self.signIn(scene)
             }
+            self.session.retrySignIn = { [weak self, weak scene] in
+                guard let self, let scene else { return }
+                self.setSigningIn(false)
+                if self.hasSavedSession {
+                    self.finishSignIn()
+                } else {
+                    self.session.isRestoringSession = false
+                    self.signIn(scene)
+                }
+            }
             AuthHelper.registerBlock(forCurrentUserChangeNotifications: scene) { [weak self] in
+                self?.session.noteSignInStep("user changed")
                 // Native sign-in ends here (the SDK doesn't call loginIfRequired's completion for it):
                 // clear the in-progress flag so the new session is picked up straight away.
                 self?.setSigningIn(false)
@@ -80,6 +91,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 forName: NativeSignIn.didSucceed, object: nil, queue: .main
             ) { [weak self] _ in
                 MainActor.assumeIsolated {
+                    self?.session.noteSignInStep("signed in")
                     self?.setSigningIn(false)
                     self?.finishSignIn()
                 }
@@ -163,8 +175,10 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     private func login(_ scene: UIScene) {
+        session.noteSignInStep("login")
         AuthHelper.loginIfRequired(scene) { [weak self] in
             guard let self else { return }
+            self.session.noteSignInStep("login done")
             self.setSigningIn(false)
             self.finishSignIn()
         }
@@ -178,6 +192,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private func finishSignIn() {
         if case .signedIn = session.state { return }
         guard finishing == nil else { return }
+        session.noteSignInStep("loading profile")
         finishing = Task { @MainActor [weak self] in
             defer { self?.finishing = nil }
             var user: CurrentUser?
@@ -186,11 +201,15 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 if let found = Self.currentUser() { user = found; break }
                 try? await Task.sleep(for: .milliseconds(250))
             }
-            if user == nil { user = await Self.fetchCurrentUser() }
+            if user == nil {
+                self?.session.noteSignInStep(Self.hasToken ? "fetching profile" : "no session")
+                user = await Self.fetchCurrentUser()
+            }
             guard let self else { return }
             self.session.isRestoringSession = false
             guard let user else {
                 // No profile at all: sign out so the sign-in screen comes back instead of a stuck splash.
+                self.session.noteSignInStep("no profile")
                 SalesforceSession.signOut()
                 return
             }
@@ -198,6 +217,10 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             self.session.didSignIn(user)
             Task { await PushNotifications.registerIfAllowed(registerWithSalesforce: true) }
         }
+    }
+
+    private static var hasToken: Bool {
+        UserAccountManager.shared.currentUserAccount?.credentials.accessToken != nil
     }
 
     private static func currentUser() -> CurrentUser? {

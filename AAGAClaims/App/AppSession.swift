@@ -44,6 +44,15 @@ final class AppSession {
     var usesNativeLogin = false
     /// A saved session is being restored: keep the splash up rather than flash the welcome screen.
     var isRestoringSession = false
+    /// Sign-in steps reached so far (no personal data), shown if sign-in seems stuck.
+    private(set) var signInSteps: [String] = []
+    /// Restarts a sign-in that seems stuck (set by the scene).
+    var retrySignIn: (() -> Void)?
+
+    func noteSignInStep(_ step: String) {
+        signInSteps.append(step)
+        if signInSteps.count > 12 { signInSteps.removeFirst() }
+    }
 
     init(environment: AppEnvironment) {
         self.environment = environment
@@ -85,6 +94,7 @@ final class AppSession {
     var isDemo: Bool { environment.auth == .demo }
 
     func didSignIn(_ user: CurrentUser) {
+        signInSteps = []
         state = .signedIn(user)
     }
 
