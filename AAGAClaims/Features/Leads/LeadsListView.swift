@@ -43,7 +43,6 @@ struct LeadsListView: View {
                             ForEach(viewModel.filteredLeads) { lead in
                                 NavigationLink(value: LeadRoute(id: lead.recordId, name: lead.recordName)) {
                                     LeadCard(lead: lead)
-                                        .recordZoomSource(lead.recordId)
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityIdentifier("leadCard-\(lead.recordId)")

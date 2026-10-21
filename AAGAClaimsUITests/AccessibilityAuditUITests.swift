@@ -32,6 +32,14 @@ final class AccessibilityAuditUITests: XCTestCase {
                }) {
                 return true
             }
+            // A "three at a time" list scrolled partly under the navigation bar: its rows are faded by
+            // iOS 26's scroll-edge effect, so contrast is measured against the fade (seen in a
+            // screenshot, 2026-10-21, on the claim's Recent activity when Files is selected).
+            if issue.auditType == .contrast, let frame = issue.element?.frame,
+               stackWindows.contains(where: { $0.minY < screen.height * 0.12 && $0.contains(CGPoint(x: frame.midX, y: frame.midY)) }),
+               frame.minY < screen.height * 0.4 {
+                return true
+            }
             if let frame = issue.element?.frame, !visible.contains(frame),
                [.contrast, .textClipped, .dynamicType].contains(issue.auditType) {
                 return true

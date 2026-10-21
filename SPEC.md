@@ -65,7 +65,7 @@ All users sign in with their **existing portal credentials**. They are Salesforc
 
 **Account** (profile, notification settings, Face ID toggle, sign out) is not a tab, because iPhone shows at most five tabs. It opens as a sheet from the **profile button** (the user's initials in a brand circle) beside the bell.
 
-**Global:** a bell icon and the profile button in the navigation bar of Home, Claims, Leads and Support. The bell opens **Notifications**, shows an unread badge count, and bounces when the count changes. Global **Search** opens from the Search tab or the search bar in the Home hero. On iOS 26 the tab bar shrinks while scrolling down. On iPhone, a claim or lead opened from a list row zooms out of the row (not with Reduce Motion).
+**Global:** a bell icon and the profile button in the navigation bar of Home, Claims, Leads and Support. The bell opens **Notifications**, shows an unread badge count, and bounces when the count changes. Global **Search** opens from the Search tab or the search bar in the Home hero. On iOS 26 the tab bar shrinks while scrolling down.
 
 **Opening records:** a claim or lead opened from anywhere else (Home, Search, Notifications, an update, a task, a converted lead, a link or a push) opens **on top of the current screen in the current tab**, so Back returns to where the user was. Each record page is its own screen, so opening a different claim never shows the one that was already open. Opening a record from the Account sheet closes the sheet first.
 

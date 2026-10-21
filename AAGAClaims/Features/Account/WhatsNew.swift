@@ -26,7 +26,7 @@ enum WhatsNew {
     static let releases: [Release] = [
         Release(version: "1.1.0", date: "Oct 21, 2026", items: [
             Item(icon: "sparkles", title: "A fresh new look",
-                 detail: "Updated for the latest iPhone design, with smoother transitions when you open a claim or lead."),
+                 detail: "Updated for the latest iPhone design, with bolder headers, cleaner cards and a tab bar that steps aside while you scroll."),
             Item(icon: "exclamationmark.circle", title: "Needs attention",
                  detail: "Home now leads with what needs you today: overdue tasks, unread updates, recent payments and unsigned agreements."),
             Item(icon: "magnifyingglass", title: "Search has its own tab",

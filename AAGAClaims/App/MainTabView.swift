@@ -11,8 +11,6 @@ struct MainTabView: View {
 
     @State private var router: AppRouter
     @State private var safariLink: SafariLink?
-    /// Rows and record pages share it for the zoom transition.
-    @Namespace private var recordZoom
     @State private var offeringLock = false
     /// Release notes for a newly installed version, once, after sign-in.
     @State private var whatsNew: WhatsNew.Release?
@@ -130,7 +128,6 @@ struct MainTabView: View {
             }
         }
         .modifier(TabBarStyle())
-        .environment(\.recordZoomNamespace, recordZoom)
         .environment(\.openSupport, OpenSupportAction { caseId in router.openSupport(caseId: caseId) })
         .environment(\.openRecord, OpenRecordAction { record, name in router.open(record, name: name) })
         .environment(\.isOffline, session.offline.isOffline)

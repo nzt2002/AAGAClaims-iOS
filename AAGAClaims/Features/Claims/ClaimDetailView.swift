@@ -199,7 +199,8 @@ private struct ClaimHeader: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        HStack(alignment: .top, spacing: Theme.Spacing.l) {
+        // The ring moves under the text at large sizes, so nothing is squeezed.
+        AdaptiveStack(horizontalAlignment: .top, verticalAlignment: .leading, spacing: Theme.Spacing.l) {
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
                 if let status = PortalFormat.nonEmpty(detail.claimStatus) {
                     Text(status.uppercased())
@@ -209,6 +210,7 @@ private struct ClaimHeader: View {
                         .padding(.horizontal, Theme.Spacing.s)
                         .padding(.vertical, 4)
                         .background(.white.opacity(0.2), in: Capsule())
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Text(detail.claimName ?? "Claim")
                     .font(.heroTitle)
@@ -234,15 +236,17 @@ private struct ClaimHeader: View {
                     }
                 }
                 .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.92))
+                .foregroundStyle(.white)
+                .fixedSize(horizontal: false, vertical: true)
             }
-            Spacer(minLength: 0)
+            AdaptiveSpacer()
             if let percent = position.percentComplete, case .stage(let index) = position {
                 VStack(spacing: Theme.Spacing.xs) {
                     ProgressRing(percent: percent, onBrand: true)
                     Text("Stage \(index + 1) of \(ClaimLifecycle.stages.count)")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.9))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .fixedSize()
                 }
             }
         }

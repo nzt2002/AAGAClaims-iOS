@@ -218,7 +218,6 @@ struct HomeView: View {
                             router.open(.claim(claim.recordId), name: claim.recordName)
                         } label: {
                             RecentClaimRow(claim: claim)
-                                .recordZoomSource(claim.recordId)
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("recentClaim-\(claim.recordId)")

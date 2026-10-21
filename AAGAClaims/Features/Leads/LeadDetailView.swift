@@ -224,6 +224,7 @@ struct LeadDetailView: View {
                     .padding(.horizontal, Theme.Spacing.s)
                     .padding(.vertical, 4)
                     .background(.white.opacity(0.2), in: Capsule())
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Text(detail.prospectName ?? "Lead")
                 .font(.heroTitle)
@@ -249,7 +250,8 @@ struct LeadDetailView: View {
                 }
             }
             .font(.subheadline)
-            .foregroundStyle(.white.opacity(0.92))
+            .foregroundStyle(.white)
+            .fixedSize(horizontal: false, vertical: true)
         }
         .padding(Theme.Spacing.l)
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -76,12 +76,13 @@ struct NeedsAttentionSection: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(item.title)
                             .font(.cardTitle)
+                            .fixedSize(horizontal: false, vertical: true)
                             .foregroundStyle(item.kind == .overdueTasks ? Color.warning : Color.textPrimary)
                             .contentTransition(.numericText())
                         Text(item.detail)
                             .font(.subheadline)
                             .foregroundStyle(Color.textSecondary)
-                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: Theme.Spacing.s)
                     Image(systemName: "chevron.right")
