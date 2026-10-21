@@ -20,7 +20,7 @@ final class WhatsNewUITests: XCTestCase {
         continueButton.tap()
         XCTAssertFalse(continueButton.waitForExistence(timeout: 2))
 
-        app.tabBars.buttons["Account"].tap()
+        app.buttons["accountButton"].firstMatch.tap()
         let again = app.buttons["whatsNewButton"]
         // Below Sign Out and Delete Account: scroll to it.
         app.scrollIntoView(again)
@@ -45,7 +45,7 @@ final class WhatsNewUITests: XCTestCase {
         app.launchArguments = ["-UITestDemo", "YES", "-PortalDataSource", "mock"]
         app.launch()
         app.dismissSystemAlerts()
-        app.tabBars.buttons["Account"].tap()
+        app.buttons["accountButton"].firstMatch.tap()
         let delete = app.buttons["deleteAccount"]
         XCTAssertTrue(delete.waitForExistence(timeout: 10))
         app.scrollIntoView(delete)
@@ -55,6 +55,6 @@ final class WhatsNewUITests: XCTestCase {
         confirm.tap()
         XCTAssertTrue(app.alerts["Request received"].waitForExistence(timeout: 5))
         app.alerts.buttons["OK"].tap()
-        XCTAssertFalse(app.tabBars.buttons["Account"].waitForExistence(timeout: 3), "Signed out")
+        XCTAssertFalse(app.buttons["accountButton"].waitForExistence(timeout: 3), "Signed out")
     }
 }

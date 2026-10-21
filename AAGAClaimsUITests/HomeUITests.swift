@@ -78,6 +78,31 @@ final class HomeUITests: XCTestCase {
         XCTAssertTrue(app.tabBars.buttons["Home"].isSelected, "Opened on top of Home")
     }
 
+    /// The Search tab: results open inside it, and Back returns to the results.
+    func testSearchTabOpensRecordInPlace() {
+        app.tabBars.buttons["Search"].tap()
+        let field = app.textFields["searchField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["searchClose"].exists, "Nothing to close in a tab")
+        field.tap()
+        field.typeText("Jordan")
+        let lead = app.buttons["searchResult-a0r000000000001AAA"]
+        XCTAssertTrue(lead.waitForExistence(timeout: 5))
+        lead.tap()
+        XCTAssertTrue(element(containing: "Jordan Reyes").waitForExistence(timeout: 5))
+        XCTAssertTrue(app.tabBars.buttons["Search"].isSelected, "Opened inside the Search tab")
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(lead.waitForExistence(timeout: 5), "Back returns to the results")
+    }
+
+    /// Account opens from the profile button and closes with Done.
+    func testProfileButtonOpensAccount() {
+        app.buttons["accountButton"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["signOut"].waitForExistence(timeout: 5))
+        app.buttons["accountDone"].tap()
+        XCTAssertTrue(app.staticTexts["Welcome back, Alex!"].waitForExistence(timeout: 5))
+    }
+
     func testChatterPostInRecentActivityOpensItsClaim() {
         let post = app.buttons["post-0D5000000000001AAA"]
         XCTAssertTrue(post.waitForExistence(timeout: 5))

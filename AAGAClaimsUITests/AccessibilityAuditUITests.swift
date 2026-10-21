@@ -149,10 +149,11 @@ final class AccessibilityAuditUITests: XCTestCase {
         XCTAssertTrue(app.buttons["sendReply"].waitForExistence(timeout: 5))
         try audit("Case detail")
 
-        app.tabBars.buttons["Account"].tap()
-        try audit("Account")
-
         app.tabBars.buttons["Home"].tap()
+        app.buttons["accountButton"].firstMatch.tap()
+        try audit("Account")
+        app.buttons["accountDone"].tap()
+
         app.buttons["notificationsBell"].tap()
         try audit("Notifications")
 

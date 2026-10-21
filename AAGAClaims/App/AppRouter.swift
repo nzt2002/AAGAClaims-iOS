@@ -19,6 +19,7 @@ final class AppRouter {
     var claimsPath = NavigationPath()
     var leadsPath = NavigationPath()
     var supportPath = NavigationPath()
+    var searchPath = NavigationPath()
 
     var showingNotifications = false
     var showingSubmitLead = false
@@ -28,6 +29,7 @@ final class AppRouter {
     var showingNewClaim = false
     var showingNewEvent = false
     var showingSearch = false
+    var showingAccount = false
     /// The Update sheet opened from Home's recent activity.
     var homeUpdate: ActivityItem?
     /// The Update sheet opened from the Notifications sheet.
@@ -111,6 +113,7 @@ final class AppRouter {
         homeUpdate = nil
         notificationUpdate = nil
         showingNotifications = false
+        showingAccount = false
         switch record {
         case .claim(let id): push(ClaimRoute(id: id, name: name), recordTab: .claims)
         case .lead(let id): push(LeadRoute(id: id, name: name), recordTab: .leads)
@@ -123,16 +126,7 @@ final class AppRouter {
         case .claims: claimsPath.append(route)
         case .leads: leadsPath.append(route)
         case .support: supportPath.append(route)
-        case .account:
-            // Account has no stack of its own: open it in the record's tab.
-            if recordTab == .claims {
-                claimsPath = NavigationPath()
-                claimsPath.append(route)
-            } else {
-                leadsPath = NavigationPath()
-                leadsPath.append(route)
-            }
-            selection = recordTab
+        case .search: searchPath.append(route)
         }
     }
 

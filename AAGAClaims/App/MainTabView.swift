@@ -2,7 +2,7 @@ import PortalKit
 import SwiftUI
 
 enum AppTab: Hashable {
-    case home, claims, leads, support, account
+    case home, claims, leads, support, search
 }
 
 struct MainTabView: View {
@@ -112,16 +112,22 @@ struct MainTabView: View {
                                 showingRequest: $router.showingRequestAssistance, api: session.api)
                         .modifier(RecordDestinations(router: router, api: session.api))
                         .statusBanners(session)
+                        .toolbar { topBarButtons() }
                 }
             }
-            Tab("Account", systemImage: "person.crop.circle", value: .account) {
-                NavigationStack {
-                    AccountView(session: session, user: user, openSupport: { router.openSupport(caseId: nil) })
-                        .statusBanners(session)
+            // Search as its own tab (on iOS 26, the separate glass button at the end of the tab bar).
+            // Records found here open in this tab, so Back returns to the results.
+            Tab("Search", systemImage: "magnifyingglass", value: .search, role: .search) {
+                NavigationStack(path: $router.searchPath) {
+                    SearchSheet(api: session.api, includePeople: user.isInternal, inTab: true, close: {}) { result in
+                        router.open(result)
+                    }
+                    .modifier(RecordDestinations(router: router, api: session.api))
+                    .statusBanners(session)
                 }
             }
         }
-        .buttonBorderShape(.capsule)
+        .modifier(TabBarStyle())
         .environment(\.openSupport, OpenSupportAction { caseId in router.openSupport(caseId: caseId) })
         .environment(\.openRecord, OpenRecordAction { record, name in router.open(record, name: name) })
         .environment(\.isOffline, session.offline.isOffline)
@@ -133,6 +139,22 @@ struct MainTabView: View {
             }
         }
         .opensWebLinksInSafari($safariLink)
+        // Account opens from the profile button (iPhone shows at most five tabs, and Search has one).
+        .sheet(isPresented: $router.showingAccount) {
+            NavigationStack {
+                AccountView(session: session, user: user, openSupport: {
+                    router.showingAccount = false
+                    router.openSupport(caseId: nil)
+                })
+                .statusBanners(session)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { router.showingAccount = false }
+                            .accessibilityIdentifier("accountDone")
+                    }
+                }
+            }
+        }
         .sheet(isPresented: $router.showingNotifications) {
             NotificationsView(router: router)
         }
@@ -219,8 +241,6 @@ struct MainTabView: View {
         }
     }
 
-    /// Top right: the notifications bell. (Search is the bar in Home's hero.)
-    @ToolbarContentBuilder
     /// After sign-in (and What's New and the Face ID offer), ask once to allow notifications:
     /// new updates, payments, @mentions and tasks (spec §8). Not in demo mode or UI tests.
     private func askForNotifications() async {
@@ -236,6 +256,8 @@ struct MainTabView: View {
         router.open(.claim(claim.id), name: claim.name)
     }
 
+    /// Top right: the notifications bell. (Search is the Search tab and the bar in Home's hero.)
+    @ToolbarContentBuilder
     private func topBarButtons() -> some ToolbarContent {
         ToolbarItemGroup(placement: .topBarTrailing) {
             Button {
@@ -253,6 +275,15 @@ struct MainTabView: View {
             }
             .accessibilityLabel(router.home.unreadCount > 0 ? "Notifications, \(router.home.unreadCount) unread" : "Notifications")
             .accessibilityIdentifier("notificationsBell")
+
+            Button {
+                router.showingAccount = true
+            } label: {
+                ProfileAvatar(name: user.fullName, size: bellButtonSize * 0.72)
+                    .frame(minWidth: bellButtonSize, minHeight: bellButtonSize)
+            }
+            .accessibilityLabel("Account")
+            .accessibilityIdentifier("accountButton")
         }
     }
 }
@@ -283,5 +314,38 @@ private struct RecordPlaceholder: View {
         ContentUnavailableView("Choose a \(noun)", systemImage: systemImage,
                                description: Text("Pick a \(noun) from the list to see it here."))
             .background(Color.appBackground)
+    }
+}
+
+/// iOS 26: the tab bar shrinks while scrolling down (Liquid Glass). Earlier: capsule buttons as before.
+private struct TabBarStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        // Not in UI tests: they tap tabs straight after scrolling.
+        if #available(iOS 26, *), !UserDefaults.standard.bool(forKey: "UITestDemo") {
+            content.tabBarMinimizeBehavior(.onScrollDown)
+        } else {
+            content.buttonBorderShape(.capsule)
+        }
+    }
+}
+
+/// The signed-in user's initials in a brand circle: opens Account.
+struct ProfileAvatar: View {
+    let name: String
+    var size: CGFloat = 30
+
+    private var initials: String {
+        let parts = name.split(separator: " ").prefix(2)
+        let letters = parts.compactMap(\.first).map(String.init).joined()
+        return letters.isEmpty ? "?" : letters.uppercased()
+    }
+
+    var body: some View {
+        Text(initials)
+            .font(.system(size: size * 0.42, weight: .semibold, design: .rounded))
+            .foregroundStyle(Color.surface)
+            .frame(width: size, height: size)
+            .background(Color.brandPrimary, in: Circle())
+            .accessibilityHidden(true)
     }
 }

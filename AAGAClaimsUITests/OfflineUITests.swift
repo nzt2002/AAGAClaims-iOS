@@ -40,7 +40,7 @@ final class OfflineUITests: XCTestCase {
         offline.launchArguments = ["-UITestDemo", "YES", "-PortalDataSource", "mock", "-SimulateOffline", "YES"]
         offline.launch()
         // Sign out clears the cache, so start from nothing.
-        offline.tabBars.buttons["Account"].tap()
+        offline.buttons["accountButton"].firstMatch.tap()
         offline.buttons["signOut"].tap()
         offline.sheets.buttons["Sign out"].firstMatch.tap()
         offline.buttons["continueDemo"].tap()

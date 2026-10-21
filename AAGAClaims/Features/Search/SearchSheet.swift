@@ -8,36 +8,48 @@ struct SearchSheet: View {
     /// presenter closes it instead.
     let close: () -> Void
     let open: (SearchResult) -> Void
+    /// In the Search tab: the tab provides the navigation stack and there's nothing to close.
+    var inTab = false
 
     @Environment(\.isOffline) private var isOffline
     @FocusState private var fieldFocused: Bool
 
     private let api: PortalAPI
 
-    init(api: PortalAPI, includePeople: Bool = false, close: @escaping () -> Void, open: @escaping (SearchResult) -> Void) {
+    init(api: PortalAPI, includePeople: Bool = false, inTab: Bool = false,
+         close: @escaping () -> Void, open: @escaping (SearchResult) -> Void) {
         _viewModel = State(initialValue: SearchViewModel(api: api, store: UserDefaultsRecentSearchStore(), includePeople: includePeople))
         self.api = api
+        self.inTab = inTab
         self.close = close
         self.open = open
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Theme.Spacing.l) {
-                    scopeChips
-                    content
-                }
-                .padding(Theme.Spacing.l)
+        if inTab {
+            page
+        } else {
+            NavigationStack { page }
+        }
+    }
+
+    private var page: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Theme.Spacing.l) {
+                scopeChips
+                content
             }
-            .scrollDismissesKeyboard(.interactively)
-            // The app's own field rather than .searchable: while a system search is active, iOS
-            // hides the toolbar and shows an X that only cancels the search, not the sheet.
-            .safeAreaInset(edge: .top, spacing: 0) { searchField }
-            .background(Color.appBackground)
-            .navigationTitle("Search")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
+            .padding(Theme.Spacing.l)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        // The app's own field rather than .searchable: while a system search is active, iOS
+        // hides the toolbar and shows an X that only cancels the search, not the sheet.
+        .safeAreaInset(edge: .top, spacing: 0) { searchField }
+        .background(Color.appBackground)
+        .navigationTitle("Search")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if !inTab {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close", systemImage: "xmark") {
                         fieldFocused = false
@@ -46,20 +58,22 @@ struct SearchSheet: View {
                     .accessibilityIdentifier("searchClose")
                 }
             }
-            .navigationDestination(for: PersonRoute.self) { route in
-                PersonView(api: api, personId: route.id, name: route.name)
-                    .toolbar {
+        }
+        .navigationDestination(for: PersonRoute.self) { route in
+            PersonView(api: api, personId: route.id, name: route.name)
+                .toolbar {
+                    if !inTab {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("Close", systemImage: "xmark", action: close)
                                 .accessibilityIdentifier("searchClose")
                         }
                     }
-            }
-            .task {
-                // Keyboard up as soon as the sheet opens.
-                try? await Task.sleep(for: .milliseconds(150))
-                fieldFocused = true
-            }
+                }
+        }
+        .task {
+            // Keyboard up as soon as the sheet opens.
+            try? await Task.sleep(for: .milliseconds(150))
+            fieldFocused = true
         }
     }
 

@@ -25,7 +25,7 @@ final class MilestoneOneUITests: XCTestCase {
         app.tabBars.buttons["Support"].tap()
         XCTAssertTrue(app.staticTexts["Assistance Requested - Smith - Roof"].waitForExistence(timeout: 5))
 
-        app.tabBars.buttons["Account"].tap()
+        app.buttons["accountButton"].firstMatch.tap()
         // LabeledContent combines the label and value into one accessibility element.
         let email = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS %@", "alex.smith@example.com"))
@@ -44,7 +44,7 @@ final class MilestoneOneUITests: XCTestCase {
     }
 
     func testSignOutReturnsToSplash() {
-        app.tabBars.buttons["Account"].tap()
+        app.buttons["accountButton"].firstMatch.tap()
         app.buttons["signOut"].tap()
         app.sheets.buttons["Sign out"].firstMatch.tap()
         XCTAssertTrue(app.buttons["continueDemo"].waitForExistence(timeout: 5))
