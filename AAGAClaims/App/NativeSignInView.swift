@@ -1,3 +1,4 @@
+import LocalAuthentication
 import SalesforceSDKCore
 import SwiftUI
 import UIKit
@@ -14,6 +15,9 @@ struct NativeSignInView: View {
     /// A confirmation, e.g. after a password reset.
     @State private var notice: String?
     @State private var showingReset = false
+    /// Face ID sign-in is available (Face ID lock on, details saved).
+    @State private var hasSavedSignIn = SavedSignIn.exists
+    @State private var didOfferSavedSignIn = false
     @FocusState private var focus: Field?
 
     private enum Field { case username, password }
@@ -49,6 +53,20 @@ struct NativeSignInView: View {
                 }
             }
         }
+        // The SDK reuses this screen for every sign-in, so check again each time it appears, and
+        // go straight to Face ID once per appearance.
+        .onAppear {
+            hasSavedSignIn = SavedSignIn.exists
+            guard hasSavedSignIn, !didOfferSavedSignIn else { return }
+            didOfferSavedSignIn = true
+            password = ""
+            errorMessage = nil
+            Task {
+                try? await Task.sleep(for: .milliseconds(400))
+                await signInWithSavedDetails()
+            }
+        }
+        .onDisappear { didOfferSavedSignIn = false }
         .sheet(isPresented: $showingReset) {
             ResetPasswordView(username: username.trimmingCharacters(in: .whitespaces)) { user in
                 username = user
@@ -136,6 +154,21 @@ struct NativeSignInView: View {
             .id("signInButton")
             .accessibilityIdentifier("nativeSignIn")
 
+            if hasSavedSignIn {
+                Button {
+                    Task { await signInWithSavedDetails() }
+                } label: {
+                    Label("Sign in with \(Self.biometryName)", systemImage: Self.biometryIcon)
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, minHeight: 52)
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.roundedRectangle(radius: 14))
+                .tint(.brandPrimary)
+                .disabled(isSigningIn)
+                .accessibilityIdentifier("faceIDSignIn")
+            }
+
             HStack {
                 Button("Forgot password?") { showingReset = true }
                 Spacer()
@@ -177,8 +210,9 @@ struct NativeSignInView: View {
         .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Color.border, lineWidth: 1))
     }
 
-    private func signIn() async {
-        guard canSubmit else { return }
+    @discardableResult
+    private func signIn() async -> HeadlessSignIn.Failure? {
+        guard canSubmit else { return nil }
         focus = nil
         isSigningIn = true
         errorMessage = nil
@@ -187,15 +221,48 @@ struct NativeSignInView: View {
         guard let clientId = BootConfigCheck.consumerKey else {
             isSigningIn = false
             errorMessage = Self.message(for: .other("no client id"))
-            return
+            return .other("no client id")
         }
-        let failure = await HeadlessSignIn.signIn(username: username.trimmingCharacters(in: .whitespaces),
-                                                  password: password, clientId: clientId, scene: scene)
+        let user = username.trimmingCharacters(in: .whitespaces)
+        let failure = await HeadlessSignIn.signIn(username: user, password: password, clientId: clientId, scene: scene)
         isSigningIn = false
-        // On success the SDK closes this screen; the scene then shows the app.
-        if failure == nil { NotificationCenter.default.post(name: NativeSignIn.didSucceed, object: nil) }
+        if failure == nil {
+            // Kept for Face ID sign-in if the user has (or turns on) the Face ID lock.
+            SavedSignIn.pending = .init(username: user, password: password)
+            // On success the SDK closes this screen; the scene then shows the app.
+            NotificationCenter.default.post(name: NativeSignIn.didSucceed, object: nil)
+        }
         errorMessage = failure.map(Self.message(for:))
         if failure != nil { password = "" }
+        return failure
+    }
+
+    private func signInWithSavedDetails() async {
+        guard !isSigningIn else { return }
+        focus = nil
+        guard let saved = await SavedSignIn.load(reason: "Sign in to AAGA Claims") else {
+            // Cancelled, or Face ID changed (the saved details are then gone).
+            hasSavedSignIn = SavedSignIn.exists
+            return
+        }
+        username = saved.username
+        password = saved.password
+        if await signIn() == .invalidCredentials {
+            // The saved password no longer works (changed on the portal): forget it.
+            SavedSignIn.delete()
+            hasSavedSignIn = false
+            errorMessage = "Your password has changed. Sign in with your new password to use \(Self.biometryName) again."
+        }
+    }
+
+    private static var biometryName: String {
+        let context = LAContext()
+        _ = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
+        return context.biometryType == .touchID ? "Touch ID" : "Face ID"
+    }
+
+    private static var biometryIcon: String {
+        biometryName == "Touch ID" ? "touchid" : "faceid"
     }
 
     static func message(for failure: HeadlessSignIn.Failure) -> String {

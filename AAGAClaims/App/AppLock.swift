@@ -69,6 +69,7 @@ final class AppLock {
         guard await authenticate(reason: "Turn on \(methodName) for AAGA Claims") else { return false }
         isEnabled = true
         UserDefaults.standard.set(true, forKey: Keys.enabled)
+        saveSignInIfPending()
         return true
     }
 
@@ -76,12 +77,34 @@ final class AppLock {
         isEnabled = false
         isLocked = false
         UserDefaults.standard.set(false, forKey: Keys.enabled)
+        // No Face ID lock, no Face ID sign-in.
+        SavedSignIn.delete()
+        SavedSignIn.pending = nil
     }
 
-    /// Clears the setting on sign-out.
+    /// On sign-out: keep Face ID (and the saved sign-in) so the next sign-in is a Face ID glance;
+    /// otherwise clear the setting.
     func reset() {
+        SavedSignIn.pending = nil
+        if isEnabled, SavedSignIn.exists {
+            isLocked = false
+            return
+        }
         disable()
         UserDefaults.standard.removeObject(forKey: Keys.offered)
+    }
+
+    /// The user has just signed in (password or Face ID): don't ask for Face ID again on top, and
+    /// keep the saved sign-in current (e.g. after a password change).
+    func didSignIn() {
+        isLocked = false
+        if isEnabled { saveSignInIfPending() }
+    }
+
+    private func saveSignInIfPending() {
+        guard let pending = SavedSignIn.pending else { return }
+        SavedSignIn.save(pending)
+        SavedSignIn.pending = nil
     }
 
     // MARK: - Scene lifecycle

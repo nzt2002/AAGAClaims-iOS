@@ -29,6 +29,8 @@ enum WhatsNew {
                  detail: "Thank you for testing. This is the version going to the App Store, with a new app icon."),
             Item(icon: "location.slash", title: "Photos stay private",
                  detail: "Photos you upload no longer include where they were taken."),
+            Item(icon: "faceid", title: "Sign in with Face ID",
+                 detail: "With Face ID turned on, signing back in is a glance. No need to type your username and password."),
             Item(icon: "key.fill", title: "Reset your password in the app",
                  detail: "Tap \"Forgot password?\" on the sign-in screen and we'll email you a code to set a new one."),
         ]),

@@ -92,6 +92,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             ) { [weak self] _ in
                 MainActor.assumeIsolated {
                     self?.session.noteSignInStep("signed in")
+                    self?.session.lock.didSignIn()
                     self?.setSigningIn(false)
                     self?.finishSignIn()
                 }

@@ -77,7 +77,11 @@ struct AccountView: View {
             WhatsNewSheet(release: release, isInternal: user.isInternal)
         }
         .sheet(isPresented: $deletingAccount) {
-            DeleteAccountSheet(api: session.api, signOut: signOut)
+            DeleteAccountSheet(api: session.api, signOut: {
+                // Forget the Face ID sign-in too.
+                session.lock.disable()
+                signOut()
+            })
         }
         .navigationBarTitleDisplayMode(.inline)
         .task(id: scenePhase) {
