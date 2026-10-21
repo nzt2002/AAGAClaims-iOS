@@ -96,9 +96,46 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                     self?.finishSignIn()
                 }
             }
+            observeSalesforceScreenLock(scene)
             restoreSession(scene)
             showNativeSignInIfNeeded(scene)
         }
+    }
+
+    /// Salesforce's own screen lock. Salesforce sends a "mobile policy" with no screen lock set
+    /// (`screen_lock: null`), and the SDK treats any policy as "lock now" with a 0-minute timeout:
+    /// an extra Face ID check straight after sign-in, after which phones were left on a covered
+    /// screen until the app was reopened. A 0-minute policy isn't a real lock (the SDK itself
+    /// reports `enabled` false and never locks again), so close it at once; and whenever the SDK's
+    /// lock finishes, put the app's window back in front.
+    private func observeSalesforceScreenLock(_ scene: UIScene) {
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name(kSFScreenLockFlowWillBegin), object: nil, queue: .main
+        ) { [weak self, weak scene] _ in
+            MainActor.assumeIsolated {
+                guard !ScreenLockManagerInternal.shared.enabled else { return }
+                self?.session.noteSignInStep("skipped Salesforce lock")
+                // After the SDK has presented its window (it does so right after this notification).
+                DispatchQueue.main.async {
+                    SFSDKWindowManager.shared().screenLockWindow().dismissWindow()
+                    if let scene { self?.bringAppWindowToFront(scene) }
+                }
+            }
+        }
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name(kSFScreenLockFlowCompleted), object: nil, queue: .main
+        ) { [weak self, weak scene] _ in
+            MainActor.assumeIsolated {
+                guard let self, let scene else { return }
+                self.bringAppWindowToFront(scene)
+                if self.hasSavedSession { self.finishSignIn() }
+            }
+        }
+    }
+
+    private func bringAppWindowToFront(_ scene: UIScene) {
+        SFSDKWindowManager.shared().mainWindow(scene).presentWindow()
+        window?.makeKeyAndVisible()
     }
 
     // MARK: - Deep links (spec §8)
