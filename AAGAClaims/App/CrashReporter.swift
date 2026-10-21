@@ -5,7 +5,9 @@ import PortalKit
 /// Crash and hang reports (MetricKit), sent to Salesforce's Mobile App Logs so problems are seen
 /// without waiting for someone to report them. iOS delivers a report on the next launch after the
 /// problem; it waits on the device until it's sent. Call stacks only: no customer data.
-final class CrashReporter: NSObject, MXMetricManagerSubscriber, @unchecked Sendable {
+/// Not main-actor: MetricKit calls `didReceive` on a background queue, and the main-actor
+/// isolation check crashed the app at launch whenever a report was waiting (1.1.0 build 26).
+nonisolated final class CrashReporter: NSObject, MXMetricManagerSubscriber, @unchecked Sendable {
     static let shared = CrashReporter()
 
     private let lock = NSLock()
