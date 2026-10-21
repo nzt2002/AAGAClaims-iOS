@@ -28,6 +28,7 @@ struct ClaimsListView: View {
                             ForEach(viewModel.filteredClaims) { claim in
                                 NavigationLink(value: claim) {
                                     ClaimCard(claim: claim)
+                                        .recordZoomSource(claim.recordId)
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityIdentifier("claimCard-\(claim.recordId)")
@@ -50,6 +51,7 @@ struct ClaimsListView: View {
         }
         .navigationDestination(for: ClaimSummary.self) { claim in
             ClaimDetailView(claimId: claim.recordId, summary: claim, api: api)
+                .recordZoomDestination(claim.recordId)
                 .id(claim.recordId)
         }
         .onChange(of: viewModel.filterState) { _, state in

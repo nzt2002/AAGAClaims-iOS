@@ -11,6 +11,8 @@ struct MainTabView: View {
 
     @State private var router: AppRouter
     @State private var safariLink: SafariLink?
+    /// Rows and record pages share it for the zoom transition.
+    @Namespace private var recordZoom
     @State private var offeringLock = false
     /// Release notes for a newly installed version, once, after sign-in.
     @State private var whatsNew: WhatsNew.Release?
@@ -128,6 +130,7 @@ struct MainTabView: View {
             }
         }
         .modifier(TabBarStyle())
+        .environment(\.recordZoomNamespace, recordZoom)
         .environment(\.openSupport, OpenSupportAction { caseId in router.openSupport(caseId: caseId) })
         .environment(\.openRecord, OpenRecordAction { record, name in router.open(record, name: name) })
         .environment(\.isOffline, session.offline.isOffline)
@@ -266,6 +269,8 @@ struct MainTabView: View {
                 // 15% smaller than a standard bar icon and button (17 pt and 44 pt).
                 Image(systemName: "bell")
                     .font(.system(size: bellSize))
+                    // A ring when a new update arrives.
+                    .symbolEffect(.bounce, options: .nonRepeating, value: router.home.unreadCount)
                     .frame(minWidth: bellButtonSize, minHeight: bellButtonSize)
                     .overlay(alignment: .topTrailing) {
                         if router.home.unreadCount > 0 {

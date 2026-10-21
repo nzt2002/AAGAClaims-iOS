@@ -24,6 +24,20 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "1.1.0", date: "Oct 21, 2026", items: [
+            Item(icon: "sparkles", title: "A fresh new look",
+                 detail: "Updated for the latest iPhone design, with smoother transitions when you open a claim or lead."),
+            Item(icon: "exclamationmark.circle", title: "Needs attention",
+                 detail: "Home now leads with what needs you today: overdue tasks, unread updates, recent payments and unsigned agreements."),
+            Item(icon: "magnifyingglass", title: "Search has its own tab",
+                 detail: "Tap the magnifying glass at the bottom right to search claims, leads and cases from anywhere."),
+            Item(icon: "line.3.horizontal.decrease.circle", title: "Filter and sort",
+                 detail: "Narrow your claims and leads with one tap on the filters above the list, and sort by date or name. The app remembers your choice."),
+            Item(icon: "chart.bar.fill", title: "Your claim at a glance",
+                 detail: "The top of each claim shows its stage and progress, and a chart shows how much has been collected."),
+            Item(icon: "person.crop.circle", title: "Account has moved",
+                 detail: "Tap the circle with your initials at the top right to open your account and settings."),
+        ]),
         Release(version: "1.0.0", date: "Oct 20, 2026", items: [
             Item(icon: "star.fill", title: "AAGA Claims 1.0",
                  detail: "Thank you for testing. This is the version going to the App Store, with a new app icon."),

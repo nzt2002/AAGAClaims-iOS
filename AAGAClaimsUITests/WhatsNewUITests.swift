@@ -15,8 +15,8 @@ final class WhatsNewUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["What's New"].exists || app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS \"What's New\"")).firstMatch.exists)
         let items = app.descendants(matching: .any).matching(identifier: "whatsNewItem")
         // The current version's notes; staff see the staff items too.
-        XCTAssertEqual(items.count, 4)
-        XCTAssertTrue(items.element(boundBy: 0).label.contains("AAGA Claims 1.0"), items.element(boundBy: 0).label)
+        XCTAssertEqual(items.count, 6)
+        XCTAssertTrue(items.element(boundBy: 0).label.contains("A fresh new look"), items.element(boundBy: 0).label)
         continueButton.tap()
         XCTAssertFalse(continueButton.waitForExistence(timeout: 2))
 

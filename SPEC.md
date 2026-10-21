@@ -61,11 +61,13 @@ All users sign in with their **existing portal credentials**. They are Salesforc
 2. **Claims**: claim list → claim detail
 3. **Leads**: lead list → lead detail; "Submit a Lead" button
 4. **Support**: support cases → case thread; "Request Assistance" button
-5. **Account**: profile, notification settings, Face ID toggle, sign out
+5. **Search** (`role: .search`; on iOS 26 the separate glass button at the end of the tab bar): global search. Records opened from it open inside the Search tab.
 
-**Global:** a bell icon in the navigation bar of Home, Claims and Leads opens **Notifications** and shows an unread badge count. Global **Search** opens from the search bar in the Home hero.
+**Account** (profile, notification settings, Face ID toggle, sign out) is not a tab, because iPhone shows at most five tabs. It opens as a sheet from the **profile button** (the user's initials in a brand circle) beside the bell.
 
-**Opening records:** a claim or lead opened from anywhere else (Home, Search, Notifications, an update, a task, a converted lead, a link or a push) opens **on top of the current screen in the current tab**, so Back returns to where the user was. Each record page is its own screen, so opening a different claim never shows the one that was already open. From Account, which has no stack, the record opens in its own tab.
+**Global:** a bell icon and the profile button in the navigation bar of Home, Claims, Leads and Support. The bell opens **Notifications**, shows an unread badge count, and bounces when the count changes. Global **Search** opens from the Search tab or the search bar in the Home hero. On iOS 26 the tab bar shrinks while scrolling down. On iPhone, a claim or lead opened from a list row zooms out of the row (not with Reduce Motion).
+
+**Opening records:** a claim or lead opened from anywhere else (Home, Search, Notifications, an update, a task, a converted lead, a link or a push) opens **on top of the current screen in the current tab**, so Back returns to where the user was. Each record page is its own screen, so opening a different claim never shows the one that was already open. Opening a record from the Account sheet closes the sheet first.
 
 **My Claims / My Leads:** besides the portal's contact, account and associated-party matches, they list every record that names the signed-in user in a user field: claims by owner, account manager, desk adjuster or creator (and, for portal users, the claim's contact); leads by owner, account manager, adjuster, desk adjuster or creator (and, for portal users, the subcontractor). "Last modified by" isn't included. The web portal uses the same lists.
 
@@ -325,7 +327,7 @@ The Prospect Conversion Guided Process (`Prospect_Conversion_Guided_Process` flo
 
 ### 6.2 Home
 1. **Hero:** a Salesforce-blue gradient card with today's date, "Welcome back, {firstName}!", the subtitle "We're here to help with your claim", and a white search bar, "Search claims, leads and cases", that opens global Search.
-2. **Top bar:** the notifications bell only, 15% smaller than a standard bar button (14.5 pt icon, 38 pt button, both scaling with Dynamic Type).
+2. **Top bar:** the notifications bell and the profile button, the bell 15% smaller than a standard bar button (14.5 pt icon, 38 pt button, both scaling with Dynamic Type).
    **Search sheet** (over `GET /search`, starting at 2 characters with a 300 ms debounce):
    - The field is focused and the keyboard is up as soon as the sheet opens.
    - The X at the top left always closes the sheet, even while typing. (The field is the app's own, not the system search bar, whose X only cancels the search.)
@@ -343,10 +345,17 @@ The Prospect Conversion Guided Process (`Prospect_Conversion_Guided_Process` flo
    3. Claim details: claim name (prefilled from the account), peril, loss date, description, loss address, insurance company (type-ahead), policy and claim numbers, homeowner email and phone (prefilled), adjuster (defaults to the user), account manager, source (picklist default), adjuster fees (0–100%).
    4. Claim contact (optional): None, Existing (search by name or email) or New, with a role (Property Contact, Sub-Contractor, Adjuster, Other). A new contact is checked for matches first; the user picks a match or chooses "None of these are a match". A new Sub-Contractor needs a company (Commercial) account: if one has the contact's company name, it must be chosen; otherwise pick an existing one or create it.
    5. Review, then **Create Claim**. If the server finds a duplicate, the app goes to the matching step to pick it (for a contact: use the existing one or skip the contact). On success the claim is saved, the sheet closes, and the app switches to the Claims tab and opens the new claim's detail page (after the sheet has finished closing, so the navigation isn't lost).
-4. **Upcoming:** the next 5 items from `GET /agenda`, tasks with their due date (overdue ones in the warning colour) and events with day and time (or "All day", shown in UTC as Salesforce stores them), plus the related claim or lead and an event's location. Tapping an item with a related record opens it. Hidden when empty, unless the user can create tasks ("Nothing scheduled").
-5. **Recent claims:** the 3 most recently updated claims, with status; tap to open, "See all" opens Claims.
-6. **Recent activity:** published updates from `GET /activity` and, for staff, Chatter posts from `GET /feed`, newest first (20 at most), **3 at a time** in a scrolling box with "Showing 3 of n updates · scroll for more". Staff (Salesforce user type Standard) get filter chips *Chatter* (the default), *Portal updates* and *All*. Portal users see portal updates only, with no filter, and the app doesn't call `GET /feed` for them. Each entry's header is its record: the type in regular weight and the name in bold ("Claim · **Smith - Roof**"), with a line under it saying what it is ("Portal update · {title}" or "Chatter · {author}"). Chatter posts not on a claim or lead show the group or user name as the header. Unread updates show a dot; tapping one opens the **Update sheet** (title, date, rendered HTML, and an "Open {Claim|Lead}" button) and marks it read. Tapping a Chatter post on a claim or lead opens that record.
-7. Pull to refresh.
+4. **Needs attention** (above Upcoming), most urgent first, worked out on the device from what Home already loads:
+   - overdue tasks, then tasks due today. A single task shows **Mark complete** (`POST /activities/{id}/complete`). Tapping the row opens the task's record.
+   - unread updates (opens Notifications);
+   - claims updated in the last 7 days with payments collected (opens the claim, or Claims filtered to *Payment received*);
+   - agreements sent more than 3 days ago and not yet signed (opens the lead, or Leads filtered to Agreement *Sent*).
+
+   With nothing to show: "You're all caught up". The section appears once the agenda has loaded.
+5. **Upcoming:** the next 5 items from `GET /agenda`, tasks with their due date (overdue ones in the warning colour) and events with day and time (or "All day", shown in UTC as Salesforce stores them), plus the related claim or lead and an event's location. Tapping an item with a related record opens it. Hidden when empty, unless the user can create tasks ("Nothing scheduled").
+6. **Recent claims:** the 3 most recently updated claims, with status; tap to open, "See all" opens Claims.
+7. **Recent activity:** published updates from `GET /activity` and, for staff, Chatter posts from `GET /feed`, newest first (20 at most), **3 at a time** in a scrolling box with "Showing 3 of n updates · scroll for more". Staff (Salesforce user type Standard) get filter chips *Chatter* (the default), *Portal updates* and *All*. Portal users see portal updates only, with no filter, and the app doesn't call `GET /feed` for them. Each entry's header is its record: the type in regular weight and the name in bold ("Claim · **Smith - Roof**"), with a line under it saying what it is ("Portal update · {title}" or "Chatter · {author}"). Chatter posts not on a claim or lead show the group or user name as the header. Unread updates show a dot; tapping one opens the **Update sheet** (title, date, rendered HTML, and an "Open {Claim|Lead}" button) and marks it read. Tapping a Chatter post on a claim or lead opens that record.
+8. Pull to refresh.
 
 *(Changed 2026-10-12: the KPI tiles were replaced by Upcoming and Recent claims; "Request Assistance" is called "Ask Question" throughout the app (it's on claim and lead detail and Support; not on Home); Search, New Event, staff Chatter posts and the hero were added (search later moved from the top bar into the hero, replacing Next up and the unread chip); the status overview was removed; emails no longer appear in Upcoming; tasks and events can go on leads; Recent activity has record headers and a staff filter; Submit a Lead is New Lead on Home, and staff get New Claim.)*
 
@@ -357,7 +366,9 @@ The Prospect Conversion Guided Process (`Prospect_Conversion_Guided_Process` flo
 
 ### 6.4 Claims list
 - A search bar that matches claim name, claim number, address, status or peril, done on the device.
-- Filters: **Status** (lifecycle stages), **Payment Collected** (*Any*, *Payment received*, *No payment yet*), **Peril** (built from the values in the data). Include **Clear filters**.
+- Filters are a row of **chips** under the search bar: **Open**, **Mine** (staff: claims where they are the adjuster or account manager), **Stage** ▾ (lifecycle stages), **Peril** ▾ (built from the values in the data) and **Payments** ▾ (*Any*, *Payment received*, *No payment yet*). An active chip is filled and shows its value. **Clear** appears when any filter is on.
+- A **sort** menu at the top left: *Recently updated* (default), *Loss date* (most recent first) or *Name A–Z*.
+- Filters and sort are remembered on the device.
 - **Claim card:**
   - claim name and claim number
   - status pill
@@ -367,10 +378,11 @@ The Prospect Conversion Guided Process (`Prospect_Conversion_Guided_Process` flo
   - payments collected
   - account manager
   - "Updated {date}"
-- Sort by most recently updated.
 
 ### 6.5 Claim detail
-**Header:** claim name, claim number, policy number, status pill.
+**Header (hero):** on the brand gradient: the status as a small capsule, claim name, loss address, then claim number, policy number and loss date, one per line. The progress ring with "Stage n of 7" sits on the right.
+
+**Payments card** (under the action strip): "{n}% collected", a bar of payments collected against Total RCV (Swift Charts), and the amounts Collected, Total RCV (with the ⓘ tip) and Deductible. With two or more payments it adds a small chart of the running total over time. The Payments section keeps its own progress bar.
 
 **Top bar:** *Ask Question* (everyone) and *Edit Claim* (staff) as icons at the top right.
 
@@ -414,13 +426,13 @@ The card is **collapsible** and starts collapsed: the progress ring and the curr
 
 ### 6.6 Leads list
 Same layout as the Claims list, with these differences:
-- Filters: **Lead Status**, **Agreement** (*Any*, *Sent*, *Signed*, *Not sent*) and **Peril**.
+- Filter chips: **Open**, **Mine** (staff), **Status** ▾, **Peril** ▾ and **Agreement** ▾ (*Any*, *Sent*, *Signed*, *Not sent*), with the same sort menu.
 - The card shows **agreement milestones**: "Sent {date}" and "Signed {date}". When no agreement has been sent, show "Visible once an agreement has been sent."
 - A **Submit a Lead** button in the toolbar.
 - Subtitle: "Leads connected to your email address."
 
 ### 6.7 Lead detail
-- **Header:** lead name, status pill, **loss address**, claim number, policy number (stacked at large text sizes).
+- **Header (hero),** matching the claim page: the status as a capsule, lead name, **loss address**, then claim number, policy number and loss date, one per line, on the brand gradient.
 - **Lifecycle:** a collapsible *Lead progress* card, as on claims: the status always shows; tap to see the stages `New → Working → Qualified → Converted`. If the status is `Unqualified`, show `New → Working → Unqualified` with the last step in a neutral or warning style.
 - **Agreement milestones:** Sent → Signed, with dates (`sentDate`, then `completedDate`). Steps not yet reached show as upcoming. When `hasAgreement` is `false`, show "Visible once an agreement has been sent."
 - **Sections:**

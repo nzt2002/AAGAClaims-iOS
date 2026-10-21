@@ -186,10 +186,12 @@ struct RecordDestinations: ViewModifier {
         content
             .navigationDestination(for: ClaimRoute.self) { route in
                 ClaimDetailView(claimId: route.id, summary: router.claims.claims.first { $0.recordId == route.id }, api: api)
+                    .recordZoomDestination(route.id)
                     .id(route.id)
             }
             .navigationDestination(for: LeadRoute.self) { route in
                 LeadDetailView(leadId: route.id, fallbackName: route.name, api: api)
+                    .recordZoomDestination(route.id)
                     .id(route.id)
             }
     }
