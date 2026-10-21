@@ -15,6 +15,8 @@ struct LeadsListView: View {
     let api: PortalAPI
     let userEmail: String
     let openSupport: () -> Void
+    /// Staff see "Mine" (leads where they're the adjuster or account manager).
+    var showsMine = false
 
     @Environment(\.isOffline) private var isOffline
 
@@ -33,9 +35,7 @@ struct LeadsListView: View {
                             openSupport: openSupport
                         )
                     } else {
-                        if viewModel.hasActiveFilters {
-                            activeFilters
-                        }
+                        chips
                         if viewModel.filteredLeads.isEmpty {
                             ContentUnavailableView.search(text: viewModel.searchText)
                         }
@@ -58,9 +58,12 @@ struct LeadsListView: View {
         .navigationTitle("My Leads")
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $viewModel.searchText, prompt: "Search leads")
+        .onChange(of: viewModel.filterState) { _, state in
+            if !UserDefaults.standard.bool(forKey: "UITestDemo") { ListFilterMemory.save(state, for: "leads") }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                filterMenu
+                SortMenu(order: $viewModel.sortOrder)
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -89,59 +92,42 @@ struct LeadsListView: View {
         }
     }
 
-    private var filterMenu: some View {
-        Menu {
-            Picker("Lead Status", selection: $viewModel.statusFilter) {
-                Text("All statuses").tag(String?.none)
-                ForEach(viewModel.statusOptions, id: \.self) { status in
-                    Text(status).tag(String?.some(status))
+    private var chips: some View {
+        ChipBar {
+            FilterChip(title: "Open", isActive: viewModel.openOnly) { viewModel.openOnly.toggle() }
+                .accessibilityIdentifier("filterChip-open")
+            if showsMine {
+                FilterChip(title: "Mine", systemImage: "person.fill", isActive: viewModel.mineOnly) {
+                    viewModel.mineOnly.toggle()
+                }
+                .accessibilityIdentifier("filterChip-mine")
+            }
+            MenuChip(title: "Status", value: viewModel.statusFilter) {
+                Picker("Status", selection: $viewModel.statusFilter) {
+                    Text("All statuses").tag(String?.none)
+                    ForEach(viewModel.statusOptions, id: \.self) { Text($0).tag(String?.some($0)) }
                 }
             }
-            .pickerStyle(.menu)
-
-            Picker("Agreement", selection: $viewModel.agreementFilter) {
-                ForEach(LeadsListViewModel.AgreementFilter.allCases, id: \.self) { option in
-                    Text(option.rawValue).tag(option)
+            .accessibilityIdentifier("filterChip-status")
+            MenuChip(title: "Peril", value: viewModel.perilFilter) {
+                Picker("Peril", selection: $viewModel.perilFilter) {
+                    Text("All perils").tag(String?.none)
+                    ForEach(viewModel.perilOptions, id: \.self) { Text($0).tag(String?.some($0)) }
                 }
             }
-            .pickerStyle(.menu)
-
-            Picker("Peril", selection: $viewModel.perilFilter) {
-                Text("All perils").tag(String?.none)
-                ForEach(viewModel.perilOptions, id: \.self) { peril in
-                    Text(peril).tag(String?.some(peril))
+            .accessibilityIdentifier("filterChip-peril")
+            MenuChip(title: "Agreement", value: viewModel.agreementFilter == .any ? nil : viewModel.agreementFilter.rawValue) {
+                Picker("Agreement", selection: $viewModel.agreementFilter) {
+                    ForEach(LeadsListViewModel.AgreementFilter.allCases, id: \.self) { Text($0.rawValue).tag($0) }
                 }
             }
-            .pickerStyle(.menu)
-
+            .accessibilityIdentifier("filterChip-agreement")
             if viewModel.hasActiveFilters {
-                Button("Clear filters", role: .destructive) { viewModel.clearFilters() }
+                ClearChip { viewModel.clearFilters() }
             }
-        } label: {
-            Image(systemName: viewModel.hasActiveFilters
-                  ? "line.3.horizontal.decrease.circle.fill"
-                  : "line.3.horizontal.decrease.circle")
-                .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
         }
-        .accessibilityLabel(viewModel.hasActiveFilters ? "Filters, active" : "Filters")
-    }
-
-    private var activeFilters: some View {
-        HStack {
-            Text("Showing: " + [
-                viewModel.openOnly ? "Open leads" : nil,
-                viewModel.statusFilter,
-                viewModel.agreementFilter == .any ? nil : "Agreement \(viewModel.agreementFilter.rawValue.lowercased())",
-                viewModel.perilFilter
-            ].compactMap { $0 }.joined(separator: " · "))
-                .font(.subheadline)
-                .foregroundStyle(Color.textSecondary)
-                .lineLimit(2)
-            Spacer()
-            Button("Clear filters") { viewModel.clearFilters() }
-                .font(.subheadline.weight(.semibold))
-                .frame(minHeight: Theme.minTapTarget)
-        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("leadFilters")
     }
 
     private func reload() {

@@ -234,26 +234,12 @@ struct HomeView: View {
 
     /// Staff only: Chatter (their default), portal updates, or both.
     private var activityFilter: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Theme.Spacing.s) {
-                ForEach(HomeViewModel.ActivityFilter.allCases, id: \.self) { filter in
-                    let selected = viewModel.activityFilter == filter
-                    Button {
-                        withAnimation(.snappy) { viewModel.activityFilter = filter }
-                    } label: {
-                        Text(filter.rawValue)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(selected ? Color.surface : Color.textPrimary)
-                            .padding(.horizontal, Theme.Spacing.m)
-                            .frame(minHeight: 36)
-                            .background(selected ? Color.brandPrimary : Color.surface, in: Capsule())
-                            .overlay(Capsule().stroke(Color.border, lineWidth: selected ? 0 : 1))
-                    }
-                    .buttonStyle(.plain)
-                    .frame(minHeight: Theme.minTapTarget)
-                    .accessibilityAddTraits(selected ? .isSelected : [])
-                    .accessibilityIdentifier("activityFilter-\(filter.rawValue)")
+        ChipBar {
+            ForEach(HomeViewModel.ActivityFilter.allCases, id: \.self) { filter in
+                FilterChip(title: filter.rawValue, isActive: viewModel.activityFilter == filter) {
+                    withAnimation(.snappy) { viewModel.activityFilter = filter }
                 }
+                .accessibilityIdentifier("activityFilter-\(filter.rawValue)")
             }
         }
     }

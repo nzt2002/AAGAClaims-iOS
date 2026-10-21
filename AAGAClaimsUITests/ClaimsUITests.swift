@@ -23,6 +23,27 @@ final class ClaimsUITests: XCTestCase {
         app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
     }
 
+    /// Filter chips and sort: a stage chip narrows the list and shows its value; Clear resets.
+    func testFilterChipsAndSort() {
+        let roof = app.buttons["claimCard-a23000000000001AAA"]
+        XCTAssertTrue(roof.waitForExistence(timeout: 10))
+        let cardCount = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'claimCard-'")).count
+
+        app.buttons["filterChip-payments"].tap()
+        app.buttons["No payment yet"].tap()
+        XCTAssertTrue(element(containing: "Payments, No payment yet").waitForExistence(timeout: 5))
+        let filtered = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'claimCard-'")).count
+        XCTAssertLessThan(filtered, cardCount)
+
+        app.buttons["filterChip-clear"].tap()
+        XCTAssertTrue(roof.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["filterChip-clear"].exists)
+
+        app.buttons["sortMenu"].tap()
+        app.buttons["Name A–Z"].tap()
+        XCTAssertTrue(element(containing: "Sort, Name A–Z").waitForExistence(timeout: 5))
+    }
+
     /// Spec §3 testing: login → claim detail.
     func testClaimDetailShowsLifecycleAndSections() {
         openRoofClaim()

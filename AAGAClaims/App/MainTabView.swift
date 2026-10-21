@@ -42,7 +42,9 @@ struct MainTabView: View {
     }
 
     private var claimsList: some View {
-        ClaimsListView(viewModel: router.claims, api: session.api, openSupport: { router.openSupport(caseId: nil) })
+        ClaimsListView(viewModel: router.claims, api: session.api, openSupport: { router.openSupport(caseId: nil) },
+                       showsMine: user.isInternal)
+            .onAppear { router.claims.currentUserName = user.fullName }
             .statusBanners(session)
             .toolbar { topBarButtons() }
     }
@@ -50,7 +52,8 @@ struct MainTabView: View {
     private var leadsList: some View {
         LeadsListView(viewModel: router.leads, path: $router.leadsPath, showingSubmit: $router.showingSubmitLead,
                       api: session.api, userEmail: user.email,
-                      openSupport: { router.openSupport(caseId: nil) })
+                      openSupport: { router.openSupport(caseId: nil) }, showsMine: user.isInternal)
+            .onAppear { router.leads.currentUserName = user.fullName }
             .statusBanners(session)
             .toolbar { topBarButtons() }
     }

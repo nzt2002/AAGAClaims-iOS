@@ -1,6 +1,54 @@
 import Foundation
 import Observation
 
+/// How the Claims and Leads lists are ordered.
+public enum ListSortOrder: String, CaseIterable, Codable, Sendable {
+    case updated = "Recently updated"
+    case lossDate = "Loss date"
+    case name = "Name A–Z"
+}
+
+/// A list's filter and sort choices, saved so the list opens the way the user left it.
+public struct ListFilterState: Codable, Equatable, Sendable {
+    public var status: String?
+    public var peril: String?
+    /// PaymentFilter (claims) or AgreementFilter (leads) raw value.
+    public var option: String?
+    public var openOnly = false
+    public var mineOnly = false
+    public var sort: ListSortOrder = .updated
+
+    public init() {}
+}
+
+enum ListSorting {
+    static func sorted<T>(_ items: [T], by order: ListSortOrder,
+                          updated: (T) -> Date?, lossDate: (T) -> CalendarDate?, name: (T) -> String?) -> [T] {
+        switch order {
+        case .updated:
+            return items.sorted { (updated($0) ?? .distantPast) > (updated($1) ?? .distantPast) }
+        case .lossDate:
+            // Most recent loss first; records without a loss date last.
+            return items.sorted {
+                switch (lossDate($0), lossDate($1)) {
+                case let (a?, b?): return a > b
+                case (.some, nil): return true
+                default: return false
+                }
+            }
+        case .name:
+            return items.sorted {
+                (name($0) ?? "").localizedStandardCompare(name($1) ?? "") == .orderedAscending
+            }
+        }
+    }
+
+    static func matches(_ name: String?, user: String?) -> Bool {
+        guard let name = PortalFormat.nonEmpty(name), let user = PortalFormat.nonEmpty(user) else { return false }
+        return name.caseInsensitiveCompare(user) == .orderedSame
+    }
+}
+
 @MainActor
 @Observable
 public final class ClaimsListViewModel {
@@ -21,6 +69,11 @@ public final class ClaimsListViewModel {
     public var perilFilter: String?
     /// Hides Closed claims. Set from the Home "Open Claims" tile.
     public var openOnly = false
+    /// Only claims where the signed-in user is the adjuster or account manager.
+    public var mineOnly = false
+    public var sortOrder: ListSortOrder = .updated
+    /// The signed-in user's name, for "Mine".
+    public var currentUserName: String?
 
     private let api: PortalAPI
 
@@ -28,15 +81,42 @@ public final class ClaimsListViewModel {
         self.api = api
     }
 
+    /// The filter and sort choices, for saving and restoring.
+    public var filterState: ListFilterState {
+        get {
+            var state = ListFilterState()
+            state.status = statusFilter
+            state.peril = perilFilter
+            state.option = paymentFilter == .any ? nil : paymentFilter.rawValue
+            state.openOnly = openOnly
+            state.mineOnly = mineOnly
+            state.sort = sortOrder
+            return state
+        }
+        set {
+            statusFilter = newValue.status
+            perilFilter = newValue.peril
+            paymentFilter = newValue.option.flatMap(PaymentFilter.init(rawValue:)) ?? .any
+            openOnly = newValue.openOnly
+            mineOnly = newValue.mineOnly
+            sortOrder = newValue.sort
+        }
+    }
+
     /// All claims, most recently updated first.
     public var claims: [ClaimSummary] {
         (state.value ?? []).sorted { ($0.lastModifiedDate ?? .distantPast) > ($1.lastModifiedDate ?? .distantPast) }
     }
 
-    /// Claims after search and filters, most recently updated first (spec §6.4).
+    /// Claims after search and filters, in the chosen order (spec §6.4).
     public var filteredClaims: [ClaimSummary] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        return claims.filter { claim in
+        let user = currentUserName
+        let matching = claims.filter { claim in
+            if mineOnly, !ListSorting.matches(claim.adjusterName, user: user),
+               !ListSorting.matches(claim.accountManagerName, user: user) {
+                return false
+            }
             if openOnly, claim.claimStatus?.caseInsensitiveCompare("Closed") == .orderedSame {
                 return false
             }
@@ -57,6 +137,8 @@ public final class ClaimsListViewModel {
                 .compactMap { $0 }
                 .contains { $0.localizedCaseInsensitiveContains(query) }
         }
+        return ListSorting.sorted(matching, by: sortOrder, updated: \.lastModifiedDate,
+                                  lossDate: \.lossDate, name: \.recordName)
     }
 
     public var statusOptions: [String] { ClaimLifecycle.stages }
@@ -68,11 +150,13 @@ public final class ClaimsListViewModel {
     }
 
     public var hasActiveFilters: Bool {
-        openOnly || statusFilter != nil || perilFilter != nil || paymentFilter != .any
+        openOnly || mineOnly || statusFilter != nil || perilFilter != nil || paymentFilter != .any
     }
 
+    /// Clears the filters (not the sort order).
     public func clearFilters() {
         openOnly = false
+        mineOnly = false
         statusFilter = nil
         perilFilter = nil
         paymentFilter = .any
@@ -102,6 +186,11 @@ public final class LeadsListViewModel {
     public var perilFilter: String?
     /// Hides Converted and Unqualified leads. Set from the Home "Open Leads" tile.
     public var openOnly = false
+    /// Only leads where the signed-in user is the adjuster or account manager.
+    public var mineOnly = false
+    public var sortOrder: ListSortOrder = .updated
+    /// The signed-in user's name, for "Mine".
+    public var currentUserName: String?
 
     private let api: PortalAPI
 
@@ -109,15 +198,42 @@ public final class LeadsListViewModel {
         self.api = api
     }
 
+    /// The filter and sort choices, for saving and restoring.
+    public var filterState: ListFilterState {
+        get {
+            var state = ListFilterState()
+            state.status = statusFilter
+            state.peril = perilFilter
+            state.option = agreementFilter == .any ? nil : agreementFilter.rawValue
+            state.openOnly = openOnly
+            state.mineOnly = mineOnly
+            state.sort = sortOrder
+            return state
+        }
+        set {
+            statusFilter = newValue.status
+            perilFilter = newValue.peril
+            agreementFilter = newValue.option.flatMap(AgreementFilter.init(rawValue:)) ?? .any
+            openOnly = newValue.openOnly
+            mineOnly = newValue.mineOnly
+            sortOrder = newValue.sort
+        }
+    }
+
     /// All leads, most recently updated first.
     public var leads: [LeadSummary] {
         (state.value ?? []).sorted { ($0.lastModifiedDate ?? .distantPast) > ($1.lastModifiedDate ?? .distantPast) }
     }
 
-    /// Leads after search and filters (spec §6.6).
+    /// Leads after search and filters, in the chosen order (spec §6.6).
     public var filteredLeads: [LeadSummary] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        return leads.filter { lead in
+        let user = currentUserName
+        let matching = leads.filter { lead in
+            if mineOnly, !ListSorting.matches(lead.adjusterName, user: user),
+               !ListSorting.matches(lead.accountManagerName, user: user) {
+                return false
+            }
             if openOnly, LeadsListViewModel.isFinished(lead.prospectStatus) {
                 return false
             }
@@ -139,6 +255,8 @@ public final class LeadsListViewModel {
                 .compactMap { $0 }
                 .contains { $0.localizedCaseInsensitiveContains(query) }
         }
+        return ListSorting.sorted(matching, by: sortOrder, updated: \.lastModifiedDate,
+                                  lossDate: \.lossDate, name: \.recordName)
     }
 
     public var statusOptions: [String] { LeadLifecycle.stages + ["Unqualified"] }
@@ -149,11 +267,13 @@ public final class LeadsListViewModel {
     }
 
     public var hasActiveFilters: Bool {
-        openOnly || statusFilter != nil || perilFilter != nil || agreementFilter != .any
+        openOnly || mineOnly || statusFilter != nil || perilFilter != nil || agreementFilter != .any
     }
 
+    /// Clears the filters (not the sort order).
     public func clearFilters() {
         openOnly = false
+        mineOnly = false
         statusFilter = nil
         perilFilter = nil
         agreementFilter = .any

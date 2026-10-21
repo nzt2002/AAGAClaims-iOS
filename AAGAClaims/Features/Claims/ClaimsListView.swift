@@ -6,6 +6,8 @@ struct ClaimsListView: View {
     @Bindable var viewModel: ClaimsListViewModel
     let api: PortalAPI
     let openSupport: () -> Void
+    /// Staff see "Mine" (claims where they're the adjuster or account manager).
+    var showsMine = false
 
     var body: some View {
         LoadingContainer(state: viewModel.state, subject: "claims", retry: reload) { _ in
@@ -18,9 +20,7 @@ struct ClaimsListView: View {
                     )
                 } else {
                     VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-                        if viewModel.hasActiveFilters {
-                            activeFilters
-                        }
+                        chips
                         if viewModel.filteredClaims.isEmpty {
                             ContentUnavailableView.search(text: viewModel.searchText)
                         }
@@ -45,12 +45,15 @@ struct ClaimsListView: View {
         .searchable(text: $viewModel.searchText, prompt: "Search claims")
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                filterMenu
+                SortMenu(order: $viewModel.sortOrder)
             }
         }
         .navigationDestination(for: ClaimSummary.self) { claim in
             ClaimDetailView(claimId: claim.recordId, summary: claim, api: api)
                 .id(claim.recordId)
+        }
+        .onChange(of: viewModel.filterState) { _, state in
+            if !UserDefaults.standard.bool(forKey: "UITestDemo") { ListFilterMemory.save(state, for: "claims") }
         }
         // ClaimRoute (opened from Home, search, an update…) is in RecordDestinations.
         .task {
@@ -60,64 +63,42 @@ struct ClaimsListView: View {
         }
     }
 
-    private var filterMenu: some View {
-        Menu {
-            Picker("Status", selection: $viewModel.statusFilter) {
-                Text("All statuses").tag(String?.none)
-                ForEach(viewModel.statusOptions, id: \.self) { status in
-                    Text(status).tag(String?.some(status))
+    private var chips: some View {
+        ChipBar {
+            FilterChip(title: "Open", isActive: viewModel.openOnly) { viewModel.openOnly.toggle() }
+                .accessibilityIdentifier("filterChip-open")
+            if showsMine {
+                FilterChip(title: "Mine", systemImage: "person.fill", isActive: viewModel.mineOnly) {
+                    viewModel.mineOnly.toggle()
+                }
+                .accessibilityIdentifier("filterChip-mine")
+            }
+            MenuChip(title: "Stage", value: viewModel.statusFilter) {
+                Picker("Stage", selection: $viewModel.statusFilter) {
+                    Text("All stages").tag(String?.none)
+                    ForEach(viewModel.statusOptions, id: \.self) { Text($0).tag(String?.some($0)) }
                 }
             }
-            .pickerStyle(.menu)
-
-            Picker("Payment Collected", selection: $viewModel.paymentFilter) {
-                ForEach(ClaimsListViewModel.PaymentFilter.allCases, id: \.self) { option in
-                    Text(option.rawValue).tag(option)
+            .accessibilityIdentifier("filterChip-stage")
+            MenuChip(title: "Peril", value: viewModel.perilFilter) {
+                Picker("Peril", selection: $viewModel.perilFilter) {
+                    Text("All perils").tag(String?.none)
+                    ForEach(viewModel.perilOptions, id: \.self) { Text($0).tag(String?.some($0)) }
                 }
             }
-            .pickerStyle(.menu)
-
-            Picker("Peril", selection: $viewModel.perilFilter) {
-                Text("All perils").tag(String?.none)
-                ForEach(viewModel.perilOptions, id: \.self) { peril in
-                    Text(peril).tag(String?.some(peril))
+            .accessibilityIdentifier("filterChip-peril")
+            MenuChip(title: "Payments", value: viewModel.paymentFilter == .any ? nil : viewModel.paymentFilter.rawValue) {
+                Picker("Payments", selection: $viewModel.paymentFilter) {
+                    ForEach(ClaimsListViewModel.PaymentFilter.allCases, id: \.self) { Text($0.rawValue).tag($0) }
                 }
             }
-            .pickerStyle(.menu)
-
+            .accessibilityIdentifier("filterChip-payments")
             if viewModel.hasActiveFilters {
-                Button("Clear filters", role: .destructive) { viewModel.clearFilters() }
+                ClearChip { viewModel.clearFilters() }
             }
-        } label: {
-            Image(systemName: viewModel.hasActiveFilters
-                  ? "line.3.horizontal.decrease.circle.fill"
-                  : "line.3.horizontal.decrease.circle")
-                .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
         }
-        .accessibilityLabel(viewModel.hasActiveFilters ? "Filters, active" : "Filters")
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("claimFilters")
-    }
-
-    private var activeFilters: some View {
-        HStack {
-            Text(activeFilterSummary)
-                .font(.subheadline)
-                .foregroundStyle(Color.textSecondary)
-                .lineLimit(2)
-            Spacer()
-            Button("Clear filters") { viewModel.clearFilters() }
-                .font(.subheadline.weight(.semibold))
-                .frame(minHeight: Theme.minTapTarget)
-        }
-    }
-
-    private var activeFilterSummary: String {
-        var parts: [String] = []
-        if viewModel.openOnly { parts.append("Open claims") }
-        if let status = viewModel.statusFilter { parts.append(status) }
-        if viewModel.paymentFilter != .any { parts.append(viewModel.paymentFilter.rawValue) }
-        if let peril = viewModel.perilFilter { parts.append(peril) }
-        return "Showing: " + parts.joined(separator: " · ")
     }
 
     private func reload() {

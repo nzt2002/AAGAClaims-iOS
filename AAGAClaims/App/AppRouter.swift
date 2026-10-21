@@ -43,6 +43,11 @@ final class AppRouter {
         claims = ClaimsListViewModel(api: api)
         leads = LeadsListViewModel(api: api)
         cases = CasesListViewModel(api: api)
+        // The lists open the way the user left them (not in UI tests, which expect a clean start).
+        if !UserDefaults.standard.bool(forKey: "UITestDemo") {
+            if let saved = ListFilterMemory.load("claims") { claims.filterState = saved }
+            if let saved = ListFilterMemory.load("leads") { leads.filterState = saved }
+        }
     }
 
     /// Reloads anything more than 5 minutes old when the app returns to the foreground (spec §7).
