@@ -396,6 +396,51 @@ public struct HTTPPortalAPI: PortalAPI {
         let _: Received = try await post("/diagnostics", body: report)
     }
 
+    // MARK: - Documents (pilot)
+
+    public static let documentsBasePath = "/services/apexrest/portaldocs/v1"
+
+    public func documentTemplates(for record: RecordRef) async throws -> [DocumentTemplate] {
+        let response = try await send(TransportRequest(
+            method: .get, path: "\(Self.documentsBasePath)/templates",
+            queryItems: [URLQueryItem(name: "object", value: record.objectApiName)], isAbsolutePath: true))
+        return try decode(response.body)
+    }
+
+    public func generateDocument(templateId: String, for record: RecordRef, save: Bool) async throws -> GeneratedDocument {
+        struct Body: Encodable { let templateId: String; let save: Bool }
+        let data = try PortalJSON.makeEncoder().encode(Body(templateId: templateId, save: save))
+        let response = try await send(TransportRequest(
+            method: .post, path: "\(Self.documentsBasePath)/records/\(escaped(record.id))/documents",
+            body: data, contentType: "application/json", isAbsolutePath: true))
+        return try decode(response.body)
+    }
+
+    public func signingSetup(for record: RecordRef, templateId: String?) async throws -> SigningSetup {
+        let query = templateId.map { [URLQueryItem(name: "templateId", value: $0)] } ?? []
+        let response = try await send(TransportRequest(
+            method: .get, path: "\(Self.documentsBasePath)/records/\(escaped(record.id))/signing-setup",
+            queryItems: query, isAbsolutePath: true))
+        return try decode(response.body)
+    }
+
+    public func sendForSignature(templateId: String, signers: [SignerInput], message: String?, for record: RecordRef) async throws -> String {
+        struct Body: Encodable { let templateId: String; let signers: [SignerInput]; let message: String? }
+        struct Sent: Decodable { let requestId: String }
+        let data = try PortalJSON.makeEncoder().encode(Body(templateId: templateId, signers: signers, message: message))
+        let response = try await send(TransportRequest(
+            method: .post, path: "\(Self.documentsBasePath)/records/\(escaped(record.id))/signature-requests",
+            body: data, contentType: "application/json", isAbsolutePath: true))
+        let sent: Sent = try decode(response.body)
+        return sent.requestId
+    }
+
+    public func signatureRequests(for record: RecordRef) async throws -> [SignatureRequestSummary] {
+        let response = try await send(TransportRequest(
+            method: .get, path: "\(Self.documentsBasePath)/records/\(escaped(record.id))/signature-requests", isAbsolutePath: true))
+        return try decode(response.body)
+    }
+
     // MARK: - Plumbing
 
     private struct RecordIdResponse: Decodable { let recordId: String }

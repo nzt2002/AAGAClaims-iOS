@@ -552,6 +552,68 @@ public actor MockPortalAPI: PortalAPI {
 
     // MARK: - Helpers
 
+    // MARK: - Documents (pilot)
+
+    public func documentTemplates(for record: RecordRef) async throws -> [DocumentTemplate] {
+        try await simulate()
+        switch record {
+        case .lead:
+            return [DocumentTemplate(id: "a0zDEMO0000000001", name: "PA - GA LOR Contract", objectName: "Prospects__c",
+                                     category: "Agreement_LOR", signerCount: 2)]
+        case .claim:
+            return [DocumentTemplate(id: "a0zDEMO0000000002", name: "Sworn Proof of Loss", objectName: "Claims2__c",
+                                     category: "Proof_of_Loss", signerCount: 1)]
+        }
+    }
+
+    public func generateDocument(templateId: String, for record: RecordRef, save: Bool) async throws -> GeneratedDocument {
+        try await simulate()
+        guard let url = Bundle.module.url(forResource: "sample_document", withExtension: "pdf", subdirectory: "Fixtures"),
+              let pdf = try? Data(contentsOf: url) else {
+            throw PortalAPIError.notFound
+        }
+        let name = try await documentTemplates(for: record).first { $0.id == templateId }?.name ?? "Document"
+        return GeneratedDocument(title: "\(name) - Demo", pageCount: 3, pdfBase64: pdf.base64EncodedString(),
+                                 contentDocumentId: save ? "069DEMO000000001" : nil)
+    }
+
+    private var sentRequests: [String: [SignatureRequestSummary]] = [:]
+
+    public func signingSetup(for record: RecordRef, templateId: String?) async throws -> SigningSetup {
+        try await simulate()
+        let templates = try await documentTemplates(for: record).filter { $0.signerCount > 0 }
+        let chosen = templateId ?? templates.first?.id
+        let signers: [SignerInput]
+        switch record {
+        case .lead:
+            signers = [SignerInput(index: 1, label: "Public Adjuster", name: "Alex Smith", email: "alex.smith@example.com"),
+                       SignerInput(index: 2, label: "Insured", name: "Jordan Lee", email: "jordan.lee@example.com")]
+        case .claim:
+            signers = [SignerInput(index: 1, label: "Insured", name: "Jordan Lee", email: "jordan.lee@example.com")]
+        }
+        return SigningSetup(templates: templates, signers: chosen == nil ? [] : signers, templateId: chosen)
+    }
+
+    public func sendForSignature(templateId: String, signers: [SignerInput], message: String?, for record: RecordRef) async throws -> String {
+        try await simulate()
+        guard !signers.isEmpty, signers.allSatisfy(\.isComplete) else {
+            throw PortalAPIError.rejected("Enter a name and valid email for every signer.")
+        }
+        let name = try await documentTemplates(for: record).first { $0.id == templateId }?.name ?? "Document"
+        let id = "a3xDEMO\(sentRequests[record.id, default: []].count + 1)"
+        let summary = SignatureRequestSummary(
+            id: id, name: "SR-DEMO", subject: "\(name) - Demo", status: "Sent", source: "In-house", sentAt: Date(),
+            completedAt: nil, expiresAt: Date().addingTimeInterval(14 * 86_400), lastError: nil,
+            signers: signers.map { .init(index: $0.index, name: $0.name, email: $0.email, status: "Sent", signedAt: nil) })
+        sentRequests[record.id, default: []].insert(summary, at: 0)
+        return id
+    }
+
+    public func signatureRequests(for record: RecordRef) async throws -> [SignatureRequestSummary] {
+        try await simulate()
+        return sentRequests[record.id] ?? []
+    }
+
     private func simulate() async throws {
         if latency > .zero {
             try await Task.sleep(for: latency)

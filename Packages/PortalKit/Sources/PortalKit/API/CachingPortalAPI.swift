@@ -390,6 +390,32 @@ public actor CachingPortalAPI: PortalAPI {
     // MARK: - Plumbing
 
     /// Runs a call against the base API, reporting an expired session.
+    // Documents are generated live and never cached.
+    public func documentTemplates(for record: RecordRef) async throws -> [DocumentTemplate] {
+        try requireOnline()
+        return try await guarded { try await $0.documentTemplates(for: record) }
+    }
+
+    public func generateDocument(templateId: String, for record: RecordRef, save: Bool) async throws -> GeneratedDocument {
+        try requireOnline()
+        return try await guarded { try await $0.generateDocument(templateId: templateId, for: record, save: save) }
+    }
+
+    public func signingSetup(for record: RecordRef, templateId: String?) async throws -> SigningSetup {
+        try requireOnline()
+        return try await guarded { try await $0.signingSetup(for: record, templateId: templateId) }
+    }
+
+    public func sendForSignature(templateId: String, signers: [SignerInput], message: String?, for record: RecordRef) async throws -> String {
+        try requireOnline()
+        return try await guarded { try await $0.sendForSignature(templateId: templateId, signers: signers, message: message, for: record) }
+    }
+
+    public func signatureRequests(for record: RecordRef) async throws -> [SignatureRequestSummary] {
+        try requireOnline()
+        return try await guarded { try await $0.signatureRequests(for: record) }
+    }
+
     private func guarded<T: Sendable>(_ call: @Sendable (PortalAPI) async throws -> T) async throws -> T {
         do {
             return try await call(base)

@@ -170,6 +170,7 @@ struct LeadDetailView: View {
         }
         // Ask Question is a top-bar icon; there's no Add Comment, as on claims.
         .recordActions(record: viewModel.record, recordName: recordName, api: api, placement: .toolbarIcon)
+        .documentGeneration(record: viewModel.record, recordName: recordName, api: api)
     }
 
     private func isConverted(_ detail: LeadDetail) -> Bool {

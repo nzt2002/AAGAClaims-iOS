@@ -116,6 +116,19 @@ public protocol PortalAPI: Sendable {
     /// `GET /feed`: Chatter posts from a staff member's news feed; empty for portal users.
     func feed() async throws -> [FeedPost]
 
+    // Documents (in-house e-sign pilot; a separate Apex REST class, `/portaldocs/v1`)
+    /// Active templates for the record's object. Throws `.server(status: 403)` for users without
+    /// the pilot permission, which hides the feature.
+    func documentTemplates(for record: RecordRef) async throws -> [DocumentTemplate]
+    /// Merge the record into the template and return the PDF; `save` also files it on the record.
+    func generateDocument(templateId: String, for record: RecordRef, save: Bool) async throws -> GeneratedDocument
+    /// Templates with signature places, and signers prefilled from the record for `templateId` (or the first).
+    func signingSetup(for record: RecordRef, templateId: String?) async throws -> SigningSetup
+    /// Email each signer a personal signing link. Returns the new request id.
+    func sendForSignature(templateId: String, signers: [SignerInput], message: String?, for record: RecordRef) async throws -> String
+    /// The record's signature requests, newest first.
+    func signatureRequests(for record: RecordRef) async throws -> [SignatureRequestSummary]
+
     // Files [new endpoints]
     /// `GET /files/{contentDocumentId}/content`: the file's bytes, for Quick Look.
     func fileContent(contentDocumentId: String) async throws -> Data

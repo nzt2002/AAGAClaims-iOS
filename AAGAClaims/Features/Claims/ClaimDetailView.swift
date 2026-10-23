@@ -147,6 +147,7 @@ struct ClaimDetailView: View {
         }
         // Ask Question is a top-bar icon on claims; there's no Add Comment here.
         .recordActions(record: viewModel.record, recordName: recordName, api: api, placement: .toolbarIcon)
+        .documentGeneration(record: viewModel.record, recordName: recordName, api: api)
     }
 
     /// Emails are included once the server has them.
