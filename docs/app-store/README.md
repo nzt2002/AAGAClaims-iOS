@@ -6,8 +6,8 @@ reviewer are in `review-notes.md`. Screenshots are in `~/Desktop/AAGA App Store 
 (iPhone 6.9-inch 1320×2868 and iPad 13-inch 2064×2752, from the demo data with the demo banner hidden).
 
 ## Checklist
-- [ ] Privacy policy: fill in the two placeholders (contact email, mailing address) in
-      `Tools/universal-links/privacy/index.html`, publish the site (see that folder's README),
+- [ ] Privacy policy: placeholders filled (2026-10-31: contact by mail to Simon Lyons; add an
+      email address if you want one). Publish the site (see that folder's README),
       and enter the URL (`https://app.accurateadjustmentsga.com/privacy/`, or the `…pages.dev/privacy/`
       address until the domain is connected).
 - [ ] App information: name, subtitle, category, age rating and copyright (`listing.md`).
