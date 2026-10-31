@@ -2,49 +2,39 @@ import PDFKit
 import PortalKit
 import SwiftUI
 
-/// Staff "Generate Document" (in-house e-sign pilot): pick an active Word template, merge the
-/// claim or lead into it on the server and view the PDF. The top-bar button only appears when
-/// the server returns templates, so users outside the pilot (403) see nothing.
+/// Staff e-sign (in-house pilot): pick an active Word template, merge the claim or lead into it on
+/// the server, preview it, and send it for signature. Opened from the E-Sign action. `isAvailable`
+/// becomes true only when the server returns templates, so users outside the pilot (403) keep the
+/// old Docs Made Easy E-Sign until switchover.
 struct DocumentGeneration: ViewModifier {
     let record: RecordRef
     let recordName: String
     let api: PortalAPI
+    @Binding var isPresented: Bool
+    @Binding var isAvailable: Bool
 
     @Environment(\.isInternalUser) private var isInternal
-    @Environment(\.isOffline) private var isOffline
     @State private var templates: [DocumentTemplate] = []
-    @State private var showingSheet = false
 
     func body(content: Content) -> some View {
         content
-            .toolbar {
-                if !templates.isEmpty {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            showingSheet = true
-                        } label: {
-                            Image(systemName: "doc.badge.plus")
-                        }
-                        .disabledWhenOffline(isOffline)
-                        .accessibilityLabel("Generate Document")
-                        .accessibilityIdentifier("generateDocument")
-                    }
-                }
-            }
-            .sheet(isPresented: $showingSheet) {
+            .sheet(isPresented: $isPresented) {
                 GenerateDocumentSheet(record: record, recordName: recordName, templates: templates, api: api)
             }
             .task(id: record) {
                 guard isInternal else { return }
-                // 403 (not in the pilot) or offline: no button.
+                // 403 (not in the pilot) or offline: not available.
                 templates = (try? await api.documentTemplates(for: record)) ?? []
+                isAvailable = !templates.isEmpty
             }
     }
 }
 
 extension View {
-    func documentGeneration(record: RecordRef, recordName: String, api: PortalAPI) -> some View {
-        modifier(DocumentGeneration(record: record, recordName: recordName, api: api))
+    func documentGeneration(record: RecordRef, recordName: String, api: PortalAPI,
+                            isPresented: Binding<Bool>, isAvailable: Binding<Bool>) -> some View {
+        modifier(DocumentGeneration(record: record, recordName: recordName, api: api,
+                                    isPresented: isPresented, isAvailable: isAvailable))
     }
 }
 
@@ -73,7 +63,7 @@ struct GenerateDocumentSheet: View {
                     documentView(document, url: pdfURL)
                 } else {
                     templateList
-                        .navigationTitle("Generate Document")
+                        .navigationTitle("E-Sign")
                         .navigationBarTitleDisplayMode(.inline)
                 }
             }

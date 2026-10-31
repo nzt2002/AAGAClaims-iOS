@@ -56,6 +56,8 @@ enum ClaimAction: String, Identifiable, CaseIterable {
 /// The claim's action strip (staff only): Apply Payments, Add a Post, New Task, New Event and More
 /// (Add Contact, Send an Email, Update Address, Change Owner, Proof of Loss), as round icon buttons with labels on one card. Edit Claim is in the top bar.
 struct ClaimQuickActions: View {
+    /// In-house e-sign (pilot users only); shown in More when set.
+    var onESign: (() -> Void)? = nil
     let open: (ClaimAction) -> Void
     @Environment(\.isOffline) private var isOffline
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -80,6 +82,10 @@ struct ClaimQuickActions: View {
                 ForEach(ClaimAction.more) { action in
                     Button { open(action) } label: { Label(action.title, systemImage: action.icon) }
                         .accessibilityIdentifier("claimAction-\(action.rawValue)")
+                }
+                if let onESign {
+                    Button(action: onESign) { Label("E-Sign", systemImage: "signature") }
+                        .accessibilityIdentifier("claimAction-eSign")
                 }
             } label: {
                 ActionCircle(title: "More", icon: "ellipsis")

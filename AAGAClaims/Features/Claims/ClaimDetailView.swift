@@ -10,6 +10,8 @@ struct ClaimDetailView: View {
     @State private var claimFeed: ChatterFeedViewModel
     @State private var activity: RecordActivityViewModel
     @State private var openAction: ClaimAction?
+    @State private var showingESign = false
+    @State private var eSignAvailable = false
     @State private var updatesFilter: UpdatesFilter = .claimFeed
     @Environment(\.isInternalUser) private var isInternal
     @Environment(\.isOffline) private var isOffline
@@ -106,7 +108,7 @@ struct ClaimDetailView: View {
             VStack(alignment: .leading, spacing: Theme.Spacing.l) {
                 ClaimHeader(detail: detail, position: detail.lifecycle)
                 if isInternal {
-                    ClaimQuickActions { openAction = $0 }
+                    ClaimQuickActions(onESign: eSignAvailable ? { showingESign = true } : nil) { openAction = $0 }
                 }
                 PaymentsCard(detail: detail, payments: viewModel.payments.value ?? [])
                 LifecycleCard(position: detail.lifecycle, status: detail.claimStatus)
@@ -147,7 +149,8 @@ struct ClaimDetailView: View {
         }
         // Ask Question is a top-bar icon on claims; there's no Add Comment here.
         .recordActions(record: viewModel.record, recordName: recordName, api: api, placement: .toolbarIcon)
-        .documentGeneration(record: viewModel.record, recordName: recordName, api: api)
+        .documentGeneration(record: viewModel.record, recordName: recordName, api: api,
+                            isPresented: $showingESign, isAvailable: $eSignAvailable)
     }
 
     /// Emails are included once the server has them.

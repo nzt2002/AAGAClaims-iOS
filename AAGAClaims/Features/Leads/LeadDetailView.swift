@@ -13,6 +13,8 @@ struct LeadDetailView: View {
     @State private var convertedClaim: (id: String, name: String)?
     @State private var agreementURL: URL?
     @State private var showingDemoNotice = false
+    @State private var showingESign = false
+    @State private var eSignAvailable = false
     @State private var updatesFilter: UpdatesFilter = .leadFeed
     @Environment(\.isInternalUser) private var isInternal
     @Environment(\.openRecord) private var openRecord
@@ -170,7 +172,8 @@ struct LeadDetailView: View {
         }
         // Ask Question is a top-bar icon; there's no Add Comment, as on claims.
         .recordActions(record: viewModel.record, recordName: recordName, api: api, placement: .toolbarIcon)
-        .documentGeneration(record: viewModel.record, recordName: recordName, api: api)
+        .documentGeneration(record: viewModel.record, recordName: recordName, api: api,
+                            isPresented: $showingESign, isAvailable: $eSignAvailable)
     }
 
     private func isConverted(_ detail: LeadDetail) -> Bool {
@@ -190,6 +193,11 @@ struct LeadDetailView: View {
         case .post, .edit, .task, .event:
             openAction = action
         case .agreement:
+            // Pilot users get the in-house e-sign; everyone else keeps Docs Made Easy until switchover.
+            if eSignAvailable {
+                showingESign = true
+                return
+            }
             guard let salesforcePage else {
                 showingDemoNotice = true
                 return
