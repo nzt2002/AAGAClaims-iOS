@@ -1072,7 +1072,7 @@ public actor MockPortalAPI: PortalAPI {
     private func seededEmails(for record: RecordRef) -> [AgendaItem] {
         let sent = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
         var email = AgendaItem(
-            id: "02s\(record.id.suffix(12))1", kind: .email, subject: "RE: Estimate for \(recordName(record))", dueDate: nil,
+            id: "02s\(record.id.suffix(12))1", kind: .email, subject: "RE: Estimate for \(recordName(record) ?? "your claim")", dueDate: nil,
             startDateTime: sent, endDateTime: nil, isAllDay: nil, location: nil, status: nil, isOverdue: false,
             assignedToName: nil, relatedRecordId: record.id, relatedRecordName: recordName(record), relatedRecordType: recordType(record)
         )

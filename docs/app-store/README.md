@@ -2,8 +2,9 @@
 
 Everything to enter in App Store Connect for the first release. Paste-ready text is in
 `listing.md`, the privacy questionnaire answers are in `app-privacy.md`, and the notes for Apple's
-reviewer are in `review-notes.md`. Screenshots are in `~/Desktop/AAGA App Store Screenshots`
-(iPhone 6.9-inch 1320×2868 and iPad 13-inch 2064×2752, from the demo data with the demo banner hidden).
+reviewer are in `review-notes.md`. Screenshots are in `~/Desktop/ProClaimer App Store Screenshots`
+(iPhone 6.9-inch 1320×2868 and iPad 13-inch 2064×2752, seven each, taken 2026-10-31 from version 1.1.0's
+demo data with the demo banner hidden: Home, Claims, a claim, its progress, its payments, a lead, Search).
 
 ## Checklist
 - [ ] Privacy policy: placeholders filled (2026-10-31: contact by mail to Simon Lyons; add an
