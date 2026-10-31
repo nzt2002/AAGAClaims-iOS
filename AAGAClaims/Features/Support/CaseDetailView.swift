@@ -8,6 +8,8 @@ struct CaseDetailView: View {
 
     @FocusState private var replyFocused: Bool
     @Environment(\.isOffline) private var isOffline
+    @Environment(\.isInternalUser) private var isInternal
+    @State private var confirmingComplete = false
 
     init(caseId: String, api: PortalAPI) {
         _viewModel = State(initialValue: CaseDetailViewModel(caseId: caseId, api: api))
@@ -77,6 +79,11 @@ struct CaseDetailView: View {
                             }
                         }
                     }
+
+                    // The end of the case: homeowners close it themselves once they're happy.
+                    if !isInternal {
+                        completeSection(detail)
+                    }
                 }
                 .padding(Theme.Spacing.l)
             }
@@ -88,6 +95,55 @@ struct CaseDetailView: View {
                         withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
                     }
                 }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func completeSection(_ detail: SupportCaseDetail) -> some View {
+        if SupportCase.isClosedStatus(detail.status) {
+            Label("This case is \(detail.status?.lowercased() ?? "closed").", systemImage: "checkmark.circle.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.success)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, Theme.Spacing.s)
+                .accessibilityIdentifier("caseCompletedLabel")
+        } else {
+            VStack(spacing: Theme.Spacing.xs) {
+                Button {
+                    confirmingComplete = true
+                } label: {
+                    Group {
+                        if viewModel.isCompleting {
+                            ProgressView()
+                        } else {
+                            Label("Mark as Completed", systemImage: "checkmark.circle")
+                        }
+                    }
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, minHeight: Theme.minTapTarget)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.success)
+                .disabled(!viewModel.canComplete)
+                .disabledWhenOffline(isOffline)
+                .accessibilityIdentifier("completeCase")
+                if viewModel.completeError != nil {
+                    Label("We couldn't update this case. Please try again.", systemImage: "exclamationmark.triangle")
+                        .font(.caption)
+                        .foregroundStyle(Color.warning)
+                }
+                Text("Your question has been answered? Mark the case completed to close it.")
+                    .font(.caption)
+                    .foregroundStyle(Color.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+            .confirmationDialog("Mark this case as completed?", isPresented: $confirmingComplete, titleVisibility: .visible) {
+                Button("Mark as Completed") {
+                    Task { await viewModel.complete() }
+                }
+            } message: {
+                Text("We'll close the case. You can always ask a new question.")
             }
         }
     }

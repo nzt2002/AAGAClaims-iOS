@@ -44,6 +44,7 @@ struct ClaimDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .task {
                 if viewModel.detail.value == nil {
+                    viewModel.includesCases = serverMeta.supports(.recordCases)
                     await viewModel.load()
                 }
                 if isInternal, claimFeed.feed.value == nil {
@@ -147,6 +148,7 @@ struct ClaimDetailView: View {
                 }
             }
         }
+        .environment(\.emailReference, detail.referenceId ?? EmailReference.reference(forRecordId: viewModel.claimId))
         // Ask Question is a top-bar icon on claims; there's no Add Comment here.
         .recordActions(record: viewModel.record, recordName: recordName, api: api, placement: .toolbarIcon)
         .documentGeneration(record: viewModel.record, recordName: recordName, api: api,
@@ -178,6 +180,9 @@ struct ClaimDetailView: View {
                 SectionLoader(state: viewModel.updates, subject: "updates", retry: { await viewModel.loadUpdates() }) { updates in
                     UpdatesList(updates: updates, emptyMessage: "No updates have been published for this claim yet.", visibleCount: 3)
                 }
+            }
+            if viewModel.includesCases {
+                RecordCasesSection(state: viewModel.cases, noun: "claim") { await viewModel.loadCases() }
             }
         case .details:
             ClaimDetailsSection(detail: detail, lossReason: summary?.lossReason)

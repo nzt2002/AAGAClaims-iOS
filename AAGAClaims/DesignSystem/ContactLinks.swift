@@ -10,9 +10,16 @@ enum ContactURL {
         return digits.isEmpty ? nil : URL(string: "tel:\(digits)")
     }
 
-    static func email(_ address: String?) -> URL? {
+    /// With a `reference` (the claim or lead's email ID), the draft ends with it, so replies
+    /// that quote it can be filed on the record.
+    static func email(_ address: String?, reference: String? = nil) -> URL? {
         guard let address = PortalFormat.nonEmpty(address), address.contains("@") else { return nil }
-        return URL(string: "mailto:\(address)")
+        guard let footer = EmailReference.footer(reference) else { return URL(string: "mailto:\(address)") }
+        var components = URLComponents()
+        components.scheme = "mailto"
+        components.path = address
+        components.queryItems = [URLQueryItem(name: "body", value: "\n\n" + footer)]
+        return components.url
     }
 
     static func map(_ address: String?) -> URL? {
@@ -78,6 +85,26 @@ struct LinkRow: View {
         }
         .frame(minHeight: Theme.minTapTarget)
         .contentShape(Rectangle())
+    }
+}
+
+/// The loss address under a record's hero: tap to open Apple Maps. Hidden when there's no address.
+struct LossAddressCard: View {
+    let address: String?
+
+    var body: some View {
+        if let address = PortalFormat.nonEmpty(address) {
+            LinkRow(label: "Loss address", value: address, url: ContactURL.map(address),
+                    systemImage: "mappin.and.ellipse", actionName: "Open in Maps")
+                .overlay(alignment: .trailing) {
+                    Image(systemName: "map")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.brandPrimary)
+                        .accessibilityHidden(true)
+                }
+                .cardStyle()
+                .accessibilityIdentifier("lossAddressCard")
+        }
     }
 }
 
@@ -212,6 +239,8 @@ struct OpenRecordAction {
 }
 
 extension EnvironmentValues {
+    /// The open claim or lead's email ID ("ref_ (…)"), added to the bottom of emails started from its page.
+    @Entry var emailReference: String?
     @Entry var openSupport = OpenSupportAction { _ in }
     @Entry var openRecord = OpenRecordAction { _, _ in }
 }

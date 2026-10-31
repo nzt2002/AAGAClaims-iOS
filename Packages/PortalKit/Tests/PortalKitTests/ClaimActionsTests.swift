@@ -271,7 +271,11 @@ struct ClaimActionsTests {
         #expect(email.cc == ["a@example.com", "b@example.com"])
         email.subject = "Inspection"
         email.body = "Hi <Alex>\nSee you Friday."
-        #expect(email.htmlBody == "Hi &lt;Alex&gt;<br>See you Friday.")
+        // The claim's email ID always ends the message.
+        #expect(email.htmlBody == "Hi &lt;Alex&gt;<br>See you Friday.<br><br>Email ID: [ref_ (\(claimId))]")
+        let withReference = EmailComposerViewModel(api: api, claimId: claimId, defaultRecipient: nil, referenceId: "ref_ (X)")
+        withReference.body = "Hello\n\nEmail ID: [ref_ (X)]"
+        #expect(withReference.htmlBody == "Hello<br><br>Email ID: [ref_ (X)]")
         #expect(await email.send())
         let recorded = await api.recorded(claimId: claimId)
         #expect(recorded.calls.first?.description == "Inspection Friday")

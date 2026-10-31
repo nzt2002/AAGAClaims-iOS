@@ -70,15 +70,7 @@ struct SupportView: View {
                 .accessibilityIdentifier("supportRequestAssistance")
             }
         }
-        .navigationDestination(for: CaseRoute.self) { route in
-            CaseDetailView(caseId: route.id, api: api)
-        }
-        .navigationDestination(for: RelatedRecordRoute.self) { route in
-            switch route.record {
-            case .claim(let id): ClaimDetailView(claimId: id, summary: nil, api: api).id(id)
-            case .lead(let id): LeadDetailView(leadId: id, fallbackName: route.name, api: api).id(id)
-            }
-        }
+        // Case and related-record destinations are in RecordDestinations: cases also open from a claim's or lead's Updates.
         .sheet(isPresented: $showingRequest) {
             RequestAssistanceSheet(api: api) { caseId in
                 showingRequest = false

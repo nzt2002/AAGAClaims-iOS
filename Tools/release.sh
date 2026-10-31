@@ -28,6 +28,8 @@ SOURCES=(
   $CLASSES/PortalPeopleServiceTest.cls $CLASSES/CustomerRelatedClaimsControllerTest.cls $CLASSES/UserRelatedProspectsControllerTest.cls
   $TRIGGERS/PortalPushExternalComment.trigger $TRIGGERS/PortalPushPayment.trigger $TRIGGERS/PortalPushTask.trigger
   $TRIGGERS/PortalPushFeedItem.trigger $TRIGGERS/PortalPushFeedComment.trigger
+  $TRIGGERS/PortalPushCase.trigger $TRIGGERS/PortalPushCaseComment.trigger $TRIGGERS/PortalPushSignature.trigger
+  $CLASSES/PortalMyCasesController.cls $CLASSES/PortalCaseDetailController.cls $CLASSES/PortalCaseControllersTest.cls
   $CLASSES/MobileAppMonitor.cls $CLASSES/MobileAppMonitorTest.cls $CLASSES/PortalMobileAppAccess.cls $CLASSES/PortalMobileAppAccessTest.cls
   $CLASSES/PortalAccountService.cls $CLASSES/PortalAccountServiceTest.cls $CLASSES/PortalFilesTest.cls
   $TRIGGERS/MobileAppErrorEvents.trigger $TRIGGERS/PortalMobileAppAccess.trigger
@@ -39,7 +41,7 @@ SOURCES=(
 TESTS=(PortalApiV1Test PortalActivityServiceTest PortalPushServiceTest PortalClaimActionsServiceTest PortalLeadActionsServiceTest
        PortalNewClaimServiceTest PortalPeopleServiceTest CustomerRelatedClaimsControllerTest UserRelatedProspectsControllerTest
        ClaimRecordBannerControllerTest PortalRecordAccessTest MobileAppMonitorTest PortalMobileAppAccessTest
-       PortalAccountServiceTest PortalFilesTest)
+       PortalAccountServiceTest PortalFilesTest PortalCaseControllersTest SignatureFlowTest)
 
 source_args=()
 for s in $SOURCES; do source_args+=(--source-dir "$s"); done

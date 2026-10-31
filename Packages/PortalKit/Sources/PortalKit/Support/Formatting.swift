@@ -36,3 +36,19 @@ public enum PortalFormat {
         return trimmed
     }
 }
+
+/// The email ID put at the bottom of emails written from a claim or lead. Replies that quote it
+/// (CC'd to the tracking mailbox) are filed on the record by the inbound email service.
+public enum EmailReference {
+    /// "ref_ (a23…)", the format of Claims2__c.Reference_ID__c, for any record Id.
+    public static func reference(forRecordId id: String?) -> String? {
+        guard let id = PortalFormat.nonEmpty(id) else { return nil }
+        return "ref_ (\(id))"
+    }
+
+    /// "Email ID: [ref_ (a23…)]".
+    public static func footer(_ reference: String?) -> String? {
+        guard let reference = PortalFormat.nonEmpty(reference) else { return nil }
+        return "Email ID: [\(reference)]"
+    }
+}

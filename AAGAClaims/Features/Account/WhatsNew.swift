@@ -24,6 +24,22 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "1.2.0", date: "Oct 31, 2026", items: [
+            Item(icon: "questionmark.bubble", title: "Cases on every claim and lead",
+                 detail: "Updates now list the questions and cases opened for the claim or lead. Tap one to see the conversation."),
+            Item(icon: "checkmark.circle", title: "Mark a case as completed",
+                 detail: "Question answered? Tap Mark as Completed at the end of the case to close it."),
+            Item(icon: "map", title: "Tap the address for directions",
+                 detail: "The loss address on a lead now has its own card. Tap it to open Maps. Lead headers are green, so you can tell leads from claims at a glance."),
+            Item(icon: "bell.badge", title: "More notifications",
+                 detail: "Get notified about new portal updates and replies to your cases."),
+            Item(icon: "bell.badge.fill", title: "Staff notifications",
+                 detail: "Staff are also notified about Chatter posts on their claims and leads, case updates, and e-sign documents being viewed, signed or declined.",
+                 staffOnly: true),
+            Item(icon: "envelope", title: "Email ID on every email",
+                 detail: "Emails written from a claim or lead end with its email ID, so replies CC'd to the tracking mailbox are filed on the record.",
+                 staffOnly: true),
+        ]),
         Release(version: "1.1.0", date: "Oct 21, 2026", items: [
             Item(icon: "sparkles", title: "A fresh new look, and a new name",
                  detail: "The app is now called ProClaimer, updated for the latest iPhone design with bolder headers, cleaner cards and a tab bar that steps aside while you scroll."),

@@ -135,6 +135,8 @@ public struct ServerMeta: Codable, Hashable, Sendable {
         case claimActivities, chatterAttachments, claimReferenceId
         case leadActivities, activityEmails, activityEdit, push
         case largeFiles, accountDeletion, diagnostics
+        /// `GET /{record}/cases` and `POST /cases/{id}/complete`.
+        case recordCases
     }
 }
 

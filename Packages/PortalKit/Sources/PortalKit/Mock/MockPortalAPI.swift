@@ -251,6 +251,19 @@ public actor MockPortalAPI: PortalAPI {
         return try found(data.caseDetails[id])
     }
 
+    public func cases(for record: RecordRef) async throws -> [SupportCase] {
+        try await simulate()
+        try requireRecord(record)
+        return data.cases.filter { $0.relatedRecordId == record.id }
+    }
+
+    public func completeCase(id: String) async throws {
+        try await simulate()
+        let detail = try found(data.caseDetails[id])
+        data.caseDetails[id] = detail.with(status: SupportCase.completedStatus)
+        data.cases = data.cases.map { $0.caseId == id ? $0.with(status: SupportCase.completedStatus) : $0 }
+    }
+
     public func replyToCase(id: String, body: String) async throws {
         try await simulate()
         let detail = try found(data.caseDetails[id])
@@ -1284,7 +1297,28 @@ public actor MockPortalAPI: PortalAPI {
     }
 }
 
+private extension SupportCase {
+    func with(status: String) -> SupportCase {
+        SupportCase(
+            caseId: caseId, caseNumber: caseNumber, subject: subject, description: description,
+            status: status, createdDate: createdDate, relatedRecordId: relatedRecordId,
+            relatedRecordName: relatedRecordName, relatedRecordType: relatedRecordType,
+            relatedRecordStage: relatedRecordStage, accountManager: accountManager
+        )
+    }
+}
+
 private extension SupportCaseDetail {
+    func with(status: String) -> SupportCaseDetail {
+        SupportCaseDetail(
+            caseId: caseId, caseNumber: caseNumber, subject: subject, description: description,
+            status: status, createdDate: createdDate, relatedRecordId: relatedRecordId,
+            relatedRecordName: relatedRecordName, relatedRecordType: relatedRecordType,
+            relatedRecordStage: relatedRecordStage, accountManager: accountManager,
+            comments: comments
+        )
+    }
+
     func appending(_ comment: CaseComment) -> SupportCaseDetail {
         SupportCaseDetail(
             caseId: caseId, caseNumber: caseNumber, subject: subject, description: description,

@@ -338,6 +338,9 @@ public actor CachingPortalAPI: PortalAPI {
 
     public func cases() async throws -> [SupportCase] { try await read("cases") { try await $0.cases() } }
     public func supportCase(id: String) async throws -> SupportCaseDetail { try await read("cases/\(id)") { try await $0.supportCase(id: id) } }
+    public func cases(for record: RecordRef) async throws -> [SupportCase] {
+        try await read("\(record.collectionPath)/\(record.id)/cases") { try await $0.cases(for: record) }
+    }
 
     // MARK: Online only (not cached, and they only matter while submitting)
 
@@ -368,6 +371,11 @@ public actor CachingPortalAPI: PortalAPI {
     public func replyToCase(id: String, body: String) async throws {
         try requireOnline()
         try await guarded { try await $0.replyToCase(id: id, body: body) }
+    }
+
+    public func completeCase(id: String) async throws {
+        try requireOnline()
+        try await guarded { try await $0.completeCase(id: id) }
     }
 
     public func requestAssistance(recordId: String, comments: String) async throws -> String {

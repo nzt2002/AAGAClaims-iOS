@@ -68,7 +68,9 @@ public enum DeepLink: Hashable, Sendable {
         return nil
     }
 
-    /// A push payload: `{ "type": "update" | "caseReply" | "payment" | "mention" | "task", "recordId": "...", "commentId": "..." }`.
+    /// A push payload: `{ "type": "update" | "caseReply" | "case" | "payment" | "mention" | "post" | "task" | "esign",
+    /// "recordId": "...", "commentId": "..." }`. "case" (a case update) carries the case id for homeowners
+    /// and the case's claim or lead for staff, who don't open cases in the app.
     public init?(pushPayload userInfo: [AnyHashable: Any]) {
         guard let type = userInfo["type"] as? String,
               let recordId = userInfo["recordId"] as? String, Self.isValidId(recordId) else { return nil }
@@ -86,8 +88,11 @@ public enum DeepLink: Hashable, Sendable {
         case "caseReply":
             guard recordId.hasPrefix(KeyPrefix.supportCase) else { return nil }
             self = .supportCase(id: recordId)
-        case "payment", "mention", "task":
-            // A payment on a claim, an @mention or a task on a claim or lead: open the record.
+        case "case" where recordId.hasPrefix(KeyPrefix.supportCase):
+            self = .supportCase(id: recordId)
+        case "payment", "mention", "task", "post", "esign", "case":
+            // A payment, an @mention, a Chatter post, a task, an e-sign status change or (for staff)
+            // a case update on a claim or lead: open the record.
             guard let record = Self.record(forId: recordId) else { return nil }
             self = record
         default:

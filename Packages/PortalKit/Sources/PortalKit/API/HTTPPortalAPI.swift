@@ -127,6 +127,14 @@ public struct HTTPPortalAPI: PortalAPI {
         try await postNoContent("/cases/\(escaped(id))/replies", body: ["body": body])
     }
 
+    public func cases(for record: RecordRef) async throws -> [SupportCase] {
+        try await get("/\(record.collectionPath)/\(escaped(record.id))/cases")
+    }
+
+    public func completeCase(id: String) async throws {
+        try await postNoContent("/cases/\(escaped(id))/complete", body: [String: String]())
+    }
+
     public func requestAssistance(recordId: String, comments: String) async throws -> String {
         let response: CaseIdResponse = try await post("/cases", body: ["recordId": recordId, "comments": comments])
         return response.caseId

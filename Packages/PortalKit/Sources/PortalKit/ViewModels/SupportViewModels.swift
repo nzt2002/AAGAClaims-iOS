@@ -10,6 +10,8 @@ public final class CaseDetailViewModel {
     public var replyText = ""
     public private(set) var isSending = false
     public private(set) var replyError: PortalAPIError?
+    public private(set) var isCompleting = false
+    public private(set) var completeError: PortalAPIError?
 
     private let api: PortalAPI
 
@@ -33,6 +35,29 @@ public final class CaseDetailViewModel {
     public func load() async {
         let api = self.api, id = caseId
         await PortalKit.load(self, \.state) { try await api.supportCase(id: id) }
+    }
+
+    /// Open cases can be marked completed by the homeowner.
+    public var canComplete: Bool {
+        guard let detail = state.value else { return false }
+        return !SupportCase.isClosedStatus(detail.status) && !isCompleting
+    }
+
+    /// Marks the case Completed and reloads it.
+    @discardableResult
+    public func complete() async -> Bool {
+        guard canComplete else { return false }
+        isCompleting = true
+        completeError = nil
+        defer { isCompleting = false }
+        do {
+            try await api.completeCase(id: caseId)
+            await load()
+            return true
+        } catch {
+            completeError = .wrap(error)
+            return false
+        }
     }
 
     /// Sends the reply, clears the composer and reloads the thread.

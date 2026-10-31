@@ -36,10 +36,36 @@ struct SupportTests {
         #expect(viewModel.cases.compactMap(\.caseNumber).sorted() == expected)
     }
 
+    @Test("A record's Updates list its cases")
+    func recordCases() async throws {
+        let api = mock()
+        #expect(try await api.cases(for: .claim("a23000000000001AAA")).map(\.caseNumber) == ["00012345"])
+        #expect(try await api.cases(for: .lead("a0r000000000001AAA")).map(\.caseNumber) == ["00012001"])
+    }
+
+    @Test("The homeowner can mark an open case completed, once")
+    func completeCase() async throws {
+        let api = mock()
+        let viewModel = CaseDetailViewModel(caseId: "500000000000001AAA", api: api)
+        #expect(!viewModel.canComplete) // Not loaded yet.
+        await viewModel.load()
+        #expect(viewModel.canComplete)
+        #expect(await viewModel.complete())
+        #expect(viewModel.state.value?.status == "Completed")
+        #expect(!viewModel.canComplete)
+        #expect(try await api.cases().first { $0.caseId == "500000000000001AAA" }?.isClosed == true)
+
+        let closed = CaseDetailViewModel(caseId: "500000000000002AAA", api: api)
+        await closed.load()
+        #expect(!closed.canComplete)
+    }
+
     @Test("Resolved counts as closed")
     func resolved() {
         #expect(SupportCase.isClosedStatus("Resolved"))
         #expect(SupportCase.isClosedStatus(" closed "))
+        #expect(SupportCase.isClosedStatus("Completed"))
+        #expect(SupportCase.isClosedStatus("Canceled"))
         #expect(!SupportCase.isClosedStatus("Working"))
         #expect(!SupportCase.isClosedStatus(nil))
     }

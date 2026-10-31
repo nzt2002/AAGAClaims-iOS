@@ -121,6 +121,9 @@ enum BrandGradient {
         _ = colorScheme
         return LinearGradient(colors: [.heroStart, .heroEnd], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
+
+    /// Leads are green, so they're never mistaken for claims. White text is at least 5.0:1.
+    static let leadHero = LinearGradient(colors: [.leadHeroStart, .leadHeroEnd], startPoint: .topLeading, endPoint: .bottomTrailing)
 }
 
 /// An SF Symbol in a tinted circle, for quick actions and list rows.

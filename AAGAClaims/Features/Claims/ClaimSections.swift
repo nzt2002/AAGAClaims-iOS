@@ -45,6 +45,7 @@ struct UpdatesList: View {
 struct ClaimDetailsSection: View {
     let detail: ClaimDetail
     let lossReason: String?
+    @Environment(\.emailReference) private var emailReference
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.l) {
@@ -60,9 +61,9 @@ struct ClaimDetailsSection: View {
                         systemImage: "mappin.and.ellipse", actionName: "Open in Maps")
                 LinkRow(label: "Main phone", value: detail.mainPhone, url: ContactURL.phone(detail.mainPhone),
                         systemImage: "phone", actionName: "Call")
-                LinkRow(label: "Email", value: detail.email, url: ContactURL.email(detail.email),
+                LinkRow(label: "Email", value: detail.email, url: ContactURL.email(detail.email, reference: emailReference),
                         systemImage: "envelope", actionName: "Email")
-                LinkRow(label: "Business email", value: detail.businessEmail, url: ContactURL.email(detail.businessEmail),
+                LinkRow(label: "Business email", value: detail.businessEmail, url: ContactURL.email(detail.businessEmail, reference: emailReference),
                         systemImage: "envelope", actionName: "Email")
             }
             .cardStyle()
@@ -264,6 +265,7 @@ struct TeamCard: View {
     let deskAdjuster: Member
     let accountManager: Member
     let adjusterFees: Decimal?
+    @Environment(\.emailReference) private var emailReference
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
@@ -298,7 +300,7 @@ struct TeamCard: View {
                 if let url = ContactURL.phone(member.phone) {
                     contactButton(url: url, systemImage: "phone.fill", label: "Call \(name)")
                 }
-                if let url = ContactURL.email(member.email) {
+                if let url = ContactURL.email(member.email, reference: emailReference) {
                     contactButton(url: url, systemImage: "envelope.fill", label: "Email \(name)")
                 }
                 }

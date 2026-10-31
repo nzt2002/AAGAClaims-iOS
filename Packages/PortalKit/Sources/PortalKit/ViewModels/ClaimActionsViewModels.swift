@@ -481,19 +481,15 @@ public final class EmailComposerViewModel {
     private let api: PortalAPI
     private let claimId: String
 
-    /// `referenceId` (the claim's Reference_ID__c) starts the body, below a gap for the message,
-    /// in brackets: replies that quote it are filed on the claim by the email service.
+    /// The claim's email ID line, added below the message when it's sent (see `EmailReference`).
+    public let footer: String?
+
+    /// `referenceId` is the claim's Reference_ID__c ("ref_ (a23…)").
     public init(api: PortalAPI, claimId: String, defaultRecipient: String?, referenceId: String? = nil) {
         self.api = api
         self.claimId = claimId
+        self.footer = EmailReference.footer(referenceId ?? EmailReference.reference(forRecordId: claimId))
         if let defaultRecipient { to = [defaultRecipient] }
-        if let line = Self.referenceLine(referenceId) { body = "\n\n" + line }
-    }
-
-    /// "[ref_ (a23…)]".
-    public static func referenceLine(_ referenceId: String?) -> String? {
-        guard let id = referenceId?.trimmingCharacters(in: .whitespacesAndNewlines), !id.isEmpty else { return nil }
-        return "[\(id)]"
     }
 
     /// Adds typed addresses (comma, semicolon or space separated), skipping duplicates.
@@ -512,9 +508,11 @@ public final class EmailComposerViewModel {
             && !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSending
     }
 
-    /// The body as simple HTML: escaped text with line breaks.
+    /// The body as simple HTML: escaped text with line breaks, then the email ID at the bottom.
     public var htmlBody: String {
-        body.replacingOccurrences(of: "&", with: "&amp;").replacingOccurrences(of: "<", with: "&lt;")
+        var text = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let footer, !text.contains(footer) { text += "\n\n" + footer }
+        return text.replacingOccurrences(of: "&", with: "&amp;").replacingOccurrences(of: "<", with: "&lt;")
             .replacingOccurrences(of: ">", with: "&gt;").replacingOccurrences(of: "\n", with: "<br>")
     }
 

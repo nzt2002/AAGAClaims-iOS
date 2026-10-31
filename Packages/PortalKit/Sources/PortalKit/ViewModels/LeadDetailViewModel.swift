@@ -24,6 +24,10 @@ public final class LeadDetailViewModel {
     public private(set) var detail: LoadState<LeadDetail> = .idle
     public private(set) var updates: LoadState<[PortalUpdate]> = .idle
     public private(set) var files: LoadState<[PortalFile]> = .idle
+    /// Support cases on the record, shown under Updates. Loaded only when `includesCases` is set
+    /// (servers with `recordCases`).
+    public private(set) var cases: LoadState<[SupportCase]> = .idle
+    public var includesCases = false
     public var section: Section = .updates
 
     private let api: PortalAPI
@@ -39,7 +43,8 @@ public final class LeadDetailViewModel {
         async let detail: Void = loadDetail()
         async let updates: Void = loadUpdates()
         async let files: Void = loadFiles()
-        _ = await (detail, updates, files)
+        async let cases: Void = includesCases ? loadCases() : ()
+        _ = await (detail, updates, files, cases)
     }
 
     public func loadDetail() async {
@@ -52,6 +57,14 @@ public final class LeadDetailViewModel {
         let api = self.api, record = self.record
         await PortalKit.load(self, \.updates) {
             try await api.updates(for: record).sorted { ($0.createdDate ?? .distantPast) > ($1.createdDate ?? .distantPast) }
+        }
+    }
+
+    /// Newest first.
+    public func loadCases() async {
+        let api = self.api, record = self.record
+        await PortalKit.load(self, \.cases) {
+            try await api.cases(for: record).sorted { ($0.createdDate ?? .distantPast) > ($1.createdDate ?? .distantPast) }
         }
     }
 

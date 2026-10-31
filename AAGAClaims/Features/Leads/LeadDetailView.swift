@@ -45,6 +45,7 @@ struct LeadDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .task {
                 if viewModel.detail.value == nil {
+                    viewModel.includesCases = serverMeta.supports(.recordCases)
                     await viewModel.load()
                 }
                 if isInternal, leadFeed.feed.value == nil {
@@ -121,6 +122,7 @@ struct LeadDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.l) {
                 header(detail)
+                LossAddressCard(address: detail.lossAddress)
                 if isInternal {
                     LeadQuickActions(isConverted: isConverted(detail)) { handle($0, detail) }
                 }
@@ -158,6 +160,7 @@ struct LeadDetailView: View {
                 }
             }
         }
+        .environment(\.emailReference, EmailReference.reference(forRecordId: viewModel.leadId))
         // Ask Question is a top-bar icon; there's no Add Comment, as on claims.
         .recordActions(record: viewModel.record, recordName: recordName, api: api, placement: .toolbarIcon)
         .documentGeneration(record: viewModel.record, recordName: recordName, api: api,
@@ -196,7 +199,8 @@ struct LeadDetailView: View {
         openRecord(.claim(claim.id), name: claim.name)
     }
 
-    /// The lead's hero, matching the claim page: status, name, address and numbers on the brand gradient.
+    /// The lead's hero: status, name and numbers on the green lead gradient. The address is its own
+    /// card below, so it can be tapped to open Maps.
     private func header(_ detail: LeadDetail) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
             if let status = PortalFormat.nonEmpty(detail.prospectStatus) {
@@ -213,13 +217,6 @@ struct LeadDetailView: View {
                 .font(.heroTitle)
                 .fixedSize(horizontal: false, vertical: true)
                 .foregroundStyle(.white)
-            if let address = PortalFormat.nonEmpty(detail.lossAddress) {
-                Label(address, systemImage: "mappin.and.ellipse")
-                    .font(.subheadline)
-                    .foregroundStyle(.white)
-                    .accessibilityLabel("Loss address: \(address)")
-                    .accessibilityIdentifier("leadHeaderLossAddress")
-            }
             // One fact per line, so numbers never split.
             VStack(alignment: .leading, spacing: 2) {
                 if let number = PortalFormat.nonEmpty(detail.claimNumber) {
@@ -238,7 +235,7 @@ struct LeadDetailView: View {
         }
         .padding(Theme.Spacing.l)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(BrandGradient.hero(.light), in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .background(BrandGradient.leadHero, in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 
@@ -266,6 +263,9 @@ struct LeadDetailView: View {
                 SectionLoader(state: viewModel.updates, subject: "updates", retry: { await viewModel.loadUpdates() }) { updates in
                     UpdatesList(updates: updates, emptyMessage: "No updates have been published for this lead yet.", visibleCount: 3)
                 }
+            }
+            if viewModel.includesCases {
+                RecordCasesSection(state: viewModel.cases, noun: "lead") { await viewModel.loadCases() }
             }
         case .details:
             LeadDetailsSection(detail: detail)
@@ -370,6 +370,7 @@ private struct AgreementCard: View {
 
 private struct ReferralCard: View {
     let detail: LeadDetail
+    @Environment(\.emailReference) private var emailReference
 
     var body: some View {
         if [detail.associatedPartyName, detail.associatedPartyCompany, detail.associatedPartyEmail, detail.associatedPartyPhone]
@@ -384,7 +385,7 @@ private struct ReferralCard: View {
                 FieldRow(label: "Company", value: detail.associatedPartyCompany, systemImage: "building.2")
                 LinkRow(label: "Phone", value: detail.associatedPartyPhone, url: ContactURL.phone(detail.associatedPartyPhone),
                         systemImage: "phone", actionName: "Call")
-                LinkRow(label: "Email", value: detail.associatedPartyEmail, url: ContactURL.email(detail.associatedPartyEmail),
+                LinkRow(label: "Email", value: detail.associatedPartyEmail, url: ContactURL.email(detail.associatedPartyEmail, reference: emailReference),
                         systemImage: "envelope", actionName: "Email")
             }
             .cardStyle()
@@ -394,6 +395,7 @@ private struct ReferralCard: View {
 
 private struct LeadDetailsSection: View {
     let detail: LeadDetail
+    @Environment(\.emailReference) private var emailReference
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -404,7 +406,7 @@ private struct LeadDetailsSection: View {
                     systemImage: "mappin.and.ellipse", actionName: "Open in Maps")
             LinkRow(label: "Phone", value: detail.phone, url: ContactURL.phone(detail.phone), systemImage: "phone", actionName: "Call")
             LinkRow(label: "Mobile", value: detail.mobile, url: ContactURL.phone(detail.mobile), systemImage: "iphone", actionName: "Call")
-            LinkRow(label: "Email", value: detail.email, url: ContactURL.email(detail.email), systemImage: "envelope", actionName: "Email")
+            LinkRow(label: "Email", value: detail.email, url: ContactURL.email(detail.email, reference: emailReference), systemImage: "envelope", actionName: "Email")
             if let description = PortalFormat.nonEmpty(detail.lossDescription) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Loss description")

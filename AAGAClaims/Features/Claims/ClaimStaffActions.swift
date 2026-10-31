@@ -1060,7 +1060,15 @@ private struct EmailForm: View {
                     .lineLimit(6...20)
                     .accessibilityIdentifier("emailBody")
             } footer: {
-                Text("Sent through Salesforce and saved to the claim's activity.")
+                VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                    if let footer = model.footer {
+                        // Added below the message, so replies CC'd to the tracking mailbox are filed on the claim.
+                        Text(footer)
+                            .font(.footnote.monospaced())
+                            .accessibilityIdentifier("emailFooter")
+                    }
+                    Text("Sent through Salesforce and saved to the claim's activity. The email ID is added at the bottom.")
+                }
             }
             ErrorRow(message: model.errorMessage)
         }

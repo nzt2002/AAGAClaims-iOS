@@ -192,6 +192,15 @@ struct RecordDestinations: ViewModifier {
                 LeadDetailView(leadId: route.id, fallbackName: route.name, api: api)
                     .id(route.id)
             }
+            .navigationDestination(for: CaseRoute.self) { route in
+                CaseDetailView(caseId: route.id, api: api)
+            }
+            .navigationDestination(for: RelatedRecordRoute.self) { route in
+                switch route.record {
+                case .claim(let id): ClaimDetailView(claimId: id, summary: nil, api: api).id(id)
+                case .lead(let id): LeadDetailView(leadId: id, fallbackName: route.name, api: api).id(id)
+                }
+            }
     }
 }
 

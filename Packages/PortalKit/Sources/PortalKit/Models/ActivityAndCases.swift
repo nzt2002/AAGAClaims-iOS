@@ -53,14 +53,17 @@ public struct SupportCase: Codable, Hashable, Identifiable, Sendable {
 
     public var id: String { caseId }
 
-    /// Closed or Resolved, as on the portal.
+    /// Closed, Resolved, Completed or Canceled.
     public var isClosed: Bool {
         SupportCase.isClosedStatus(status)
     }
 
+    /// The Case status a homeowner sets with Mark as Completed (a closed status in the org).
+    public static let completedStatus = "Completed"
+
     public static func isClosedStatus(_ status: String?) -> Bool {
         guard let status = status?.trimmingCharacters(in: .whitespaces).lowercased() else { return false }
-        return status == "closed" || status == "resolved"
+        return ["closed", "resolved", "completed", "canceled", "cancelled"].contains(status)
     }
 
     public var recordRef: RecordRef? {

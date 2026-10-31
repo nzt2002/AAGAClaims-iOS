@@ -59,6 +59,11 @@ struct DeepLinkTests {
         #expect(DeepLink(pushPayload: [:]) == nil)
         #expect(DeepLink(pushPayload: ["type": "update", "recordId": caseId]) == nil)
         #expect(DeepLink(pushPayload: ["type": "caseReply", "recordId": claimId]) == nil)
+        // Chatter posts, e-sign and case updates (case id for homeowners, the record for staff).
+        #expect(DeepLink(pushPayload: ["type": "post", "recordId": claimId]) == .claim(id: claimId))
+        #expect(DeepLink(pushPayload: ["type": "esign", "recordId": claimId]) == .claim(id: claimId))
+        #expect(DeepLink(pushPayload: ["type": "case", "recordId": caseId]) == .supportCase(id: caseId))
+        #expect(DeepLink(pushPayload: ["type": "case", "recordId": claimId]) == .claim(id: claimId))
         #expect(DeepLink(pushPayload: ["type": "marketing", "recordId": claimId]) == nil)
         #expect(DeepLink(pushPayload: ["type": "update", "recordId": 42]) == nil)
     }
