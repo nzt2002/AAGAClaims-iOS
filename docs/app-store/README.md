@@ -19,4 +19,5 @@ demo data with the demo banner hidden: Home, Claims, a claim, its progress, its 
 - [ ] Build: choose the latest 1.1.0 build once it has finished processing.
 - [ ] Export compliance: already answered in the build (no non-exempt encryption).
 - [ ] Pricing and availability: free; United States (or your choice).
+- [x] Push notifications: APNs key added to the AAGA Claims iOS External Client App (2026-10-31).
 - [ ] Release: "Manually release this version" is safest for the first release.
