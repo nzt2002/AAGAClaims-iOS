@@ -108,7 +108,7 @@ struct ClaimDetailView: View {
             VStack(alignment: .leading, spacing: Theme.Spacing.l) {
                 ClaimHeader(detail: detail, position: detail.lifecycle)
                 if isInternal {
-                    ClaimQuickActions(onESign: eSignAvailable ? { showingESign = true } : nil) { openAction = $0 }
+                    ClaimQuickActions(onESign: { showingESign = true }) { openAction = $0 }
                 }
                 PaymentsCard(detail: detail, payments: viewModel.payments.value ?? [])
                 LifecycleCard(position: detail.lifecycle, status: detail.claimStatus)

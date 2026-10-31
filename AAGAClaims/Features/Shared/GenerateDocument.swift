@@ -3,9 +3,8 @@ import PortalKit
 import SwiftUI
 
 /// Staff e-sign (in-house pilot): pick an active Word template, merge the claim or lead into it on
-/// the server, preview it, and send it for signature. Opened from the E-Sign action. `isAvailable`
-/// becomes true only when the server returns templates, so users outside the pilot (403) keep the
-/// old Docs Made Easy E-Sign until switchover.
+/// the server, preview it, and send it for signature. Opened from the E-Sign action on leads and
+/// claims. `isAvailable` reports whether the server returned any templates.
 struct DocumentGeneration: ViewModifier {
     let record: RecordRef
     let recordName: String
@@ -45,6 +44,8 @@ struct GenerateDocumentSheet: View {
     let api: PortalAPI
 
     @Environment(\.dismiss) private var dismiss
+    @State private var loadedTemplates: [DocumentTemplate]?
+    @State private var loadingTemplates = false
     @State private var generating: DocumentTemplate?
     @State private var document: GeneratedDocument?
     @State private var pdfURL: URL?
@@ -79,7 +80,15 @@ struct GenerateDocumentSheet: View {
                 Button("OK", role: .cancel) {}
             } message: { Text($0) }
         }
-        .task { await loadRequests() }
+        .task {
+            // Opened before the record page finished loading templates: load them here.
+            if templates.isEmpty && loadedTemplates == nil {
+                loadingTemplates = true
+                loadedTemplates = (try? await api.documentTemplates(for: record)) ?? []
+                loadingTemplates = false
+            }
+            await loadRequests()
+        }
         .onDisappear(perform: cleanUp)
     }
 
@@ -108,10 +117,24 @@ struct GenerateDocumentSheet: View {
         Task { await loadRequests() }
     }
 
+    private var availableTemplates: [DocumentTemplate] { templates.isEmpty ? (loadedTemplates ?? []) : templates }
+
+    @ViewBuilder
     private var templateList: some View {
+        if loadingTemplates {
+            ProgressView("Loading templates…")
+        } else if availableTemplates.isEmpty {
+            ContentUnavailableView("No templates available", systemImage: "signature",
+                description: Text("There are no active e-sign templates for this record, or your account doesn't have e-sign access yet. Contact your administrator."))
+        } else {
+            templateListContent
+        }
+    }
+
+    private var templateListContent: some View {
         List {
             Section {
-                ForEach(templates) { template in
+                ForEach(availableTemplates) { template in
                     Button {
                         Task { await generate(template) }
                     } label: {

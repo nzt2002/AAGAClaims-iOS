@@ -11,15 +11,12 @@ struct LeadDetailView: View {
     @State private var openAction: LeadAction?
     @State private var showingConvert = false
     @State private var convertedClaim: (id: String, name: String)?
-    @State private var agreementURL: URL?
-    @State private var showingDemoNotice = false
     @State private var showingESign = false
     @State private var eSignAvailable = false
     @State private var updatesFilter: UpdatesFilter = .leadFeed
     @Environment(\.isInternalUser) private var isInternal
     @Environment(\.openRecord) private var openRecord
     @Environment(\.currentUserName) private var currentUserName
-    @Environment(\.salesforcePage) private var salesforcePage
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.serverMeta) private var serverMeta
 
@@ -29,7 +26,6 @@ struct LeadDetailView: View {
     }
 
     /// Generate Agreement - GA - Preview Esign (the lead page's DocMerge button).
-    private static let agreementSolutionKey = "994dd7c4-f5f6-413f-871f-0ab54a81aa2c"
     let fallbackName: String?
     let api: PortalAPI
 
@@ -90,14 +86,6 @@ struct LeadDetailView: View {
                         showingConvert = false
                     }
                 }
-            }
-            .sheet(item: Binding(get: { agreementURL.map(SafariLink.init) }, set: { agreementURL = $0?.url })) {
-                SafariView(url: $0.url).ignoresSafeArea()
-            }
-            .alert("Available in Salesforce", isPresented: $showingDemoNotice) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text("The agreement e-sign preview opens in Salesforce, which isn't available in demo mode.")
             }
             .onChange(of: scenePhase) { _, phase in
                 // Back in the foreground with data more than 5 minutes old (spec §7).
@@ -193,22 +181,8 @@ struct LeadDetailView: View {
         case .post, .edit, .task, .event:
             openAction = action
         case .agreement:
-            // Pilot users get the in-house e-sign; everyone else keeps Docs Made Easy until switchover.
-            if eSignAvailable {
-                showingESign = true
-                return
-            }
-            guard let salesforcePage else {
-                showingDemoNotice = true
-                return
-            }
-            // Opened through a single-use sign-in link, so there's no second login.
-            let path = SalesforcePageLink.path("/apex/hic_docmerge__Composer", query: [
-                URLQueryItem(name: "advancemergefields", value: "true"),
-                URLQueryItem(name: "id", value: viewModel.leadId),
-                URLQueryItem(name: "documentSolutionKey", value: Self.agreementSolutionKey)
-            ])
-            Task { agreementURL = await salesforcePage.url(for: path) }
+            // In-house e-sign (Docs Made Easy is no longer used from the app).
+            showingESign = true
         }
     }
 
