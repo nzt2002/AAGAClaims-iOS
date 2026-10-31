@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The Accurate Adjustments GA brand, in a Salesforce Lightning style: deep brand blues, soft
+/// The ProClaimer brand, in a Salesforce Lightning style: deep brand blues, soft
 /// cloud shapes and bold, clean type. (Not Salesforce's own logo.)
 
 /// The app icon's house and check, drawn as vectors, in a soft white tile (as on the launch screen).
@@ -56,7 +56,7 @@ private struct CheckShape: Shape {
     }
 }
 
-/// "Accurate Adjustments" with a "GA" badge, white on the brand blue.
+/// The "ProClaimer" wordmark, white on the brand blue.
 struct BrandLogo: View {
     enum Layout { case stacked, compact }
     var layout: Layout = .stacked
@@ -66,18 +66,9 @@ struct BrandLogo: View {
         VStack(spacing: layout == .stacked ? Theme.Spacing.m : Theme.Spacing.s) {
             BrandMark(size: layout == .stacked ? 96 : 64)
             VStack(spacing: 4) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text("Accurate Adjustments")
-                        .font(.system(layout == .stacked ? .title : .title2, design: .default, weight: .heavy))
-                        .tracking(-0.4)
-                    Text("GA")
-                        .font(.system(.subheadline, design: .default, weight: .heavy))
-                        .tracking(1)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(.white.opacity(0.2), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).stroke(.white.opacity(0.45), lineWidth: 1))
-                }
+                Text("ProClaimer")
+                    .font(.system(layout == .stacked ? .largeTitle : .title, design: .default, weight: .heavy))
+                    .tracking(-0.4)
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
                 .minimumScaleFactor(0.7)
@@ -90,7 +81,7 @@ struct BrandLogo: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Accurate Adjustments GA, Claims Portal")
+        .accessibilityLabel("ProClaimer, Claims Portal")
         .accessibilityAddTraits(.isHeader)
     }
 }
@@ -141,20 +132,10 @@ struct BrandSplash: View {
                 .frame(width: 120, height: 120)
                 .overlay(alignment: .top) {
                     VStack(spacing: 4) {
-                        HStack(alignment: .center, spacing: 8) {
-                            Text("Accurate Adjustments")
-                                .font(.system(.title, design: .default, weight: .heavy))
-                                .tracking(-0.4)
-                                .fixedSize()
-                            Text("GA")
-                                .font(.system(.subheadline, design: .default, weight: .heavy))
-                                .tracking(1)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(.white.opacity(0.2), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-                                .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).stroke(.white.opacity(0.45), lineWidth: 1))
-                                .fixedSize()
-                        }
+                        Text("ProClaimer")
+                            .font(.system(.largeTitle, design: .default, weight: .heavy))
+                            .tracking(-0.4)
+                            .fixedSize()
                         Text("CLAIMS PORTAL")
                             .font(.system(.caption, design: .default, weight: .semibold))
                             .tracking(3)
@@ -168,7 +149,7 @@ struct BrandSplash: View {
         }
         .ignoresSafeArea()
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Accurate Adjustments GA")
+        .accessibilityLabel("ProClaimer")
         .onAppear {
             withAnimation(.spring(duration: 0.7, bounce: 0.2).delay(0.15)) { revealed = true }
         }

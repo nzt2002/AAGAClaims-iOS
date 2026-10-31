@@ -67,7 +67,7 @@ struct WelcomeView: View {
                 .font(.title2.bold())
                 .foregroundStyle(Color.textPrimary)
                 .accessibilityAddTraits(.isHeader)
-            Text(isDemo ? "Explore the app with sample claims and leads." : "Sign in with your Accurate Adjustments portal account.")
+            Text(isDemo ? "Explore the app with sample claims and leads." : "Sign in with your ProClaimer portal account.")
                 .font(.subheadline)
                 .foregroundStyle(Color.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

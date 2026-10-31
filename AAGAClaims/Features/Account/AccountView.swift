@@ -88,7 +88,7 @@ struct AccountView: View {
             // Re-check when returning from Settings.
             notificationStatus = await PushNotifications.status()
         }
-        .confirmationDialog("Sign out of AAGA Claims?", isPresented: $confirmingSignOut, titleVisibility: .visible) {
+        .confirmationDialog("Sign out of ProClaimer?", isPresented: $confirmingSignOut, titleVisibility: .visible) {
             Button("Sign out", role: .destructive, action: signOut)
         }
     }
@@ -125,7 +125,7 @@ struct AccountView: View {
     private var notificationFooter: String {
         switch notificationStatus {
         case .allowed: "We'll let you know when there's an update on your claim or lead, or a reply on a support case."
-        case .denied: "Notifications are off for AAGA Claims. Turn them on in Settings."
+        case .denied: "Notifications are off for ProClaimer. Turn them on in Settings."
         case .notDetermined: "Get notified about updates on your claims and leads, and replies on support cases."
         }
     }

@@ -6,7 +6,7 @@
 
 **Notes for the reviewer** (paste into the "Notes" field):
 
-AAGA Claims is the client app for Accurate Adjustments GA's existing customer portal. Accounts are
+ProClaimer is the client app for ProClaimer's existing customer portal. Accounts are
 created by our team for homeowners and referral partners. There's no public sign-up, so please use the
 demo account above, which has sample claims.
 

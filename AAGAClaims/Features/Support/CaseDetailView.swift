@@ -233,7 +233,7 @@ private struct MessageBubble: View {
                             .stroke(comment.isOwn ? Color.clear : Color.border, lineWidth: 1)
                     )
                     .textSelection(.enabled)
-                Text("\(comment.isOwn ? "You" : (comment.authorName ?? "Accurate Adjustments")) · \(PortalFormat.date(comment.createdDate))")
+                Text("\(comment.isOwn ? "You" : (comment.authorName ?? "ProClaimer")) · \(PortalFormat.date(comment.createdDate))")
                     .font(.caption2)
                     .foregroundStyle(Color.textSecondary)
             }

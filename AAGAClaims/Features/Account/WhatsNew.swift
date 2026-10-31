@@ -25,8 +25,8 @@ enum WhatsNew {
 
     static let releases: [Release] = [
         Release(version: "1.1.0", date: "Oct 21, 2026", items: [
-            Item(icon: "sparkles", title: "A fresh new look",
-                 detail: "Updated for the latest iPhone design, with bolder headers, cleaner cards and a tab bar that steps aside while you scroll."),
+            Item(icon: "sparkles", title: "A fresh new look, and a new name",
+                 detail: "The app is now called ProClaimer, updated for the latest iPhone design with bolder headers, cleaner cards and a tab bar that steps aside while you scroll."),
             Item(icon: "exclamationmark.circle", title: "Needs attention",
                  detail: "Home now leads with what needs you today: overdue tasks, unread updates, recent payments and unsigned agreements."),
             Item(icon: "magnifyingglass", title: "Search has its own tab",
@@ -39,7 +39,7 @@ enum WhatsNew {
                  detail: "Tap the circle with your initials at the top right to open your account and settings."),
         ]),
         Release(version: "1.0.0", date: "Oct 20, 2026", items: [
-            Item(icon: "star.fill", title: "AAGA Claims 1.0",
+            Item(icon: "star.fill", title: "ProClaimer 1.0",
                  detail: "Thank you for testing. This is the version going to the App Store, with a new app icon."),
             Item(icon: "location.slash", title: "Photos stay private",
                  detail: "Photos you upload no longer include where they were taken."),
@@ -54,7 +54,7 @@ enum WhatsNew {
         ]),
         Release(version: "0.4.1", date: "Oct 19, 2026", items: [
             Item(icon: "sparkles", title: "A fresh welcome",
-                 detail: "AAGA Claims opens with the Accurate Adjustments GA look, and sign-in starts from a welcome screen instead of a web page."),
+                 detail: "ProClaimer opens with the ProClaimer look, and sign-in starts from a welcome screen instead of a web page."),
         ]),
         Release(version: "0.4.0", date: "Oct 19, 2026", items: [
             Item(icon: "person.text.rectangle", title: "A clearer lead page",
@@ -76,7 +76,7 @@ enum WhatsNew {
             Item(icon: "signpost.right.fill", title: "What each stage means",
                  detail: "Claim progress now explains, in plain words, what's happening at the current stage and what comes next."),
             Item(icon: "ipad.landscape", title: "iPad",
-                 detail: "AAGA Claims runs on iPad, with your list and the claim or lead side by side."),
+                 detail: "ProClaimer runs on iPad, with your list and the claim or lead side by side."),
             Item(icon: "checkmark.circle.fill", title: "Work on tasks from their page",
                  detail: "Mark a task complete, edit it, or reassign it, without going to Salesforce. Events can be edited and reassigned too.",
                  staffOnly: true),
@@ -190,7 +190,7 @@ struct WhatsNewSheet: View {
                         Text("What's New")
                             .font(.largeTitle.bold())
                             .foregroundStyle(Color.textPrimary)
-                        Text("AAGA Claims \(release.version)")
+                        Text("ProClaimer \(release.version)")
                             .font(.subheadline)
                             .foregroundStyle(Color.textSecondary)
                     }

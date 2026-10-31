@@ -1,6 +1,6 @@
-# AAGA Claims (iOS)
+# ProClaimer (iOS)
 
-Native iOS app for Accurate Adjustments GA portal customers and referral partners. Spec: [SPEC.md](SPEC.md). Decisions and open questions: [ASSUMPTIONS.md](ASSUMPTIONS.md).
+Native iOS app for ProClaimer Inc portal customers and referral partners. Spec: [SPEC.md](SPEC.md). Decisions and open questions: [ASSUMPTIONS.md](ASSUMPTIONS.md).
 
 ## Layout
 

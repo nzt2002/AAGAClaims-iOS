@@ -83,7 +83,7 @@ struct NativeSignInView: View {
                 .font(.title2.bold())
                 .foregroundStyle(Color.textPrimary)
                 .accessibilityAddTraits(.isHeader)
-            Text("Use your Accurate Adjustments portal username and password.")
+            Text("Use your ProClaimer portal username and password.")
                 .font(.subheadline)
                 .foregroundStyle(Color.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -240,7 +240,7 @@ struct NativeSignInView: View {
     private func signInWithSavedDetails() async {
         guard !isSigningIn else { return }
         focus = nil
-        guard let saved = await SavedSignIn.load(reason: "Sign in to AAGA Claims") else {
+        guard let saved = await SavedSignIn.load(reason: "Sign in to ProClaimer") else {
             // Cancelled, or Face ID changed (the saved details are then gone).
             hasSavedSignIn = SavedSignIn.exists
             return
@@ -268,7 +268,7 @@ struct NativeSignInView: View {
     static func message(for failure: HeadlessSignIn.Failure) -> String {
         switch failure {
         case .invalidCredentials: "That username and password don't match. Try again, or reset your password."
-        case .notApproved: "Your account doesn't have access to the app yet. Contact Accurate Adjustments and we'll set it up."
+        case .notApproved: "Your account doesn't have access to the app yet. Contact ProClaimer and we'll set it up."
         case .network: "We couldn't reach the server. Check your connection and try again."
         case .other: "We couldn't sign you in. Try again, or use \"Staff? Sign in with Salesforce\"."
         }

@@ -66,7 +66,7 @@ final class AppLock {
     /// Turns the lock on after confirming the user can unlock, so they can't lock themselves out.
     func enable() async -> Bool {
         markOffered()
-        guard await authenticate(reason: "Turn on \(methodName) for AAGA Claims") else { return false }
+        guard await authenticate(reason: "Turn on \(methodName) for ProClaimer") else { return false }
         isEnabled = true
         UserDefaults.standard.set(true, forKey: Keys.enabled)
         saveSignInIfPending()
@@ -135,10 +135,10 @@ final class AppLock {
             return
         }
 
-        if await authenticate(reason: "Unlock AAGA Claims") {
+        if await authenticate(reason: "Unlock ProClaimer") {
             isLocked = false
         } else {
-            message = "AAGA Claims is still locked. Try again."
+            message = "ProClaimer is still locked. Try again."
         }
     }
 
@@ -164,7 +164,7 @@ struct LockScreen: View {
                 .font(.system(size: 48))
                 .foregroundStyle(Color.brandPrimary)
                 .accessibilityHidden(true)
-            Text("AAGA Claims is locked")
+            Text("ProClaimer is locked")
                 .font(.title2.bold())
                 .foregroundStyle(Color.textPrimary)
             if let message = lock.message {

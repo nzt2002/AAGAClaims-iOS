@@ -237,7 +237,7 @@ struct MainTabView: View {
                 Task { await askForNotifications() }
             }
         } message: {
-            Text("Lock AAGA Claims with \(session.lock.methodName) so only you can see your claims. You can change this in Account.")
+            Text("Lock ProClaimer with \(session.lock.methodName) so only you can see your claims. You can change this in Account.")
         }
     }
 

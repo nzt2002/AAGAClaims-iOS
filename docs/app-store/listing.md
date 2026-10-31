@@ -1,10 +1,10 @@
 # Store listing
 
-**App name** (30 max): AAGA Claims
+**App name** (30 max): ProClaimer
 **Subtitle** (30 max): Your claim, every step
 **Primary category:** Business. **Secondary:** Productivity
 **Age rating:** 4+ (no objectionable content)
-**Copyright:** 2026 Accurate Adjustments GA
+**Copyright:** 2026 ProClaimer Inc
 **Support URL:** https://portal.accurateadjustmentsga.com/s/
 **Marketing URL** (optional): https://www.accurateadjustmentsga.com
 
@@ -13,10 +13,10 @@ Follow your property claim from inspection to final payment. Get updates the mom
 published, see payments as they arrive, and share photos with your adjuster.
 
 ## Description
-AAGA Claims is the official app for clients and partners of Accurate Adjustments GA, public
-adjusters helping Georgia homeowners get fair insurance settlements.
+ProClaimer is the claims app for clients and partners of our public adjusting team, helping
+Georgia homeowners get fair insurance settlements.
 
-Sign in with your Accurate Adjustments portal account to:
+Sign in with your ProClaimer portal account to:
 
 • Follow every step of your claim, with plain-language explanations of what's happening now and what comes next
 • Get notified when there's a new update on your claim or a payment is recorded
@@ -29,7 +29,7 @@ Sign in with your Accurate Adjustments portal account to:
 Our team uses the app too: they manage claims, tasks, events and payments, and post to your
 claim's team feed, so your claim keeps moving wherever we are.
 
-The app is for people with an Accurate Adjustments portal account. If you don't have one, contact us
+The app is for people with a ProClaimer portal account. If you don't have one, contact us
 to get started.
 
 ## Keywords (100 max, comma-separated, no spaces)

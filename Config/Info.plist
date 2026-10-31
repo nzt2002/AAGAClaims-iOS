@@ -26,7 +26,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Take photos of damage to upload to your claim or lead.</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>Use Face ID to unlock AAGA Claims.</string>
+	<string>Use Face ID to unlock ProClaimer.</string>
 	<key>PortalDataSource</key>
 	<string>live</string>
 	<key>SFDCOAuthLoginHost</key>
