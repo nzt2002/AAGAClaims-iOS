@@ -7,10 +7,10 @@ reviewer are in `review-notes.md`. Screenshots are in `~/Desktop/ProClaimer App 
 demo data with the demo banner hidden: Home, Claims, a claim, its progress, its payments, a lead, Search).
 
 ## Checklist
-- [ ] Privacy policy: placeholders filled (2026-10-31: contact by mail to Simon Lyons; add an
-      email address if you want one). Publish the site (see that folder's README),
-      and enter the URL (`https://app.accurateadjustmentsga.com/privacy/`, or the `…pages.dev/privacy/`
-      address until the domain is connected).
+- [x] Privacy policy: live at `https://proclaimer-app.pages.dev/privacy/` (Cloudflare Pages project
+      `proclaimer-app`, 2026-10-31). Enter that as the Privacy Policy URL. When
+      `app.accurateadjustmentsga.com` points at the project (CNAME `app` → `proclaimer-app.pages.dev` in Wix),
+      the same page is also at `https://app.accurateadjustmentsga.com/privacy/`.
 - [ ] App information: name, subtitle, category, age rating and copyright (`listing.md`).
 - [ ] Version 1.1.0: description, keywords, promotional text, support URL and screenshots.
 - [ ] App Privacy: answer the questionnaire (`app-privacy.md`).
