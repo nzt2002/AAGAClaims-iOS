@@ -43,7 +43,7 @@ final class ClaimActionsUITests: XCTestCase {
     }
 
     func testPageLayout() {
-        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "headerLossAddress").firstMatch.label.contains("123 Main St"), "Loss address under the name")
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "lossAddressCard").firstMatch.label.contains("123 Main St"), "Loss address card under the header")
         XCTAssertFalse(app.buttons["claimAction-call"].exists, "Log a Call was removed")
         for action in ["payments", "edit", "post", "task", "event"] {
             XCTAssertTrue(app.buttons["claimAction-\(action)"].exists, action)

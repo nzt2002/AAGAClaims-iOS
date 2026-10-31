@@ -108,6 +108,7 @@ struct ClaimDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.l) {
                 ClaimHeader(detail: detail, position: detail.lifecycle)
+                LossAddressCard(address: detail.lossAddress)
                 if isInternal {
                     ClaimQuickActions(onESign: { showingESign = true }) { openAction = $0 }
                 }
@@ -200,7 +201,7 @@ struct ClaimDetailView: View {
 
 // MARK: - Header, highlights, lifecycle
 
-/// The claim's hero: name, status, address, numbers and loss date on the brand gradient, with
+/// The claim's hero: name, status, numbers and loss date on the brand gradient, with
 /// the progress ring. The step-by-step lifecycle stays in the card below.
 private struct ClaimHeader: View {
     let detail: ClaimDetail
@@ -225,13 +226,6 @@ private struct ClaimHeader: View {
                     .font(.heroTitle)
                     .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
-                if let address = PortalFormat.nonEmpty(detail.lossAddress) {
-                    Label(address, systemImage: "mappin.and.ellipse")
-                        .font(.subheadline)
-                        .foregroundStyle(.white)
-                        .accessibilityLabel("Loss address: \(address)")
-                        .accessibilityIdentifier("headerLossAddress")
-                }
                 // One fact per line, so numbers never split.
                 VStack(alignment: .leading, spacing: 2) {
                     if let number = PortalFormat.nonEmpty(detail.claimNumber) {

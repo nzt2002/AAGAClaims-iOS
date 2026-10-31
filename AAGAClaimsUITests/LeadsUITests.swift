@@ -50,7 +50,7 @@ final class LeadsUITests: XCTestCase {
         let card = app.buttons["leadCard-a0r000000000001AAA"]
         XCTAssertTrue(card.waitForExistence(timeout: 10))
         card.tap()
-        let address = app.descendants(matching: .any)["leadHeaderLossAddress"].firstMatch
+        let address = app.descendants(matching: .any)["lossAddressCard"].firstMatch
         XCTAssertTrue(address.waitForExistence(timeout: 5))
         XCTAssertTrue(address.label.contains("Peachtree"), address.label)
 
