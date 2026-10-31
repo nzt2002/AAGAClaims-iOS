@@ -25,14 +25,17 @@ enum WhatsNew {
 
     static let releases: [Release] = [
         Release(version: "1.2.0", date: "Oct 31, 2026", items: [
-            Item(icon: "questionmark.bubble", title: "Cases on every claim and lead",
-                 detail: "Updates now list the questions and cases opened for the claim or lead. Tap one to see the conversation."),
+            Item(icon: "questionmark.bubble", title: "A Cases tab on every claim and lead",
+                 detail: "The last tab on a claim or lead lists the questions and cases opened for it. Tap one to see the conversation. Case replies also appear in Updates."),
             Item(icon: "checkmark.circle", title: "Mark a case as completed",
                  detail: "Question answered? Tap Mark as Completed at the end of the case to close it."),
             Item(icon: "map", title: "Tap the address for directions",
                  detail: "The loss address on a lead now has its own card. Tap it to open Maps. Lead headers are green, so you can tell leads from claims at a glance."),
             Item(icon: "bell.badge", title: "More notifications",
                  detail: "Get notified about new portal updates and replies to your cases."),
+            Item(icon: "bubble.left.and.text.bubble.right", title: "Case replies in the Chatter feed",
+                 detail: "Replies on a case are posted to its claim's or lead's Chatter feed, so the whole team sees them.",
+                 staffOnly: true),
             Item(icon: "bell.badge.fill", title: "Staff notifications",
                  detail: "Staff are also notified about Chatter posts on their claims and leads, case updates, and e-sign documents being viewed, signed or declined.",
                  staffOnly: true),

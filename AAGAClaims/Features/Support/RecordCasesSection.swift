@@ -1,7 +1,7 @@
 import PortalKit
 import SwiftUI
 
-/// Support cases on a claim or lead, under its Updates. Homeowners open the case thread (where they
+/// Support cases on a claim or lead: the last tab of its page. Homeowners open the case thread (where they
 /// can reply or mark it completed); staff open the case in Salesforce.
 struct RecordCasesSection: View {
     let state: LoadState<[SupportCase]>
@@ -14,7 +14,6 @@ struct RecordCasesSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-            SectionHeading("Cases")
             SectionLoader(state: state, subject: "cases", retry: retry) { cases in
                 if cases.isEmpty {
                     Text("No cases have been opened for this \(noun).")

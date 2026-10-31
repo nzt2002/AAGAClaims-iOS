@@ -131,7 +131,7 @@ struct LeadDetailView: View {
                     RecordActivitySection(model: activity, api: api, noun: "lead")
                 }
                 AgreementCard(agreement: detail.agreement)
-                SectionBar(selection: $viewModel.section)
+                SectionBar(selection: $viewModel.section, hidden: viewModel.includesCases ? [] : [.cases])
                 sectionContent(detail)
                 TeamCard(
                     adjuster: .init(name: detail.adjusterName, phone: detail.adjusterPhone, email: detail.adjusterEmail),
@@ -264,9 +264,6 @@ struct LeadDetailView: View {
                     UpdatesList(updates: updates, emptyMessage: "No updates have been published for this lead yet.", visibleCount: 3)
                 }
             }
-            if viewModel.includesCases {
-                RecordCasesSection(state: viewModel.cases, noun: "lead") { await viewModel.loadCases() }
-            }
         case .details:
             LeadDetailsSection(detail: detail)
         case .referredBy:
@@ -275,6 +272,8 @@ struct LeadDetailView: View {
             LeadInsuranceSection(detail: detail)
         case .files:
             FilesSection(record: viewModel.record, state: viewModel.files, api: api) { await viewModel.loadFiles() }
+        case .cases:
+            RecordCasesSection(state: viewModel.cases, noun: "lead") { await viewModel.loadCases() }
         }
     }
 }

@@ -119,7 +119,7 @@ struct ClaimDetailView: View {
                         RecordActivitySection(model: activity, api: api, noun: "claim")
                     }
                 }
-                SectionBar(selection: $viewModel.section)
+                SectionBar(selection: $viewModel.section, hidden: viewModel.includesCases ? [] : [.cases])
                 sectionContent(detail)
                 TeamCard(
                     adjuster: .init(name: detail.adjusterName, phone: detail.adjusterPhone, email: detail.adjusterEmail),
@@ -182,15 +182,14 @@ struct ClaimDetailView: View {
                     UpdatesList(updates: updates, emptyMessage: "No updates have been published for this claim yet.", visibleCount: 3)
                 }
             }
-            if viewModel.includesCases {
-                RecordCasesSection(state: viewModel.cases, noun: "claim") { await viewModel.loadCases() }
-            }
         case .details:
             ClaimDetailsSection(detail: detail, lossReason: summary?.lossReason)
         case .insurance:
             ClaimInsuranceSection(detail: detail)
         case .files:
             FilesSection(record: viewModel.record, state: viewModel.files, api: api) { await viewModel.loadFiles() }
+        case .cases:
+            RecordCasesSection(state: viewModel.cases, noun: "claim") { await viewModel.loadCases() }
         case .payments:
             SectionLoader(state: viewModel.payments, subject: "payments", retry: { await viewModel.loadPayments() }) { payments in
                 PaymentsList(payments: payments, totalCollected: detail.paymentCollected, totalRcv: detail.totalRcv)
@@ -557,11 +556,13 @@ struct StepRow: View {
 /// Section chooser. Chips instead of a segmented control so 5 labels fit at large text sizes.
 struct SectionBar<Section: RawRepresentable & CaseIterable & Hashable>: View where Section.RawValue == String, Section.AllCases: RandomAccessCollection {
     @Binding var selection: Section
+    /// Tabs the server doesn't support yet.
+    var hidden: Set<Section> = []
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Theme.Spacing.s) {
-                ForEach(Section.allCases, id: \.self) { section in
+                ForEach(Section.allCases.filter { !hidden.contains($0) }, id: \.self) { section in
                     Button {
                         selection = section
                     } label: {

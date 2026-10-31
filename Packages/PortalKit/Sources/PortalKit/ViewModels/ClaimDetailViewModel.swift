@@ -12,13 +12,15 @@ public final class ClaimDetailViewModel {
         case insurance = "Insurance"
         case files = "Files"
         case payments = "Payments"
+        /// Last; only on servers with `recordCases`.
+        case cases = "Cases"
     }
 
     public let claimId: String
     public private(set) var detail: LoadState<ClaimDetail> = .idle
     public private(set) var updates: LoadState<[PortalUpdate]> = .idle
     public private(set) var files: LoadState<[PortalFile]> = .idle
-    /// Support cases on the record, shown under Updates. Loaded only when `includesCases` is set
+    /// Support cases on the record, shown in the Cases tab. Loaded only when `includesCases` is set
     /// (servers with `recordCases`).
     public private(set) var cases: LoadState<[SupportCase]> = .idle
     public var includesCases = false
