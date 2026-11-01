@@ -4,6 +4,22 @@ import Testing
 
 @Suite("JSON decoding")
 struct DecodingTests {
+    @Test("A post with a file Chatter can't identify still decodes, without that file")
+    func postWithUnidentifiedFile() throws {
+        // The live feed of a claim with a deleted file (2026-10-31): the whole Chatter feed failed to load.
+        let json = #"""
+        [{"totalReplies":0,"text":"File Upload","replies":[{"text":"Hi","mentions":[],"isMine":true,"id":"0D7000000000001AAA",
+          "createdDate":"2026-10-19T17:48:03.000Z","authorName":"Pat","attachments":[{"title":null,"id":null}]}],
+          "parentName":null,"mentions":[],"id":"0D5Rh00001944MDKAY","createdDate":"2026-07-29T02:14:53.000Z",
+          "authorName":"ProClaimer Support","attachments":[{"title":null,"id":null,"fileType":"Unknown","fileExtension":null,"contentSize":null},
+          {"title":"Roof.jpg","id":"069000000000001AAA","fileType":"JPG","fileExtension":"jpg","contentSize":10}]}]
+        """#
+        let posts = try PortalJSON.makeDecoder().decode([ChatterPost].self, from: Data(json.utf8))
+        #expect(posts.first?.attachments?.map(\.id) == ["069000000000001AAA"])
+        #expect(posts.first?.replies.first?.attachments?.isEmpty == true)
+        #expect(posts.first?.authorName == "ProClaimer Support")
+    }
+
     @Test("All bundled fixtures decode")
     func bundledFixturesDecode() throws {
         let fixtures = try MockPortalAPI.Fixtures.bundled()

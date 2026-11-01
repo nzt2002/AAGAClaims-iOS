@@ -42,6 +42,15 @@ public struct ChatterAttachment: Codable, Hashable, Identifiable, Sendable {
     }
 }
 
+/// Decodes one attachment, or nil when it's malformed.
+struct LossyAttachment: Decodable {
+    let value: ChatterAttachment?
+
+    init(from decoder: Decoder) throws {
+        value = try? ChatterAttachment(from: decoder)
+    }
+}
+
 /// A reply (Chatter comment) on a post.
 public struct ChatterReply: Codable, Hashable, Identifiable, Sendable {
     public let id: String
@@ -53,6 +62,18 @@ public struct ChatterReply: Codable, Hashable, Identifiable, Sendable {
     /// Names @mentioned in the text.
     public var mentions: [String]?
     public var attachments: [ChatterAttachment]?
+
+    /// Attachments the server couldn't identify (no id, e.g. a deleted file) are dropped, not fatal.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        authorName = try c.decodeIfPresent(String.self, forKey: .authorName)
+        text = try c.decodeIfPresent(String.self, forKey: .text)
+        createdDate = try c.decodeIfPresent(Date.self, forKey: .createdDate)
+        isMine = try c.decodeIfPresent(Bool.self, forKey: .isMine)
+        mentions = try c.decodeIfPresent([String].self, forKey: .mentions)
+        attachments = try c.decodeIfPresent([LossyAttachment].self, forKey: .attachments)?.compactMap(\.value)
+    }
 
     public init(id: String, authorName: String?, text: String?, createdDate: Date?, isMine: Bool?, mentions: [String]? = nil,
                 attachments: [ChatterAttachment]? = nil) {
@@ -78,6 +99,20 @@ public struct ChatterPost: Codable, Hashable, Identifiable, Sendable {
     public var totalReplies: Int?
     public var mentions: [String]?
     public var attachments: [ChatterAttachment]?
+
+    /// Attachments the server couldn't identify (no id, e.g. a deleted file) are dropped, not fatal.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        authorName = try c.decodeIfPresent(String.self, forKey: .authorName)
+        text = try c.decodeIfPresent(String.self, forKey: .text)
+        createdDate = try c.decodeIfPresent(Date.self, forKey: .createdDate)
+        parentName = try c.decodeIfPresent(String.self, forKey: .parentName)
+        replies = try c.decode([ChatterReply].self, forKey: .replies)
+        totalReplies = try c.decodeIfPresent(Int.self, forKey: .totalReplies)
+        mentions = try c.decodeIfPresent([String].self, forKey: .mentions)
+        attachments = try c.decodeIfPresent([LossyAttachment].self, forKey: .attachments)?.compactMap(\.value)
+    }
 
     public init(id: String, authorName: String?, text: String?, createdDate: Date?, parentName: String?,
                 replies: [ChatterReply], totalReplies: Int?, mentions: [String]? = nil, attachments: [ChatterAttachment]? = nil) {
