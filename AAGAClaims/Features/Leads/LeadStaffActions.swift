@@ -69,7 +69,7 @@ struct LeadQuickActions: View {
         .background {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(Color.surface)
-                .shadow(color: Color.brandPrimary.opacity(0.10), radius: 14, x: 0, y: 6)
+                .shadow(color: Color.leadAccent.opacity(0.10), radius: 14, x: 0, y: 6)
         }
         .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Color.border.opacity(0.6), lineWidth: 1))
     }

@@ -161,6 +161,9 @@ struct LeadDetailView: View {
             }
         }
         .environment(\.emailReference, EmailReference.reference(forRecordId: viewModel.leadId))
+        // Lead pages are green: their buttons, links and tabs too.
+        .environment(\.isLeadRecord, true)
+        .tint(.leadAccent)
         // Ask Question is a top-bar icon; there's no Add Comment, as on claims.
         .recordActions(record: viewModel.record, recordName: recordName, api: api, placement: .toolbarIcon)
         .documentGeneration(record: viewModel.record, recordName: recordName, api: api,
@@ -308,7 +311,7 @@ private struct LeadLifecycleCard: View {
                     if hasStages {
                         Image(systemName: "chevron.down")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Color.brandPrimary)
+                            .foregroundStyle(Color.leadAccent)
                             .rotationEffect(.degrees(expanded ? 180 : 0))
                             .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
                     }
@@ -329,7 +332,7 @@ private struct LeadLifecycleCard: View {
                             state: position.state(ofStageAt: index),
                             isLast: index == position.stages.count - 1,
                             // Unqualified is shown in a warning style (spec §6.7).
-                            currentTint: isUnqualified ? .warning : .brandPrimary
+                            currentTint: isUnqualified ? .warning : .leadAccent
                         )
                     }
                 }
@@ -354,7 +357,7 @@ private struct AgreementCard: View {
                             state: step.state,
                             isLast: index == steps.count - 1,
                             detail: step.date.map { PortalFormat.date($0) },
-                            currentTint: step.title == "Signed" ? .success : .brandPrimary
+                            currentTint: step.title == "Signed" ? .success : .leadAccent
                         )
                     }
                 }

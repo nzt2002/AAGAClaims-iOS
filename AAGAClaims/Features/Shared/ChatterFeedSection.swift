@@ -9,6 +9,7 @@ import SwiftUI
 /// replies, with Edit on the user's own replies. Reply opens a reply box (three lines, @mentions,
 /// and on claims and leads a file).
 struct ChatterFeedSection: View {
+    @Environment(\.isLeadRecord) private var isLead
     let model: ChatterFeedViewModel
     let emptyMessage: String
     /// Show this many posts and scroll for the rest; nil shows them all.
@@ -314,7 +315,7 @@ struct ChatterFeedSection: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .buttonBorderShape(.capsule)
-                    .tint(.brandPrimary)
+                    .tint(Color.recordAccent(isLead: isLead))
                     .disabled(!model.canSend(post.id))
                     .accessibilityLabel("Send reply")
                     .accessibilityIdentifier("sendReply-\(post.id)")

@@ -30,7 +30,7 @@ enum WhatsNew {
             Item(icon: "checkmark.circle", title: "Mark a case as completed",
                  detail: "Question answered? Tap Mark as Completed at the end of the case to close it."),
             Item(icon: "map", title: "Tap the address for directions",
-                 detail: "The loss address on a lead now has its own card. Tap it to open Maps. Lead headers are green, so you can tell leads from claims at a glance."),
+                 detail: "The loss address on claims and leads now has its own card. Tap it to open Maps. Lead pages are green, header and buttons, so you can tell leads from claims at a glance."),
             Item(icon: "bell.badge", title: "More notifications",
                  detail: "Get notified about new portal updates and replies to your cases."),
             Item(icon: "bubble.left.and.text.bubble.right", title: "Case replies in the Chatter feed",

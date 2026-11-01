@@ -113,6 +113,7 @@ struct ActionCircle: View {
     @ScaledMetric(relativeTo: .body) private var size: CGFloat = 48
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.isLeadRecord) private var isLead
 
     var body: some View {
         VStack(spacing: 8) {
@@ -120,7 +121,7 @@ struct ActionCircle: View {
                 .font(.system(size: size * 0.4, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: size, height: size)
-                .background(BrandGradient.hero(colorScheme), in: Circle())
+                .background(BrandGradient.record(isLead: isLead, colorScheme), in: Circle())
                 .overlay(Circle().stroke(.white.opacity(0.25), lineWidth: 1).padding(1))
                 .opacity(isEnabled ? 1 : 0.4)
                 .accessibilityHidden(true)

@@ -73,6 +73,8 @@ struct AdaptiveStack<Content: View>: View {
 
 extension EnvironmentValues {
     @Entry var isAdaptiveRowHorizontal = false
+    /// Set on lead pages: their buttons and links are green instead of the brand blue.
+    @Entry var isLeadRecord = false
 }
 
 /// Pushes the rest of an `AdaptiveStack` row to the trailing edge, but only when it's horizontal.
@@ -120,6 +122,11 @@ enum BrandGradient {
         // The asset colours have light and dark variants; the scheme is resolved by the environment.
         _ = colorScheme
         return LinearGradient(colors: [.heroStart, .heroEnd], startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    /// The hero for the record being shown: green on leads, blue elsewhere.
+    static func record(isLead: Bool, _ colorScheme: ColorScheme) -> LinearGradient {
+        isLead ? leadHero : hero(colorScheme)
     }
 
     /// Leads are green, so they're never mistaken for claims. White text is at least 5.0:1.
@@ -173,5 +180,12 @@ extension SectionHeader where Trailing == EmptyView {
     init(_ title: String) {
         self.title = title
         self.trailing = { EmptyView() }
+    }
+}
+
+extension Color {
+    /// Buttons and links on a record page: green on leads (4.9:1 on white; bright green in dark mode), brand blue elsewhere.
+    static func recordAccent(isLead: Bool) -> Color {
+        isLead ? .leadAccent : .brandPrimary
     }
 }

@@ -48,6 +48,7 @@ struct LinkRow: View {
     var actionName: String = "Open"
 
     @Environment(\.openURL) private var openURL
+    @Environment(\.isLeadRecord) private var isLead
 
     var body: some View {
         if let value = PortalFormat.nonEmpty(value) {
@@ -78,7 +79,7 @@ struct LinkRow: View {
                     .foregroundStyle(Color.textSecondary)
                 Text(value)
                     .font(.subheadline)
-                    .foregroundStyle(tinted ? Color.brandPrimary : Color.textPrimary)
+                    .foregroundStyle(tinted ? Color.recordAccent(isLead: isLead) : Color.textPrimary)
                     .multilineTextAlignment(.leading)
             }
             Spacer(minLength: 0)
@@ -91,6 +92,7 @@ struct LinkRow: View {
 /// The loss address under a record's hero: tap to open Apple Maps. Hidden when there's no address.
 struct LossAddressCard: View {
     let address: String?
+    @Environment(\.isLeadRecord) private var isLead
 
     var body: some View {
         if let address = PortalFormat.nonEmpty(address) {
@@ -99,7 +101,7 @@ struct LossAddressCard: View {
                 .overlay(alignment: .trailing) {
                     Image(systemName: "map")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.brandPrimary)
+                        .foregroundStyle(Color.recordAccent(isLead: isLead))
                         .accessibilityHidden(true)
                 }
                 .cardStyle()

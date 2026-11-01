@@ -12,6 +12,7 @@ struct RecordCasesSection: View {
     @Environment(\.isInternalUser) private var isInternal
     @Environment(\.salesforcePage) private var salesforcePage
     @Environment(\.serverMeta) private var serverMeta
+    @Environment(\.isLeadRecord) private var isLead
     @State private var salesforceURL: URL?
 
     var body: some View {
@@ -65,7 +66,7 @@ struct RecordCasesSection: View {
 
     private func label(_ supportCase: SupportCase, systemImage: String) -> some View {
         HStack(alignment: .top, spacing: Theme.Spacing.m) {
-            IconBadge(systemName: "questionmark.bubble", tint: supportCase.isClosed ? .textSecondary : .brandPrimary, size: 32)
+            IconBadge(systemName: "questionmark.bubble", tint: supportCase.isClosed ? .textSecondary : .recordAccent(isLead: isLead), size: 32)
             VStack(alignment: .leading, spacing: 2) {
                 Text(supportCase.subject ?? "Support request")
                     .font(.subheadline.weight(.semibold))

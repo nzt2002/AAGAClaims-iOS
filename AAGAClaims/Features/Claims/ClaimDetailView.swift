@@ -558,6 +558,7 @@ struct SectionBar<Section: RawRepresentable & CaseIterable & Hashable>: View whe
     @Binding var selection: Section
     /// Tabs the server doesn't support yet.
     var hidden: Set<Section> = []
+    @Environment(\.isLeadRecord) private var isLead
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -572,7 +573,7 @@ struct SectionBar<Section: RawRepresentable & CaseIterable & Hashable>: View whe
                             .frame(minHeight: Theme.minTapTarget)
                             .foregroundStyle(selection == section ? Color.surface : Color.textPrimary)
                             .background(
-                                selection == section ? Color.brandPrimary : Color.surface,
+                                selection == section ? Color.recordAccent(isLead: isLead) : Color.surface,
                                 in: Capsule()
                             )
                             .overlay(Capsule().stroke(Color.border, lineWidth: selection == section ? 0 : 1))

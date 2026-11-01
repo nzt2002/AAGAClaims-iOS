@@ -124,12 +124,13 @@ extension AgendaItem {
 
 /// One task, event or email card.
 struct ActivityItemRow: View {
+    @Environment(\.isLeadRecord) private var isLead
     let item: AgendaItem
 
     var body: some View {
         let state = item.activityState
         HStack(alignment: .top, spacing: Theme.Spacing.m) {
-            IconBadge(systemName: item.activityIcon, tint: item.isOverdue == true ? .warning : .brandPrimary, size: 36, filled: true)
+            IconBadge(systemName: item.activityIcon, tint: item.isOverdue == true ? .warning : .recordAccent(isLead: isLead), size: 36, filled: true)
             VStack(alignment: .leading, spacing: 3) {
                 AdaptiveStack(horizontalAlignment: .firstTextBaseline) {
                     Text(item.subject ?? item.activityKindName)
@@ -175,6 +176,7 @@ struct ActivityItemRow: View {
 /// A task's, event's or email's page. Tasks: Mark Complete, Edit and Reassign; events: Edit and
 /// Reassign; emails are read-only. A Safari icon opens the record in Salesforce.
 struct ActivityDetailView: View {
+    @Environment(\.isLeadRecord) private var isLead
     @State var model: ActivityDetailViewModel
     @Environment(\.salesforcePage) private var salesforcePage
     @Environment(\.isOffline) private var isOffline
@@ -189,7 +191,7 @@ struct ActivityDetailView: View {
             VStack(alignment: .leading, spacing: Theme.Spacing.l) {
                 // Icon above the title at large text, so long subjects aren't squeezed.
                 AdaptiveStack(horizontalAlignment: .top, spacing: Theme.Spacing.m) {
-                    IconBadge(systemName: item.activityIcon, tint: item.isOverdue == true ? .warning : .brandPrimary, size: 48, filled: true)
+                    IconBadge(systemName: item.activityIcon, tint: item.isOverdue == true ? .warning : .recordAccent(isLead: isLead), size: 48, filled: true)
                     VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                         Text(item.activityKindName)
                             .font(.subheadline.weight(.semibold))
@@ -297,7 +299,7 @@ struct ActivityDetailView: View {
             }
             .buttonStyle(.borderedProminent)
             .buttonBorderShape(.capsule)
-            .tint(.brandPrimary)
+            .tint(Color.recordAccent(isLead: isLead))
             .disabled(model.isSaving)
             .disabledWhenOffline(isOffline)
             .accessibilityIdentifier("activityComplete")
@@ -322,7 +324,7 @@ struct ActivityDetailView: View {
         }
         .buttonStyle(.bordered)
         .buttonBorderShape(.capsule)
-        .tint(.brandPrimary)
+        .tint(Color.recordAccent(isLead: isLead))
         .disabled(model.isSaving || model.assignees.isEmpty)
         .disabledWhenOffline(isOffline)
         .accessibilityIdentifier("activityReassign")
