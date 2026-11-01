@@ -1,4 +1,4 @@
-# App Store submission kit: ProClaimer 1.1.0
+# App Store submission kit: ProClaimer 2.0.0
 
 Everything to enter in App Store Connect for the first release. Paste-ready text is in
 `listing.md`, the privacy questionnaire answers are in `app-privacy.md`, and the notes for Apple's
@@ -12,11 +12,11 @@ demo data with the demo banner hidden: Home, Claims, a claim, its progress, its 
       `app.accurateadjustmentsga.com` points at the project (CNAME `app` → `proclaimer-app.pages.dev` in Wix),
       the same page is also at `https://app.accurateadjustmentsga.com/privacy/`.
 - [ ] App information: name, subtitle, category, age rating and copyright (`listing.md`).
-- [x] Version 1.1.0: description, keywords, promotional text, support URL, copyright and the 14 screenshots (set through the API, 2026-11-01).
+- [x] Version 2.0.0 (renamed from 1.1.0 on 2026-11-01): description, keywords, promotional text, support URL, copyright and the 14 screenshots (set through the API, 2026-11-01).
 - [ ] App Privacy: answer the questionnaire (`app-privacy.md`).
 - [x] App Review information (notes updated 2026-11-01 for the 1.1.0 layout): sign-in details and notes (`review-notes.md`). Enter the demo
       account's password in App Store Connect only; never put it in documents.
-- [ ] Build: choose the latest 1.1.0 build once it has finished processing.
+- [ ] Build: choose 2.0.0 (39) or later once it has finished processing.
 - [ ] Export compliance: already answered in the build (no non-exempt encryption).
 - [ ] Pricing and availability: free; United States (or your choice).
 - [x] Push notifications: APNs key added to the AAGA Claims iOS External Client App (2026-10-31).
