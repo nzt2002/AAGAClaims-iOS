@@ -12,9 +12,9 @@ demo data with the demo banner hidden: Home, Claims, a claim, its progress, its 
       `app.accurateadjustmentsga.com` points at the project (CNAME `app` → `proclaimer-app.pages.dev` in Wix),
       the same page is also at `https://app.accurateadjustmentsga.com/privacy/`.
 - [ ] App information: name, subtitle, category, age rating and copyright (`listing.md`).
-- [ ] Version 1.1.0: description, keywords, promotional text, support URL and screenshots.
+- [x] Version 1.1.0: description, keywords, promotional text, support URL, copyright and the 14 screenshots (set through the API, 2026-11-01).
 - [ ] App Privacy: answer the questionnaire (`app-privacy.md`).
-- [ ] App Review information: sign-in details and notes (`review-notes.md`). Enter the demo
+- [x] App Review information (notes updated 2026-11-01 for the 1.1.0 layout): sign-in details and notes (`review-notes.md`). Enter the demo
       account's password in App Store Connect only; never put it in documents.
 - [ ] Build: choose the latest 1.1.0 build once it has finished processing.
 - [ ] Export compliance: already answered in the build (no non-exempt encryption).
