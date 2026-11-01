@@ -1,8 +1,9 @@
 import PortalKit
 import SwiftUI
 
-/// Support cases on a claim or lead: the last tab of its page. Homeowners open the case thread (where they
-/// can reply or mark it completed); staff open the case in Salesforce.
+/// Support cases on a claim or lead: the last tab of its page. A case opens on the app's case page
+/// (staff and homeowners reply there; homeowners can also mark it completed). Staff fall back to
+/// Salesforce on servers without `staffCases`.
 struct RecordCasesSection: View {
     let state: LoadState<[SupportCase]>
     let noun: String
@@ -10,6 +11,7 @@ struct RecordCasesSection: View {
 
     @Environment(\.isInternalUser) private var isInternal
     @Environment(\.salesforcePage) private var salesforcePage
+    @Environment(\.serverMeta) private var serverMeta
     @State private var salesforceURL: URL?
 
     var body: some View {
@@ -40,7 +42,7 @@ struct RecordCasesSection: View {
 
     @ViewBuilder
     private func row(_ supportCase: SupportCase) -> some View {
-        if isInternal {
+        if isInternal && !serverMeta.supports(.staffCases) {
             Button {
                 guard let salesforcePage else { return }
                 let path = SalesforcePageLink.path("/lightning/r/Case/\(supportCase.caseId)/view", query: [])

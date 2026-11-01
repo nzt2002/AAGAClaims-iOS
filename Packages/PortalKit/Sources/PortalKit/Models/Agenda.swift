@@ -137,6 +137,8 @@ public struct ServerMeta: Codable, Hashable, Sendable {
         case largeFiles, accountDeletion, diagnostics
         /// `GET /{record}/cases` and `POST /cases/{id}/complete`.
         case recordCases
+        /// Staff can open and reply to cases in the app (`GET /cases/{id}`, replies).
+        case staffCases
     }
 }
 

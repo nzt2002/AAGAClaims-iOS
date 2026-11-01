@@ -69,8 +69,8 @@ public enum DeepLink: Hashable, Sendable {
     }
 
     /// A push payload: `{ "type": "update" | "caseReply" | "case" | "payment" | "mention" | "post" | "task" | "esign",
-    /// "recordId": "...", "commentId": "..." }`. "case" (a case update) carries the case id for homeowners
-    /// and the case's claim or lead for staff, who don't open cases in the app.
+    /// "recordId": "...", "commentId": "..." }`. "case" (a case update) carries the case id (older servers
+    /// sent staff the case's claim or lead).
     public init?(pushPayload userInfo: [AnyHashable: Any]) {
         guard let type = userInfo["type"] as? String,
               let recordId = userInfo["recordId"] as? String, Self.isValidId(recordId) else { return nil }

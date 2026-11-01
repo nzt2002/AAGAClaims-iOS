@@ -59,7 +59,7 @@ struct CaseDetailView: View {
 
                     if let description = PortalFormat.nonEmpty(detail.description) {
                         VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                            SectionHeading("Your request")
+                            SectionHeading(isInternal ? "Request" : "Your request")
                             Text(description)
                                 .font(.subheadline)
                                 .foregroundStyle(Color.textPrimary)
