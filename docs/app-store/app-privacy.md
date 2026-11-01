@@ -2,8 +2,10 @@
 
 **Do you or your third-party partners collect data from this app?** Yes.
 **Tracking:** No. The app doesn't track users across other companies' apps or websites, and has no ads or analytics SDKs.
+**Third party:** Google reCAPTCHA Enterprise (in-app password reset) collects the types marked *reCAPTCHA* below,
+for fraud prevention (App Functionality), per its privacy manifest; none of it is used for tracking.
 
-For every type below: **Linked to the user's identity: Yes** · **Used for tracking: No** · **Purpose: App Functionality** (diagnostics: also *Analytics*, to fix crashes).
+For every type below: **Linked to the user's identity: Yes** · **Used for tracking: No** · **Purpose: App Functionality** (Crash Data and Other Diagnostic Data: also *Analytics*, to fix crashes).
 
 | Category | Data type | Why |
 |---|---|---|
@@ -16,8 +18,10 @@ For every type below: **Linked to the user's identity: Yes** · **Used for track
 | User Content | Customer Support | Support cases and replies |
 | User Content | Other User Content | Claim updates, comments, posts, files |
 | Identifiers | User ID | Salesforce user ID for the session |
-| Identifiers | Device ID | Push notification token (only if notifications are allowed) |
-| Diagnostics | Crash Data | MetricKit crash reports (Mobile App Logs) |
+| Identifiers | Device ID | Push notification token (only if notifications are allowed); *reCAPTCHA* device signals |
+| Usage Data | Product Interaction | *reCAPTCHA* only (fraud prevention) |
+| Diagnostics | Crash Data | MetricKit crash reports (Mobile App Logs); *reCAPTCHA* |
+| Diagnostics | Performance Data | *reCAPTCHA* only (fraud prevention) |
 | Diagnostics | Other Diagnostic Data | App hang reports |
 
 **Not collected:**
@@ -25,4 +29,4 @@ For every type below: **Linked to the user's identity: Yes** · **Used for track
 - Health, contacts, browsing and search history, purchases.
 - Sensitive info, audio, and gameplay content.
 
-Account deletion: available in the app (Account → Delete Account).
+Account deletion: available in the app (tap your initials at the top right → Delete Account).
