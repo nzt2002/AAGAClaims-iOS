@@ -511,6 +511,9 @@ The app runs on iPad in every orientation. At regular width, Claims and Leads ar
 ### 6.11 Account
 - Name and email (read-only).
 - **Notifications** toggle, which deep-links to iOS Settings if notifications are denied.
+- **Notify me about** (once notifications are allowed and the server reports `notificationPreferences`): a switch for each kind, saved at once through `GET`/`POST /notification-preferences`. A failed save puts the switch back. The server stores them per user in the `Portal_Push_Preference__c` custom setting; no record means everything is on. `PortalPushService` then skips anyone who has turned that kind off.
+  - Everyone: *Claim and lead updates* (`update`), *Payments* (`payment`), *Support replies* (`caseReply`, `case`).
+  - Staff also: *Mentions* (`mention`), *Tasks assigned to me* (`task`), *Team posts* (`post`), *E-signatures* (`esign`).
 - **Face ID** toggle.
 - Links: *Contact support* (opens Support), *Privacy policy*, *Terms*.
 - **Sign out**: revokes the token through the SDK logout and clears the cache and keychain.

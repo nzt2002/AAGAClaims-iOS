@@ -518,6 +518,7 @@ public actor MockPortalAPI: PortalAPI {
     }
 
     private var deletionRequested = false
+    private var pushPreferences = NotificationPreferences()
     public private(set) var diagnosticsReceived: [DiagnosticsReport.Item] = []
 
     /// Claim and lead activity, seeded on first view (by record id).
@@ -1044,6 +1045,17 @@ public actor MockPortalAPI: PortalAPI {
     public func serverMeta() async throws -> ServerMeta {
         try await simulate()
         return .all
+    }
+
+    public func notificationPreferences() async throws -> NotificationPreferences {
+        try await simulate()
+        return pushPreferences
+    }
+
+    public func saveNotificationPreferences(_ preferences: NotificationPreferences) async throws -> NotificationPreferences {
+        try await simulate()
+        pushPreferences = preferences
+        return preferences
     }
 
     private func pastTask(_ id: String, _ subject: String, subtype: String, daysAgo: Int, description: String?, record: RecordRef) -> AgendaItem {

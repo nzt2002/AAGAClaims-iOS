@@ -89,6 +89,10 @@ public protocol PortalAPI: Sendable {
     func requestAccountDeletion(reason: String?) async throws -> AccountDeletionRequest
     /// Crash and hang reports from MetricKit, for Mobile App Logs in Salesforce.
     func sendDiagnostics(_ report: DiagnosticsReport) async throws
+    /// Which kinds of push notification the user wants.
+    func notificationPreferences() async throws -> NotificationPreferences
+    /// Saves them and returns what the server stored.
+    func saveNotificationPreferences(_ preferences: NotificationPreferences) async throws -> NotificationPreferences
     func postToClaim(claimId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost
     func logCall(claimId: String, _ call: CallLog) async throws
     func sendEmail(claimId: String, _ email: OutgoingEmail) async throws

@@ -404,6 +404,14 @@ public struct HTTPPortalAPI: PortalAPI {
         let _: Received = try await post("/diagnostics", body: report)
     }
 
+    public func notificationPreferences() async throws -> NotificationPreferences {
+        try await get("/notification-preferences")
+    }
+
+    public func saveNotificationPreferences(_ preferences: NotificationPreferences) async throws -> NotificationPreferences {
+        try await post("/notification-preferences", body: preferences)
+    }
+
     // MARK: - Documents (pilot)
 
     public static let documentsBasePath = "/services/apexrest/portaldocs/v1"

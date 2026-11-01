@@ -29,6 +29,10 @@ struct AccountView: View {
                 Text(notificationFooter)
             }
 
+            if notificationStatus == .allowed, serverMeta.supports(.notificationPreferences) {
+                NotificationPreferencesSection(api: session.api, isInternal: user.isInternal)
+            }
+
             if session.lock.isAvailable || session.lock.isEnabled {
                 Section {
                     Toggle(session.lock.methodName, isOn: lockBinding)

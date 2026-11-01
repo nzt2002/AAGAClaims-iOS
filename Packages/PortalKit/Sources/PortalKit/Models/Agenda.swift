@@ -139,6 +139,8 @@ public struct ServerMeta: Codable, Hashable, Sendable {
         case recordCases
         /// Staff can open and reply to cases in the app (`GET /cases/{id}`, replies).
         case staffCases
+        /// Per-kind push switches (`GET`/`POST /notification-preferences`).
+        case notificationPreferences
     }
 }
 

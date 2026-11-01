@@ -288,6 +288,16 @@ public actor CachingPortalAPI: PortalAPI {
         try await guarded { try await $0.sendDiagnostics(report) }
     }
 
+    public func notificationPreferences() async throws -> NotificationPreferences {
+        try requireOnline()
+        return try await guarded { try await $0.notificationPreferences() }
+    }
+
+    public func saveNotificationPreferences(_ preferences: NotificationPreferences) async throws -> NotificationPreferences {
+        try requireOnline()
+        return try await guarded { try await $0.saveNotificationPreferences(preferences) }
+    }
+
     public func serverMeta() async throws -> ServerMeta {
         try requireOnline()
         return try await guarded { try await $0.serverMeta() }

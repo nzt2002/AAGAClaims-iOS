@@ -33,6 +33,8 @@ enum WhatsNew {
                  detail: "The loss address on claims and leads now has its own card. Tap it to open Maps. Lead pages are green, header and buttons, so you can tell leads from claims at a glance."),
             Item(icon: "bell.badge", title: "More notifications",
                  detail: "Get notified about new portal updates and replies to your cases."),
+            Item(icon: "switch.2", title: "Choose your notifications",
+                 detail: "In your account (tap your initials), turn each kind of notification on or off: updates, payments, support replies and more."),
             Item(icon: "bubble.left.and.text.bubble.right", title: "Case replies in the Chatter feed",
                  detail: "Replies on a case are posted to its claim's or lead's Chatter feed, so the whole team sees them.",
                  staffOnly: true),
