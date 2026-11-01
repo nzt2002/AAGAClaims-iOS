@@ -24,7 +24,7 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
-        Release(version: "1.2.0", date: "Oct 31, 2026", items: [
+        Release(version: "2.0.0", date: "Nov 1, 2026", items: [
             Item(icon: "questionmark.bubble", title: "A Cases tab on every claim and lead",
                  detail: "The last tab on a claim or lead lists the questions and cases opened for it. Tap one to see the conversation. Case replies also appear in Updates."),
             Item(icon: "checkmark.circle", title: "Mark a case as completed",
