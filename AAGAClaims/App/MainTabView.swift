@@ -18,6 +18,8 @@ struct MainTabView: View {
     @State private var serverMeta: ServerMeta = .legacy
     /// Set by New Claim; opened when its sheet has closed.
     @State private var createdClaim: (id: String, name: String)?
+    /// "Ask Alex" (staff with Claims Assistant access).
+    @State private var showingAskAlex = false
     @Environment(\.scenePhase) private var scenePhase
     /// iPad (full screen or a wide split): lists and records side by side.
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -169,6 +171,11 @@ struct MainTabView: View {
                 router.showingNewClaim = false
             }
         }
+        .sheet(isPresented: $showingAskAlex) {
+            if let agentId = assistantAgentId {
+                AskAlexSheet(agentId: agentId) { showingAskAlex = false }
+            }
+        }
         .sheet(isPresented: $router.showingNewEvent) {
             NewEventSheet(api: session.api, currentUserName: user.fullName) {
                 Task { await router.home.loadAgenda() }
@@ -256,10 +263,29 @@ struct MainTabView: View {
         router.open(.claim(claim.id), name: claim.name)
     }
 
-    /// Top right: the notifications bell. (Search is the Search tab and the bar in Home's hero.)
+    /// Alex, for staff the server says may use it. Not in demo mode: there's no real agent.
+    private var assistantAgentId: String? {
+        guard user.isInternal, !session.isDemo else { return nil }
+        return serverMeta.assistantAgentId
+    }
+
+    /// Top right: Ask Alex (staff), the notifications bell and Account. (Search is the Search tab
+    /// and the bar in Home's hero.)
     @ToolbarContentBuilder
     private func topBarButtons() -> some ToolbarContent {
         ToolbarItemGroup(placement: .topBarTrailing) {
+            if assistantAgentId != nil {
+                Button {
+                    showingAskAlex = true
+                } label: {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: bellSize))
+                        .frame(minWidth: bellButtonSize, minHeight: bellButtonSize)
+                }
+                .accessibilityLabel("Ask Alex")
+                .accessibilityIdentifier("askAlex")
+            }
+
             Button {
                 router.showingNotifications = true
             } label: {

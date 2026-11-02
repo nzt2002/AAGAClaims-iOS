@@ -116,10 +116,13 @@ public struct ActivityOptions: Codable, Hashable, Sendable {
 public struct ServerMeta: Codable, Hashable, Sendable {
     public let apiVersion: Int
     public let features: Set<String>
+    /// The Alex agent (Agentforce) when the signed-in user may use it; nil otherwise.
+    public let assistantAgentId: String?
 
-    public init(apiVersion: Int, features: Set<String>) {
+    public init(apiVersion: Int, features: Set<String>, assistantAgentId: String? = nil) {
         self.apiVersion = apiVersion
         self.features = features
+        self.assistantAgentId = assistantAgentId
     }
 
     /// A server from before `/meta`: the features it already had are assumed.
@@ -141,6 +144,8 @@ public struct ServerMeta: Codable, Hashable, Sendable {
         case staffCases
         /// Per-kind push switches (`GET`/`POST /notification-preferences`).
         case notificationPreferences
+        /// `assistantAgentId` in `/meta`: staff with access can chat with Alex.
+        case assistant
     }
 }
 

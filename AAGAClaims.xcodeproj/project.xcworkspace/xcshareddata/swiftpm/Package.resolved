@@ -1,6 +1,15 @@
 {
-  "originHash" : "34d9abb34f6e2aff77bcbf568fc6c2df37ac24e0fdd0d65db2624ba3bdd5ff76",
+  "originHash" : "449b36e5957c8921dc5891dd730294686054bac948e78a34494aef148455500a",
   "pins" : [
+    {
+      "identity" : "agentforcemobilesdk-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/salesforce/AgentforceMobileSDK-iOS",
+      "state" : {
+        "revision" : "c868dd171520cffae18e47df542ead686f8ca2a6",
+        "version" : "18.26.23"
+      }
+    },
     {
       "identity" : "fmdb",
       "kind" : "remoteSourceControl",
@@ -29,12 +38,48 @@
       }
     },
     {
+      "identity" : "salesforcemobileinterfaces-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/forcedotcom/SalesforceMobileInterfaces-iOS",
+      "state" : {
+        "revision" : "81a90b19c1eb9baa04abebc1fd1c078c3a5b45db",
+        "version" : "1.1.0"
+      }
+    },
+    {
       "identity" : "salesforcemobilesdk-ios-spm",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/forcedotcom/SalesforceMobileSDK-iOS-SPM",
       "state" : {
         "revision" : "a75e3b8d032ec7936526015970eafa7304680143",
         "version" : "14.0.0"
+      }
+    },
+    {
+      "identity" : "sharedui-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/salesforce/SharedUI-iOS",
+      "state" : {
+        "revision" : "302cd12f90a6846cebfd210cf9f722529f7c3eb4",
+        "version" : "1.6.14"
+      }
+    },
+    {
+      "identity" : "sldsicons-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/salesforce/SLDSIcons-iOS.git",
+      "state" : {
+        "revision" : "ceee8cf1819778fe126738af5028a56bc3b55485",
+        "version" : "1.2.7"
+      }
+    },
+    {
+      "identity" : "smiclientcore-ios.swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Salesforce-Async-Messaging/SMIClientCore-iOS.swift.git",
+      "state" : {
+        "revision" : "83a761169a3d79506edba4dee1299a531c921876",
+        "version" : "1.12.1"
       }
     },
     {

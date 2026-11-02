@@ -27,21 +27,16 @@
 	<string>Take photos of damage to upload to your claim or lead.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Use Face ID to unlock ProClaimer.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Speak to Alex, the claims assistant, instead of typing.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose photos to upload to a claim or share with Alex, the claims assistant.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Turn what you say to Alex, the claims assistant, into text.</string>
 	<key>PortalDataSource</key>
 	<string>live</string>
 	<key>SFDCOAuthLoginHost</key>
 	<string>portal.accurateadjustmentsga.com</string>
-	<key>UseNativeLogin</key>
-	<true/>
-	<key>UILaunchScreen</key>
-	<dict>
-		<key>UIColorName</key>
-		<string>LaunchBackground</string>
-		<key>UIImageName</key>
-		<string>LaunchMark</string>
-		<key>UIImageRespectsSafeAreaInsets</key>
-		<false/>
-	</dict>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -59,5 +54,16 @@
 			</array>
 		</dict>
 	</dict>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+		<key>UIImageName</key>
+		<string>LaunchMark</string>
+		<key>UIImageRespectsSafeAreaInsets</key>
+		<false/>
+	</dict>
+	<key>UseNativeLogin</key>
+	<true/>
 </dict>
 </plist>

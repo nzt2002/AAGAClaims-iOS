@@ -12,6 +12,7 @@
 		AA0000000000000000000103 /* SalesforceSDKCommon in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000303 /* SalesforceSDKCommon */; };
 		AA0000000000000000000104 /* SalesforceAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000304 /* SalesforceAnalytics */; };
 		AA0000000000000000000105 /* RecaptchaEnterprise in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000305 /* RecaptchaEnterprise */; };
+		AA0000000000000000000106 /* AgentforceSDK in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000306 /* AgentforceSDK */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -54,6 +55,7 @@
 				AA0000000000000000000103 /* SalesforceSDKCommon in Frameworks */,
 				AA0000000000000000000104 /* SalesforceAnalytics in Frameworks */,
 				AA0000000000000000000105 /* RecaptchaEnterprise in Frameworks */,
+				AA0000000000000000000106 /* AgentforceSDK in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -128,6 +130,7 @@
 				AA0000000000000000000303 /* SalesforceSDKCommon */,
 				AA0000000000000000000304 /* SalesforceAnalytics */,
 				AA0000000000000000000305 /* RecaptchaEnterprise */,
+				AA0000000000000000000306 /* AgentforceSDK */,
 			);
 			productName = AAGAClaims;
 			productReference = AA0000000000000000000201 /* AAGAClaims.app */;
@@ -186,6 +189,7 @@
 				AA0000000000000000000901 /* XCRemoteSwiftPackageReference "SalesforceMobileSDK-iOS-SPM" */,
 				AA0000000000000000000902 /* XCLocalSwiftPackageReference "Packages/PortalKit" */,
 				AA0000000000000000000903 /* XCRemoteSwiftPackageReference "recaptcha-enterprise-mobile-sdk" */,
+				AA0000000000000000000904 /* XCRemoteSwiftPackageReference "AgentforceMobileSDK-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AA0000000000000000000003 /* Products */;
@@ -452,6 +456,14 @@
 				minimumVersion = 18.9.1;
 			};
 		};
+		AA0000000000000000000904 /* XCRemoteSwiftPackageReference "AgentforceMobileSDK-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/salesforce/AgentforceMobileSDK-iOS";
+			requirement = {
+				kind = exactVersion;
+				version = 18.26.23;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -478,6 +490,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA0000000000000000000903 /* XCRemoteSwiftPackageReference "recaptcha-enterprise-mobile-sdk" */;
 			productName = RecaptchaEnterprise;
+		};
+		AA0000000000000000000306 /* AgentforceSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000904 /* XCRemoteSwiftPackageReference "AgentforceMobileSDK-iOS" */;
+			productName = AgentforceSDK;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

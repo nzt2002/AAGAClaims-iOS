@@ -2,12 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Consumer key of the "AAGA Claims iOS" External Client App
-	     (Setup > External Client App Manager > AAGA Claims iOS > Settings > OAuth Settings).
-	     Not a secret: the app is a public OAuth client using PKCE. Set it to
-	     REPLACE_WITH_CONSUMER_KEY to run in demo mode without signing in. -->
-	<key>remoteAccessConsumerKey</key>
-	<string>3MVG9Xl3BC6VHB.Y7pW8dxxtLwphLup3eP9gr3GTSbIoI.GvG5PfmBPPfZ_zC0bWibSsi99Zctoqa.ZmIWxhZ</string>
 	<key>oauthRedirectURI</key>
 	<string>aagaclaims-auth://oauth/done</string>
 	<key>oauthScopes</key>
@@ -15,7 +9,11 @@
 		<string>api</string>
 		<string>web</string>
 		<string>refresh_token</string>
+		<string>chatbot_api</string>
+		<string>sfap_api</string>
 	</array>
+	<key>remoteAccessConsumerKey</key>
+	<string>3MVG9Xl3BC6VHB.Y7pW8dxxtLwphLup3eP9gr3GTSbIoI.GvG5PfmBPPfZ_zC0bWibSsi99Zctoqa.ZmIWxhZ</string>
 	<key>shouldAuthenticate</key>
 	<true/>
 </dict>
