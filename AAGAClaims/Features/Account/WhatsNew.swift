@@ -24,6 +24,17 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "2.1.0", date: "Nov 2, 2026", items: [
+            Item(icon: "sparkles", title: "Ask Alex, your claims assistant",
+                 detail: "Tap the sparkles at the top right to chat with Alex. Ask about a claim's status, payments, deductible or next steps, or what the policy and estimate PDFs say.",
+                 staffOnly: true),
+            Item(icon: "square.and.pencil", title: "Drafts and portal updates",
+                 detail: "Alex drafts updates and emails for homeowners, carriers and contractors. Alex can post a homeowner update to the portal, but only after showing you a preview and getting your OK.",
+                 staffOnly: true),
+            Item(icon: "chart.bar.doc.horizontal", title: "Reports across your claims",
+                 detail: "Ask which claims have gone quiet, what's outstanding by carrier, or what's on your plate.",
+                 staffOnly: true),
+        ]),
         Release(version: "2.0.0", date: "Nov 1, 2026", items: [
             Item(icon: "questionmark.bubble", title: "A Cases tab on every claim and lead",
                  detail: "The last tab on a claim or lead lists the questions and cases opened for it. Tap one to see the conversation. Case replies also appear in Updates."),
