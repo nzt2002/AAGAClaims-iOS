@@ -61,7 +61,7 @@ struct MainTabView: View {
     }
 
     private var tabs: some View {
-        TabView(selection: $router.selection) {
+        TabView(selection: tabSelection) {
             Tab("Home", systemImage: "house", value: .home) {
                 NavigationStack(path: $router.homePath) {
                     HomeView(router: router, user: user)
@@ -117,15 +117,22 @@ struct MainTabView: View {
                         .toolbar { topBarButtons() }
                 }
             }
-            // Search as its own tab (on iOS 26, the separate glass button at the end of the tab bar).
-            // Records found here open in this tab, so Back returns to the results.
-            Tab("Search", systemImage: "magnifyingglass", value: .search, role: .search) {
-                NavigationStack(path: $router.searchPath) {
-                    SearchSheet(api: session.api, includePeople: user.isInternal, inTab: true, close: {}) { result in
-                        router.open(result)
+            // The separate glass button at the end of the tab bar (iOS 26): Ask Alex for staff who
+            // have him (it opens his chat; search moves to the top bar), otherwise Search.
+            if assistantAgentId != nil {
+                Tab("Ask Alex", image: "RobotIcon", value: .search, role: .search) {
+                    Color.appBackground
+                }
+            } else {
+                // Records found here open in this tab, so Back returns to the results.
+                Tab("Search", systemImage: "magnifyingglass", value: .search, role: .search) {
+                    NavigationStack(path: $router.searchPath) {
+                        SearchSheet(api: session.api, includePeople: user.isInternal, inTab: true, close: {}) { result in
+                            router.open(result)
+                        }
+                        .modifier(RecordDestinations(router: router, api: session.api))
+                        .statusBanners(session)
                     }
-                    .modifier(RecordDestinations(router: router, api: session.api))
-                    .statusBanners(session)
                 }
             }
         }
@@ -269,21 +276,33 @@ struct MainTabView: View {
         return serverMeta.assistantAgentId
     }
 
-    /// Top right: Ask Alex (staff), the notifications bell and Account. (Search is the Search tab
-    /// and the bar in Home's hero.)
+    /// The tab bar's selection. With Alex, his tab opens his chat over the current tab instead of
+    /// switching to it.
+    private var tabSelection: Binding<AppTab> {
+        Binding(get: { router.selection }, set: { tab in
+            if tab == .search && assistantAgentId != nil {
+                showingAskAlex = true
+            } else {
+                router.selection = tab
+            }
+        })
+    }
+
+    /// Top right: Search (staff with Alex, whose tab takes Search's place), the notifications bell and
+    /// Account. (Everyone else has the Search tab; Home's hero has a search bar too.)
     @ToolbarContentBuilder
     private func topBarButtons() -> some ToolbarContent {
         ToolbarItemGroup(placement: .topBarTrailing) {
             if assistantAgentId != nil {
                 Button {
-                    showingAskAlex = true
+                    router.showingSearch = true
                 } label: {
-                    Image(systemName: "sparkles")
+                    Image(systemName: "magnifyingglass")
                         .font(.system(size: bellSize))
                         .frame(minWidth: bellButtonSize, minHeight: bellButtonSize)
                 }
-                .accessibilityLabel("Ask Alex")
-                .accessibilityIdentifier("askAlex")
+                .accessibilityLabel("Search")
+                .accessibilityIdentifier("topBarSearch")
             }
 
             Button {
