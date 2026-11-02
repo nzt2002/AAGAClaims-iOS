@@ -179,7 +179,7 @@ enum HeadlessPasswordReset {
             let code = (json["status_code"] as? String ?? json["error"] as? String ?? "").lowercased()
             let message = json["message"] as? String ?? json["error_description"] as? String
             if code.contains("auth") || code.contains("recaptcha") || code.contains("not_allowed") || status == 404 || status == 403 {
-                return .unavailable("Salesforce: \(status) \(code)")
+                return .unavailable("Sign-in service: \(status) \(code)")
             }
             if code.contains("otp") || code.contains("code") { return .invalidCode }
             if code.contains("password") { return .weakPassword(message) }

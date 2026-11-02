@@ -24,6 +24,13 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "2.1.1", date: "Nov 2, 2026", items: [
+            Item(icon: "person.badge.key", title: "Simpler sign-in",
+                 detail: "The sign-in and welcome screens have clearer wording."),
+            Item(icon: "sparkles", title: "Alex, by name",
+                 detail: "The chat window is titled Alex, and Alex's replies are labelled Alex.",
+                 staffOnly: true),
+        ]),
         Release(version: "2.1.0", date: "Nov 2, 2026", items: [
             Item(icon: "sparkles", title: "Ask Alex, your claims assistant",
                  detail: "Tap the sparkles at the top right to chat with Alex. Ask about a claim's status, payments, deductible or next steps, or what the policy and estimate PDFs say.",

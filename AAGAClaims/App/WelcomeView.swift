@@ -105,7 +105,7 @@ struct WelcomeView: View {
                     .accessibilityIdentifier("signInHelp")
             }
 
-            Label("Secure sign-in with Salesforce", systemImage: "lock.shield.fill")
+            Label("Secure sign-in", systemImage: "lock.shield.fill")
                 .font(.caption)
                 .foregroundStyle(Color.textSecondary)
                 .frame(maxWidth: .infinity)

@@ -172,7 +172,7 @@ struct NativeSignInView: View {
             HStack {
                 Button("Forgot password?") { showingReset = true }
                 Spacer()
-                Button("Staff? Sign in with Salesforce") {
+                Button("Staff? Sign in with your work account") {
                     SalesforceManager.shared.nativeLoginManager().fallbackToWebAuthentication()
                 }
                 .accessibilityIdentifier("staffSignIn")
@@ -180,7 +180,7 @@ struct NativeSignInView: View {
             .font(.subheadline.weight(.semibold))
             .frame(minHeight: Theme.minTapTarget)
 
-            Label("Secure sign-in with Salesforce", systemImage: "lock.shield.fill")
+            Label("Secure sign-in", systemImage: "lock.shield.fill")
                 .font(.caption)
                 .foregroundStyle(Color.textSecondary)
                 .frame(maxWidth: .infinity)
@@ -270,7 +270,7 @@ struct NativeSignInView: View {
         case .invalidCredentials: "That username and password don't match. Try again, or reset your password."
         case .notApproved: "Your account doesn't have access to the app yet. Contact ProClaimer and we'll set it up."
         case .network: "We couldn't reach the server. Check your connection and try again."
-        case .other: "We couldn't sign you in. Try again, or use \"Staff? Sign in with Salesforce\"."
+        case .other: "We couldn't sign you in. Try again, or use \"Staff? Sign in with your work account\"."
         }
     }
 }

@@ -115,7 +115,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         ) { [weak self, weak scene] _ in
             MainActor.assumeIsolated {
                 guard !ScreenLockManagerInternal.shared.enabled else { return }
-                self?.session.noteSignInStep("skipped Salesforce lock")
+                self?.session.noteSignInStep("skipped app lock (SDK)")
                 // After the SDK has presented its window (it does so right after this notification).
                 DispatchQueue.main.async {
                     SFSDKWindowManager.shared().screenLockWindow().dismissWindow()

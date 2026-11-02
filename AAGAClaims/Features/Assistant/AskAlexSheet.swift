@@ -61,6 +61,8 @@ final class AskAlexAssistant {
     /// Kept alive for the life of the sheet, as the SDK requires.
     private var client: AgentforceClient?
     private var conversation: (any AgentConversation)?
+    /// Titles the SDK's top bar "Alex"; it otherwise shows "Agentforce" in employee mode.
+    private let navigationBar = AlexNavigationBar()
 
     func start(agentId: String, close: @escaping () -> Void) async {
         state = .starting
@@ -100,7 +102,8 @@ final class AskAlexAssistant {
                 conversation: conversation,
                 delegate: nil as (any AgentforceUIDelegate)?,
                 showTopBar: true,
-                onContainerClose: close
+                onContainerClose: close,
+                navigationBarBuilder: navigationBar
             )
             self.client = client
             self.conversation = conversation
@@ -124,6 +127,15 @@ final class AskAlexAssistant {
             if !started { done.resume() }
         }
     }
+}
+
+/// The chat's top bar: the SDK's own buttons, with the title "Alex" on every screen.
+final class AlexNavigationBar: NavigationBarBuilder {
+    var handleNavigation: HandleNavigationClosure? = { _, toolbarItems, _ in
+        toolbarItems.title = AskAlexAssistant.agentName
+        toolbarItems.showDefaults = true
+    }
+    var refreshHandler: (any NavigationRefreshable)?
 }
 
 /// Gives the SDK the signed-in user's current Salesforce token (never a cached copy).
