@@ -43,6 +43,8 @@ struct LeadDetailView: View {
             .background(Color.appBackground)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
+            .reportsViewedRecord(.lead(viewModel.leadId),
+                                 name: viewModel.detail.value?.prospectName ?? fallbackName)
             .task {
                 if viewModel.detail.value == nil {
                     viewModel.includesCases = serverMeta.supports(.recordCases)

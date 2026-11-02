@@ -20,6 +20,8 @@ struct MainTabView: View {
     @State private var createdClaim: (id: String, name: String)?
     /// "Ask Alex" (staff with Claims Assistant access).
     @State private var showingAskAlex = false
+    /// The claim or lead on screen, which Alex takes as the conversation's context.
+    @State private var alexContext = AlexRecordContext()
     @Environment(\.scenePhase) private var scenePhase
     /// iPad (full screen or a wide split): lists and records side by side.
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -41,6 +43,7 @@ struct MainTabView: View {
             })
             .environment(\.currentUserName, user.fullName)
             .environment(\.serverMeta, serverMeta)
+            .environment(\.alexRecordContext, assistantAgentId != nil ? alexContext : nil)
     }
 
     private var claimsList: some View {
@@ -180,7 +183,7 @@ struct MainTabView: View {
         }
         .sheet(isPresented: $showingAskAlex) {
             if let agentId = assistantAgentId {
-                AskAlexSheet(agentId: agentId) { showingAskAlex = false }
+                AskAlexSheet(agentId: agentId, viewing: alexContext.current) { showingAskAlex = false }
             }
         }
         .sheet(isPresented: $router.showingNewEvent) {

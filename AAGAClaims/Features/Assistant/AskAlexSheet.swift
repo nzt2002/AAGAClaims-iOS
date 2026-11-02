@@ -9,6 +9,8 @@ import SwiftUI
 /// Access permission set. The agent runs as the signed-in user, so it sees what they can see.
 struct AskAlexSheet: View {
     let agentId: String
+    /// The claim or lead on screen when Alex was opened: the conversation's starting context.
+    let viewing: AlexRecordContext.ViewedRecord?
     let close: () -> Void
 
     @State private var assistant = AskAlexAssistant()
@@ -27,13 +29,13 @@ struct AskAlexSheet: View {
                 } description: {
                     Text(message)
                 } actions: {
-                    Button("Try Again") { Task { await assistant.start(agentId: agentId, close: close) } }
+                    Button("Try Again") { Task { await assistant.start(agentId: agentId, viewing: viewing, close: close) } }
                     Button("Close", action: close)
                 }
             }
         }
         .background(Color.appBackground)
-        .task { await assistant.start(agentId: agentId, close: close) }
+        .task { await assistant.start(agentId: agentId, viewing: viewing, close: close) }
         .onDisappear { assistant.end() }
     }
 }
@@ -64,7 +66,7 @@ final class AskAlexAssistant {
     /// Titles the SDK's top bar "Alex"; it otherwise shows "Agentforce" in employee mode.
     private let navigationBar = AlexNavigationBar()
 
-    func start(agentId: String, close: @escaping () -> Void) async {
+    func start(agentId: String, viewing: AlexRecordContext.ViewedRecord?, close: @escaping () -> Void) async {
         state = .starting
         guard let account = UserAccountManager.shared.currentUserAccount else {
             state = .failed("You're signed out. Sign in again and retry.")
@@ -110,7 +112,41 @@ final class AskAlexAssistant {
             state = .ready(chat)
         } catch {
             state = .failed("Couldn't open the chat (\(error.localizedDescription)).")
+            return
         }
+        if let viewing {
+            await Self.setContext(viewing, on: conversation)
+        }
+    }
+
+    /// Starts the conversation on the record on screen: the page-context variables Salesforce's own
+    /// panel sends, plus an opening line naming the record, which Alex answers by confirming it
+    /// (the agent's instructions), so the context is visible and easy to correct.
+    private static func setContext(_ viewing: AlexRecordContext.ViewedRecord, on conversation: any AgentConversation) async {
+        guard await waitUntilActive(conversation) else { return }
+        // The SDK's conversation isn't Sendable, but its implementations of these run on the main actor.
+        nonisolated(unsafe) let conversation = conversation
+        try? await conversation.setAdditionalContext(context: [
+            AgentforceVariable(name: "currentRecordId", type: "Text", value: .string(viewing.record.id)),
+            AgentforceVariable(name: "currentObjectApiName", type: "Text", value: .string(viewing.objectApiName)),
+            AgentforceVariable(name: "currentPageType", type: "Text", value: .string("record__page")),
+        ])
+        await conversation.sendUtterance(utterance: openingLine(for: viewing), attachment: nil)
+    }
+
+    static func openingLine(for viewing: AlexRecordContext.ViewedRecord) -> String {
+        let name = viewing.name.map { " \"\($0)\"" } ?? ""
+        return "I'm viewing the \(viewing.noun)\(name) (Id \(viewing.record.id))."
+    }
+
+    /// The session is ready for messages (up to 20 seconds).
+    private static func waitUntilActive(_ conversation: any AgentConversation) async -> Bool {
+        let deadline = Date().addingTimeInterval(20)
+        for await state in conversation.conversationState.values {
+            if state == .active { return true }
+            if state == .error || state == .ended || Date() > deadline { return false }
+        }
+        return false
     }
 
     func end() {

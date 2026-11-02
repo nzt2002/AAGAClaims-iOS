@@ -24,6 +24,11 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "2.2.0", date: "Nov 2, 2026", items: [
+            Item(icon: "sparkles", title: "Alex knows what you're looking at",
+                 detail: "Open Alex from a claim or lead and he starts with that record: his first reply confirms it, and he sticks with it until you mention another claim.",
+                 staffOnly: true),
+        ]),
         Release(version: "2.1.1", date: "Nov 2, 2026", items: [
             Item(icon: "person.badge.key", title: "Simpler sign-in",
                  detail: "The sign-in and welcome screens have clearer wording."),

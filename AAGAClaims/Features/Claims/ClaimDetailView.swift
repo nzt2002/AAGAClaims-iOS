@@ -42,6 +42,8 @@ struct ClaimDetailView: View {
             // The header shows the name; repeating it in the bar wastes space.
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
+            .reportsViewedRecord(.claim(viewModel.claimId),
+                                 name: viewModel.detail.value?.claimName ?? summary?.recordName)
             .task {
                 if viewModel.detail.value == nil {
                     viewModel.includesCases = serverMeta.supports(.recordCases)
