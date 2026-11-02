@@ -65,6 +65,8 @@ final class AskAlexAssistant {
     private var conversation: (any AgentConversation)?
     /// Titles the SDK's top bar "Alex"; it otherwise shows "Agentforce" in employee mode.
     private let navigationBar = AlexNavigationBar()
+    /// Adds the record Id to the opening line as it's sent (kept alive with the chat).
+    private var delegate: AlexChatDelegate?
 
     func start(agentId: String, viewing: AlexRecordContext.ViewedRecord?, close: @escaping () -> Void) async {
         state = .starting
@@ -99,16 +101,18 @@ final class AskAlexAssistant {
         .setTheming(.overrides(displayNames: Self.alexNames))
         let client = AgentforceClient(credentialProvider: provider, mode: .employeeAgent(configuration))
         let conversation = client.startAgentforceConversation(forAgentId: agentId, preferredAgentName: Self.agentName)
+        let delegate = AlexChatDelegate(viewing: viewing)
         do {
             let chat = try client.createAgentforceChatView(
                 conversation: conversation,
-                delegate: nil as (any AgentforceUIDelegate)?,
+                delegate: delegate,
                 showTopBar: true,
                 onContainerClose: close,
                 navigationBarBuilder: navigationBar
             )
             self.client = client
             self.conversation = conversation
+            self.delegate = delegate
             state = .ready(chat)
         } catch {
             state = .failed("Couldn't open the chat (\(error.localizedDescription)).")
@@ -134,9 +138,15 @@ final class AskAlexAssistant {
         await conversation.sendUtterance(utterance: openingLine(for: viewing), attachment: nil)
     }
 
+    /// What the user sees: the record's name, no Salesforce Id.
     static func openingLine(for viewing: AlexRecordContext.ViewedRecord) -> String {
         let name = viewing.name.map { " \"\($0)\"" } ?? ""
-        return "I'm viewing the \(viewing.noun)\(name) (Id \(viewing.record.id))."
+        return "I'm viewing the \(viewing.noun)\(name)."
+    }
+
+    /// What Alex receives: the same line with the record Id, so he looks up the right record.
+    static func openingLineWithId(for viewing: AlexRecordContext.ViewedRecord) -> String {
+        openingLine(for: viewing) + " [record Id \(viewing.record.id)]"
     }
 
     /// The session is ready for messages (up to 20 seconds).
@@ -162,6 +172,23 @@ final class AskAlexAssistant {
             // Already refreshing: that refresh will finish shortly; carry on with the saved token.
             if !started { done.resume() }
         }
+    }
+}
+
+/// Sends the opening line with the record Id the user doesn't see: the chat shows the line as
+/// written, and this rewrites only what goes to Alex.
+final class AlexChatDelegate: AgentforceUIDelegate {
+    private let shown: String?
+    private let sent: String?
+
+    @MainActor init(viewing: AlexRecordContext.ViewedRecord?) {
+        shown = viewing.map { AskAlexAssistant.openingLine(for: $0) }
+        sent = viewing.map { AskAlexAssistant.openingLineWithId(for: $0) }
+    }
+
+    func modifyUtteranceBeforeSending(_ utterance: AgentforceUtterance) async -> AgentforceUtterance {
+        guard let shown, let sent, utterance.utterance == shown else { return utterance }
+        return AgentforceUtterance(utterance: sent, attachment: utterance.attachment)
     }
 }
 
