@@ -47,6 +47,16 @@ final class AskAlexAssistant {
         case failed(String)
     }
 
+    /// The agent is Alex everywhere in the chat: never the SDK's default "Agentforce".
+    static let agentName = "Alex"
+    private static let alexNames: [AgentforceDisplayNameType: String] = [
+        .serviceAgentChatTitle: agentName,
+        .serviceAIAgentName: agentName,
+        .onboardingTitle: "You're about to use Alex",
+        .onboardingDescription: "Alex is ProClaimer's claims assistant. Ask about a claim, its payments and documents, have Alex draft an update, or run a report across your claims. Alex can make mistakes, so check answers before you act on them.",
+        .loadingMessage: "Alex is on the way…",
+    ]
+
     private(set) var state: State = .starting
     /// Kept alive for the life of the sheet, as the SDK requires.
     private var client: AgentforceClient?
@@ -82,8 +92,9 @@ final class AskAlexAssistant {
             forceConfigEndpoint: instance.absoluteString,
             authProvider: provider
         )
+        .setTheming(.overrides(displayNames: Self.alexNames))
         let client = AgentforceClient(credentialProvider: provider, mode: .employeeAgent(configuration))
-        let conversation = client.startAgentforceConversation(forAgentId: agentId)
+        let conversation = client.startAgentforceConversation(forAgentId: agentId, preferredAgentName: Self.agentName)
         do {
             let chat = try client.createAgentforceChatView(
                 conversation: conversation,
