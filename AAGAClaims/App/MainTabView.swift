@@ -116,7 +116,7 @@ struct MainTabView: View {
                     .environment(\.alexTab, .leads)
                 }
             }
-            Tab("Support", systemImage: "questionmark.bubble", value: .support) {
+            Tab("Support", systemImage: "briefcase", value: .support) {
                 NavigationStack(path: $router.supportPath) {
                     SupportView(viewModel: router.cases, path: $router.supportPath,
                                 showingRequest: $router.showingRequestAssistance, api: session.api)

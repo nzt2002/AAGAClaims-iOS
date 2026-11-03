@@ -63,7 +63,7 @@ struct SupportView: View {
                 Button {
                     showingRequest = true
                 } label: {
-                    Label("Ask Question", systemImage: "plus.bubble")
+                    Label("Ask Question", systemImage: "questionmark.bubble")
                         .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
                 }
                 .disabledWhenOffline(isOffline)
