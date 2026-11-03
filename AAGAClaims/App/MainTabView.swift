@@ -273,7 +273,8 @@ struct MainTabView: View {
     private var askAlexSheet: some View {
         if let agentId = assistantAgentId {
             AskAlexSheet(agentId: agentId, viewing: alexContext.current(in: router.selection),
-                         history: serverMeta.supports(.assistantHistory) ? session.api : nil) {
+                         history: serverMeta.supports(.assistantHistory) ? session.api : nil,
+                         files: session.api) {
                 showingAskAlex = false
             }
         }

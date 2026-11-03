@@ -24,6 +24,14 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "2.5.0", date: "Nov 2, 2026", items: [
+            Item(icon: "doc.text.magnifyingglass", title: "Open files from Alex",
+                 detail: "When Alex mentions a document, tap its name to open it right in the app.",
+                 staffOnly: true),
+            Item(icon: "checkmark.bubble", title: "Alex finds your claim more reliably",
+                 detail: "If Alex isn't sure which claim you mean, for example two claims with the same name, he now asks instead of saying it can't be found.",
+                 staffOnly: true),
+        ]),
         Release(version: "2.4.2", date: "Nov 2, 2026", items: [
             Item(icon: "bubble.left.fill", title: "A bigger Alex button",
                  detail: "Alex's chat bubble now fills the button, with ALEX in large letters.",

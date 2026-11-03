@@ -1,6 +1,8 @@
 import AgentforceSDK
 import AgentforceService
 import PortalKit
+import QuickLook
+import SalesforceNavigation
 import SalesforceSDKCore
 import SalesforceUser
 import SwiftUI
@@ -15,6 +17,8 @@ struct AskAlexSheet: View {
     /// Chat history (feature `assistantHistory`): chats are saved when they close, and "Past chats"
     /// lists them. Nil when the server can't store them.
     var history: PortalAPI? = nil
+    /// Opens the files Alex links to in Quick Look (nil: links open in Safari).
+    var files: PortalAPI? = nil
     let close: () -> Void
 
     @State private var assistant = AskAlexAssistant()
@@ -22,6 +26,8 @@ struct AskAlexSheet: View {
     @State private var askingFeedback = false
     @State private var saved = false
     @State private var showingPastChats = false
+    @State private var preview: PreviewFile?
+    @State private var previewError: String?
 
     var body: some View {
         Group {
@@ -35,6 +41,11 @@ struct AskAlexSheet: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 case .ready(let chat):
                     chat
+                        // Links in Alex's replies, if the SDK opens them through SwiftUI.
+                        .environment(\.openURL, OpenURLAction { url in
+                            assistant.navigation.open(url)
+                            return .handled
+                        })
                 case .failed(let message):
                     ContentUnavailableView {
                         Label("Alex isn't available", systemImage: "exclamationmark.bubble")
@@ -49,6 +60,18 @@ struct AskAlexSheet: View {
         }
         .background(Color.appBackground)
         .task { await start() }
+        .quickLookPreview($preview.url)
+        .onChange(of: preview) { old, new in
+            // Delete the temporary copy once Quick Look closes (no file caching).
+            if new == nil, let old {
+                try? FileManager.default.removeItem(at: old.directory)
+            }
+        }
+        .alert("Couldn't open file", isPresented: Binding(get: { previewError != nil }, set: { if !$0 { previewError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(previewError ?? "")
+        }
         .sheet(isPresented: $showingPastChats) {
             if let history {
                 NavigationStack {
@@ -70,6 +93,9 @@ struct AskAlexSheet: View {
 
     private func start() async {
         assistant.onPastChats = history == nil ? nil : { showingPastChats = true }
+        if let files {
+            assistant.navigation.openFile = { id in Task { await openFile(id, api: files) } }
+        }
         await assistant.start(agentId: agentId, viewing: viewing, close: requestClose)
     }
 
@@ -85,6 +111,27 @@ struct AskAlexSheet: View {
     private func finish(helpful: Bool?, reason: AssistantFeedbackReason?) {
         save(helpful: helpful, reason: reason)
         close()
+    }
+
+    /// A file Alex linked to, in Quick Look over the chat.
+    private func openFile(_ contentDocumentId: String, api: PortalAPI) async {
+        do {
+            let data = try await api.fileContent(contentDocumentId: contentDocumentId)
+            preview = try PreviewFile.write(data: data, title: nil, fileType: Self.officeType(of: data))
+        } catch PortalAPIError.offline {
+            previewError = "You're offline. Files open when you're back online."
+        } catch {
+            previewError = "Please try again, or open it from the claim's Files."
+        }
+    }
+
+    /// Word and Excel files are zips that Quick Look only opens with the right extension
+    /// (Alex's supplement requests are .docx); other types are recognised from their bytes.
+    static func officeType(of data: Data) -> String? {
+        guard data.starts(with: [0x50, 0x4B]) else { return nil }
+        if data.range(of: Data("word/".utf8)) != nil { return "WORD_X" }
+        if data.range(of: Data("xl/".utf8)) != nil { return "EXCEL_X" }
+        return nil
     }
 
     /// Saves the chat (best effort: a chat closed while offline isn't kept).
@@ -126,6 +173,8 @@ final class AskAlexAssistant {
     var onPastChats: (() -> Void)?
     /// Adds the record Id to the opening line as it's sent (kept alive with the chat).
     private var delegate: AlexChatDelegate?
+    /// Where links in Alex's replies go (kept alive with the chat).
+    let navigation = AlexLinkNavigation()
 
     func start(agentId: String, viewing: AlexRecordContext.ViewedRecord?, close: @escaping () -> Void) async {
         state = .starting
@@ -158,6 +207,7 @@ final class AskAlexAssistant {
             authProvider: provider
         )
         .setTheming(.overrides(displayNames: Self.alexNames))
+        .withNavigation(navigation)
         let client = AgentforceClient(credentialProvider: provider, mode: .employeeAgent(configuration))
         let conversation = client.startAgentforceConversation(forAgentId: agentId, preferredAgentName: Self.agentName)
         let delegate = AlexChatDelegate(viewing: viewing)
@@ -297,6 +347,38 @@ final class AlexChatDelegate: AgentforceUIDelegate, @unchecked Sendable {
             if let last = messages.last, last.role == role, last.text == text { return }
             messages.append(AssistantConversation.Message(role: role, text: text, at: Date()))
         }
+    }
+}
+
+/// Links in Alex's replies. Alex links file names to their Lightning file page
+/// (`/lightning/r/ContentDocument/069…/view`), which opens in the app's own viewer; other links open in Safari.
+final class AlexLinkNavigation: Navigation, @unchecked Sendable {
+    /// Set by the sheet; nil opens file links in Safari too.
+    @MainActor var openFile: ((String) -> Void)?
+
+    func go(to destination: any Destination) {
+        go(to: destination, replace: false)
+    }
+
+    func go(to destination: any Destination, replace: Bool) {
+        guard let link = destination as? SalesforceNavigation.Link else { return }
+        let url = link.url
+        Task { @MainActor in open(url) }
+    }
+
+    @MainActor func open(_ url: URL) {
+        if let id = Self.contentDocumentId(in: url), let openFile {
+            openFile(id)
+        } else {
+            UIApplication.shared.open(url)
+        }
+    }
+
+    static func contentDocumentId(in url: URL) -> String? {
+        let parts = url.pathComponents
+        guard let index = parts.firstIndex(of: "ContentDocument"), index + 1 < parts.count else { return nil }
+        let id = parts[index + 1]
+        return id.hasPrefix("069") && (id.count == 15 || id.count == 18) ? id : nil
     }
 }
 
