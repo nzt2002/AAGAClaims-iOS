@@ -72,6 +72,7 @@ struct MainTabView: View {
                         .statusBanners(session)
                         .toolbar { topBarButtons() }
                 }
+                .environment(\.alexTab, .home)
             }
             Tab("Claims", systemImage: "doc.text", value: .claims) {
                 if horizontalSizeClass == .regular {
@@ -87,11 +88,13 @@ struct MainTabView: View {
                                 }
                         }
                     }
+                    .environment(\.alexTab, .claims)
                 } else {
                     NavigationStack(path: $router.claimsPath) {
                         claimsList
                             .modifier(RecordDestinations(router: router, api: session.api))
                     }
+                    .environment(\.alexTab, .claims)
                 }
             }
             Tab("Leads", systemImage: "person.2", value: .leads) {
@@ -104,11 +107,13 @@ struct MainTabView: View {
                                 .modifier(RecordDestinations(router: router, api: session.api))
                         }
                     }
+                    .environment(\.alexTab, .leads)
                 } else {
                     NavigationStack(path: $router.leadsPath) {
                         leadsList
                             .modifier(RecordDestinations(router: router, api: session.api))
                     }
+                    .environment(\.alexTab, .leads)
                 }
             }
             Tab("Support", systemImage: "questionmark.bubble", value: .support) {
@@ -119,6 +124,7 @@ struct MainTabView: View {
                         .statusBanners(session)
                         .toolbar { topBarButtons() }
                 }
+                .environment(\.alexTab, .support)
             }
             // The separate glass button at the end of the tab bar (iOS 26): Ask Alex for staff who
             // have him (it opens his chat; search moves to the top bar), otherwise Search.
@@ -183,7 +189,7 @@ struct MainTabView: View {
         }
         .sheet(isPresented: $showingAskAlex) {
             if let agentId = assistantAgentId {
-                AskAlexSheet(agentId: agentId, viewing: alexContext.current) { showingAskAlex = false }
+                AskAlexSheet(agentId: agentId, viewing: alexContext.current(in: router.selection)) { showingAskAlex = false }
             }
         }
         .sheet(isPresented: $router.showingNewEvent) {

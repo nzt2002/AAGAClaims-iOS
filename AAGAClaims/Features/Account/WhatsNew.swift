@@ -24,6 +24,11 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "2.2.2", date: "Nov 2, 2026", items: [
+            Item(icon: "sparkles", title: "Alex finds the claim you're on",
+                 detail: "Alex now finds your claim even after you've opened an activity, case or file from it, and tells apart claims with the same name.",
+                 staffOnly: true),
+        ]),
         Release(version: "2.2.1", date: "Nov 2, 2026", items: [
             Item(icon: "sparkles", title: "Shorter, cleaner answers from Alex",
                  detail: "Alex answers in a bold headline and a few bullet points, and no longer shows record IDs.",

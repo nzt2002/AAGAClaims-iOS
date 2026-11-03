@@ -44,7 +44,8 @@ struct LeadDetailView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .reportsViewedRecord(.lead(viewModel.leadId),
-                                 name: viewModel.detail.value?.prospectName ?? fallbackName)
+                                 name: viewModel.detail.value?.prospectName ?? fallbackName,
+                                 hint: viewModel.detail.value?.lossAddress.flatMap { $0.isEmpty ? nil : "at \($0)" })
             .task {
                 if viewModel.detail.value == nil {
                     viewModel.includesCases = serverMeta.supports(.recordCases)

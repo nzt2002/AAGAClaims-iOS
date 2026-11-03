@@ -36,6 +36,14 @@ struct ClaimDetailView: View {
         self.api = api
     }
 
+    /// How Alex can find this claim without a Salesforce Id: the carrier claim number, else the address.
+    private var alexHint: String? {
+        let detail = viewModel.detail.value
+        if let number = detail?.claimNumber ?? summary?.claimNumber, !number.isEmpty { return "claim # \(number)" }
+        if let address = detail?.lossAddress, !address.isEmpty { return "at \(address)" }
+        return nil
+    }
+
     var body: some View {
         content
             .background(Color.appBackground)
@@ -43,7 +51,8 @@ struct ClaimDetailView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .reportsViewedRecord(.claim(viewModel.claimId),
-                                 name: viewModel.detail.value?.claimName ?? summary?.recordName)
+                                 name: viewModel.detail.value?.claimName ?? summary?.recordName,
+                                 hint: alexHint)
             .task {
                 if viewModel.detail.value == nil {
                     viewModel.includesCases = serverMeta.supports(.recordCases)
