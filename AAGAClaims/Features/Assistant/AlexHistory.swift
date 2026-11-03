@@ -65,7 +65,7 @@ struct AlexClosingFeedback: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.l) {
             Spacer()
-            Image("RobotIcon")
+            Image("AskAlexIcon")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 44, height: 44)
@@ -284,7 +284,7 @@ struct AlexChatsLink: View {
             AlexChatsList(api: api, recordId: recordId)
         } label: {
             HStack(spacing: Theme.Spacing.m) {
-                Image("RobotIcon")
+                Image("AskAlexIcon")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 22, height: 22)

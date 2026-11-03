@@ -24,6 +24,11 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "2.4.1", date: "Nov 2, 2026", items: [
+            Item(icon: "bubble.left.fill", title: "A new look for Alex",
+                 detail: "The Ask Alex button is now a chat bubble with Alex's name on it.",
+                 staffOnly: true),
+        ]),
         Release(version: "2.4.0", date: "Nov 2, 2026", items: [
             Item(icon: "clock.arrow.circlepath", title: "Your chats with Alex are saved",
                  detail: "Chats are saved when you close Alex. Open Past chats from the clock in Alex's top bar, or Alex chats on any claim or lead to see what the team asked.",

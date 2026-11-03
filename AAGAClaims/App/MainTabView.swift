@@ -129,7 +129,7 @@ struct MainTabView: View {
             // The separate glass button at the end of the tab bar (iOS 26): Ask Alex for staff who
             // have him (it opens his chat; search moves to the top bar), otherwise Search.
             if assistantAgentId != nil {
-                Tab("Ask Alex", image: "RobotIcon", value: .search, role: .search) {
+                Tab("Ask Alex", image: "AskAlexIcon", value: .search, role: .search) {
                     Color.appBackground
                 }
             } else {
