@@ -520,7 +520,8 @@ public actor MockPortalAPI: PortalAPI {
     private var deletionRequested = false
     private var pushPreferences = NotificationPreferences()
     public private(set) var diagnosticsReceived: [DiagnosticsReport.Item] = []
-    public private(set) var assistantConversations: [AssistantConversation] = []
+    /// Saved Alex chats, by Id, with any "Did Alex help?" answer.
+    public private(set) var savedAssistantConversations: [(id: String, conversation: AssistantConversation)] = []
 
     /// Claim and lead activity, seeded on first view (by record id).
     private var activityStore: [String: [AgendaItem]] = [:]
@@ -1059,9 +1060,41 @@ public actor MockPortalAPI: PortalAPI {
         return preferences
     }
 
-    public func saveAssistantConversation(_ conversation: AssistantConversation) async throws {
+    @discardableResult
+    public func saveAssistantConversation(_ conversation: AssistantConversation) async throws -> String {
         try await simulate()
-        assistantConversations.append(conversation)
+        let id = String(format: "a5X00000000%04dAAA", savedAssistantConversations.count + 1)
+        savedAssistantConversations.append((id, conversation))
+        return id
+    }
+
+    public func assistantConversations(recordId: String?) async throws -> [AssistantChatSummary] {
+        try await simulate()
+        return savedAssistantConversations
+            .filter { recordId == nil || $0.conversation.recordId == recordId }
+            .reversed()
+            .map { mockSummary(id: $0.id, $0.conversation) }
+    }
+
+    public func assistantConversation(id: String) async throws -> AssistantChatDetail {
+        try await simulate()
+        guard let saved = savedAssistantConversations.first(where: { $0.id == id }) else { throw PortalAPIError.notFound }
+        return AssistantChatDetail(conversation: mockSummary(id: id, saved.conversation), messages: saved.conversation.messages)
+    }
+
+    public func rateAssistantConversation(id: String, helpful: Bool, reason: AssistantFeedbackReason?) async throws -> AssistantChatSummary {
+        try await simulate()
+        guard let index = savedAssistantConversations.firstIndex(where: { $0.id == id }) else { throw PortalAPIError.notFound }
+        savedAssistantConversations[index].conversation.helpful = helpful
+        savedAssistantConversations[index].conversation.reason = helpful ? nil : reason
+        return mockSummary(id: id, savedAssistantConversations[index].conversation)
+    }
+
+    private func mockSummary(id: String, _ c: AssistantConversation) -> AssistantChatSummary {
+        let question = c.messages.first { !$0.isAlex && !$0.text.hasPrefix("I'm viewing the ") }?.text
+        return AssistantChatSummary(id: id, startedAt: c.startedAt, endedAt: c.endedAt, userName: "Alex Smith",
+                                    isMine: true, messageCount: c.messages.count, firstQuestion: question,
+                                    recordId: c.recordId, helpful: c.helpful, feedbackReason: c.reason)
     }
 
     private func pastTask(_ id: String, _ subject: String, subtype: String, daysAgo: Int, description: String?, record: RecordRef) -> AgendaItem {

@@ -12,39 +12,88 @@ struct AskAlexSheet: View {
     let agentId: String
     /// The claim or lead on screen when Alex was opened: the conversation's starting context.
     let viewing: AlexRecordContext.ViewedRecord?
-    /// Saves the transcript when the chat closes (nil when the server can't store it).
-    var save: ((AssistantConversation) -> Void)? = nil
+    /// Chat history (feature `assistantHistory`): chats are saved when they close, and "Past chats"
+    /// lists them. Nil when the server can't store them.
+    var history: PortalAPI? = nil
     let close: () -> Void
 
     @State private var assistant = AskAlexAssistant()
+    /// "Did Alex help?" after the user closes a chat in which they asked something.
+    @State private var askingFeedback = false
+    @State private var saved = false
+    @State private var showingPastChats = false
 
     var body: some View {
         Group {
-            switch assistant.state {
-            case .starting:
-                ProgressView("Connecting to Alex…")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            case .ready(let chat):
-                chat
-            case .failed(let message):
-                ContentUnavailableView {
-                    Label("Alex isn't available", systemImage: "exclamationmark.bubble")
-                } description: {
-                    Text(message)
-                } actions: {
-                    Button("Try Again") { Task { await assistant.start(agentId: agentId, viewing: viewing, close: close) } }
-                    Button("Close", action: close)
+            if askingFeedback {
+                AlexClosingFeedback(answer: { helpful, reason in finish(helpful: helpful, reason: reason) },
+                                    skip: { finish(helpful: nil, reason: nil) })
+            } else {
+                switch assistant.state {
+                case .starting:
+                    ProgressView("Connecting to Alex…")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                case .ready(let chat):
+                    chat
+                case .failed(let message):
+                    ContentUnavailableView {
+                        Label("Alex isn't available", systemImage: "exclamationmark.bubble")
+                    } description: {
+                        Text(message)
+                    } actions: {
+                        Button("Try Again") { Task { await start() } }
+                        Button("Close", action: close)
+                    }
                 }
             }
         }
         .background(Color.appBackground)
-        .task { await assistant.start(agentId: agentId, viewing: viewing, close: close) }
-        .onDisappear {
-            if let save, let conversation = assistant.transcript(viewing: viewing) {
-                save(conversation)
+        .task { await start() }
+        .sheet(isPresented: $showingPastChats) {
+            if let history {
+                NavigationStack {
+                    AlexChatsList(api: history, recordId: nil, title: "Past chats")
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") { showingPastChats = false }
+                            }
+                        }
+                }
             }
+        }
+        .onDisappear {
+            // Swiped away: keep the chat, without feedback.
+            if !saved { save(helpful: nil, reason: nil) }
             assistant.end()
         }
+    }
+
+    private func start() async {
+        assistant.onPastChats = history == nil ? nil : { showingPastChats = true }
+        await assistant.start(agentId: agentId, viewing: viewing, close: requestClose)
+    }
+
+    /// The chat's close button: ask "Did Alex help?" when there's a chat worth rating.
+    private func requestClose() {
+        if history != nil, assistant.transcript(viewing: viewing) != nil {
+            withAnimation { askingFeedback = true }
+        } else {
+            close()
+        }
+    }
+
+    private func finish(helpful: Bool?, reason: AssistantFeedbackReason?) {
+        save(helpful: helpful, reason: reason)
+        close()
+    }
+
+    /// Saves the chat (best effort: a chat closed while offline isn't kept).
+    private func save(helpful: Bool?, reason: AssistantFeedbackReason?) {
+        guard !saved, let history, var conversation = assistant.transcript(viewing: viewing) else { return }
+        saved = true
+        conversation.helpful = helpful
+        conversation.reason = reason
+        Task { try? await history.saveAssistantConversation(conversation) }
     }
 }
 
@@ -72,7 +121,9 @@ final class AskAlexAssistant {
     private var client: AgentforceClient?
     private var conversation: (any AgentConversation)?
     /// Titles the SDK's top bar "Alex"; it otherwise shows "Agentforce" in employee mode.
-    private let navigationBar = AlexNavigationBar()
+    private var navigationBar = AlexNavigationBar(onPastChats: nil)
+    /// Opens "Past chats" from the chat's top bar (nil hides the button).
+    var onPastChats: (() -> Void)?
     /// Adds the record Id to the opening line as it's sent (kept alive with the chat).
     private var delegate: AlexChatDelegate?
 
@@ -110,6 +161,7 @@ final class AskAlexAssistant {
         let client = AgentforceClient(credentialProvider: provider, mode: .employeeAgent(configuration))
         let conversation = client.startAgentforceConversation(forAgentId: agentId, preferredAgentName: Self.agentName)
         let delegate = AlexChatDelegate(viewing: viewing)
+        navigationBar = AlexNavigationBar(onPastChats: onPastChats)
         do {
             let chat = try client.createAgentforceChatView(
                 conversation: conversation,
@@ -184,7 +236,7 @@ final class AskAlexAssistant {
         let build = info?["CFBundleVersion"] as? String ?? "?"
         return AssistantConversation(
             recordId: viewing?.record.id,
-            startedAt: first.at,
+            startedAt: first.at ?? Date(),
             endedAt: Date(),
             source: "iOS app \(version) (\(build))",
             messages: messages
@@ -250,11 +302,25 @@ final class AlexChatDelegate: AgentforceUIDelegate, @unchecked Sendable {
 
 /// The chat's top bar: the SDK's own buttons, with the title "Alex" on every screen.
 final class AlexNavigationBar: NavigationBarBuilder {
-    var handleNavigation: HandleNavigationClosure? = { _, toolbarItems, _ in
-        toolbarItems.title = AskAlexAssistant.agentName
-        toolbarItems.showDefaults = true
-    }
+    var handleNavigation: HandleNavigationClosure?
     var refreshHandler: (any NavigationRefreshable)?
+
+    /// `onPastChats`: adds a "Past chats" button on the conversation screen.
+    init(onPastChats: (() -> Void)?) {
+        handleNavigation = { screen, toolbarItems, _ in
+            toolbarItems.title = AskAlexAssistant.agentName
+            toolbarItems.showDefaults = true
+            if let onPastChats, screen == .conversation {
+                toolbarItems.leading.append(CustomToolbarItem(placement: .topBarLeading, content: AnyView(
+                    Button(action: onPastChats) {
+                        Image(systemName: "clock.arrow.circlepath")
+                    }
+                    .accessibilityLabel("Past chats")
+                    .accessibilityIdentifier("alexPastChats")
+                )))
+            }
+        }
+    }
 }
 
 /// Gives the SDK the signed-in user's current Salesforce token (never a cached copy).

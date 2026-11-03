@@ -94,7 +94,14 @@ public protocol PortalAPI: Sendable {
     /// Saves them and returns what the server stored.
     func saveNotificationPreferences(_ preferences: NotificationPreferences) async throws -> NotificationPreferences
     /// Staff: saves a closed Alex chat as an Alex Conversation in Salesforce (feature `assistantHistory`).
-    func saveAssistantConversation(_ conversation: AssistantConversation) async throws
+    /// Returns its Id.
+    @discardableResult
+    func saveAssistantConversation(_ conversation: AssistantConversation) async throws -> String
+    /// Saved Alex chats on a claim or lead (`recordId`), or the user's own (`recordId` nil), newest first.
+    func assistantConversations(recordId: String?) async throws -> [AssistantChatSummary]
+    func assistantConversation(id: String) async throws -> AssistantChatDetail
+    /// "Did Alex help?" on one of the user's own chats.
+    func rateAssistantConversation(id: String, helpful: Bool, reason: AssistantFeedbackReason?) async throws -> AssistantChatSummary
     func postToClaim(claimId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost
     func logCall(claimId: String, _ call: CallLog) async throws
     func sendEmail(claimId: String, _ email: OutgoingEmail) async throws
@@ -179,13 +186,15 @@ public struct AssistantConversation: Codable, Hashable, Sendable {
         /// "user" or "alex".
         public let role: String
         public let text: String
-        public let at: Date
+        public let at: Date?
 
-        public init(role: String, text: String, at: Date) {
+        public init(role: String, text: String, at: Date?) {
             self.role = role
             self.text = text
             self.at = at
         }
+
+        public var isAlex: Bool { role == "alex" }
     }
 
     /// The claim or lead the chat was about, if any.
@@ -195,13 +204,19 @@ public struct AssistantConversation: Codable, Hashable, Sendable {
     /// e.g. "iOS app 2.3.0 (47)".
     public let source: String
     public let messages: [Message]
+    /// "Did Alex help?", when answered as the chat closed.
+    public var helpful: Bool?
+    public var reason: AssistantFeedbackReason?
 
-    public init(recordId: String?, startedAt: Date, endedAt: Date, source: String, messages: [Message]) {
+    public init(recordId: String?, startedAt: Date, endedAt: Date, source: String, messages: [Message],
+                helpful: Bool? = nil, reason: AssistantFeedbackReason? = nil) {
         self.recordId = recordId
         self.startedAt = startedAt
         self.endedAt = endedAt
         self.source = source
         self.messages = messages
+        self.helpful = helpful
+        self.reason = reason
     }
 }
 

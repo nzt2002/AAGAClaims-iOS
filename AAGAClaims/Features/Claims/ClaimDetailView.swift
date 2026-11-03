@@ -129,6 +129,9 @@ struct ClaimDetailView: View {
                     if serverMeta.supports(.claimActivities) {
                         RecordActivitySection(model: activity, api: api, noun: "claim")
                     }
+                    if serverMeta.supports(.assistantHistory) {
+                        AlexChatsLink(api: api, recordId: viewModel.claimId)
+                    }
                 }
                 SectionBar(selection: $viewModel.section, hidden: viewModel.includesCases ? [] : [.cases])
                 sectionContent(detail)

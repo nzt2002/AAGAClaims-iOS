@@ -412,9 +412,25 @@ public struct HTTPPortalAPI: PortalAPI {
         try await post("/notification-preferences", body: preferences)
     }
 
-    public func saveAssistantConversation(_ conversation: AssistantConversation) async throws {
+    @discardableResult
+    public func saveAssistantConversation(_ conversation: AssistantConversation) async throws -> String {
         struct Saved: Decodable { let recordId: String }
-        let _: Saved = try await post("/assistant/conversations", body: conversation)
+        let saved: Saved = try await post("/assistant/conversations", body: conversation)
+        return saved.recordId
+    }
+
+    public func assistantConversations(recordId: String?) async throws -> [AssistantChatSummary] {
+        let query = recordId.map { [URLQueryItem(name: "recordId", value: $0)] } ?? [URLQueryItem(name: "mine", value: "true")]
+        return try await get("/assistant/conversations", query: query)
+    }
+
+    public func assistantConversation(id: String) async throws -> AssistantChatDetail {
+        try await get("/assistant/conversations/\(id)")
+    }
+
+    public func rateAssistantConversation(id: String, helpful: Bool, reason: AssistantFeedbackReason?) async throws -> AssistantChatSummary {
+        struct Body: Encodable { let helpful: Bool; let reason: AssistantFeedbackReason? }
+        return try await post("/assistant/conversations/\(id)/feedback", body: Body(helpful: helpful, reason: reason))
     }
 
     // MARK: - Documents (pilot)

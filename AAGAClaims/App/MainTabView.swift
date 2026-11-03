@@ -272,19 +272,11 @@ struct MainTabView: View {
     @ViewBuilder
     private var askAlexSheet: some View {
         if let agentId = assistantAgentId {
-            let save: ((AssistantConversation) -> Void)? = serverMeta.supports(.assistantHistory)
-                ? { conversation in saveAlexChat(conversation) } : nil
-            AskAlexSheet(agentId: agentId, viewing: alexContext.current(in: router.selection), save: save) {
+            AskAlexSheet(agentId: agentId, viewing: alexContext.current(in: router.selection),
+                         history: serverMeta.supports(.assistantHistory) ? session.api : nil) {
                 showingAskAlex = false
             }
         }
-    }
-
-    /// Saves a closed Alex chat as an Alex Conversation on its claim or lead. Best effort: a chat
-    /// closed while offline isn't kept.
-    private func saveAlexChat(_ conversation: AssistantConversation) {
-        let api = session.api
-        Task { try? await api.saveAssistantConversation(conversation) }
     }
 
     private func openCreatedClaim() {

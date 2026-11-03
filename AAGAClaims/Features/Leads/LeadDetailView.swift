@@ -133,6 +133,9 @@ struct LeadDetailView: View {
                 if isInternal && serverMeta.supports(.leadActivities) {
                     RecordActivitySection(model: activity, api: api, noun: "lead")
                 }
+                if isInternal && serverMeta.supports(.assistantHistory) {
+                    AlexChatsLink(api: api, recordId: viewModel.leadId)
+                }
                 AgreementCard(agreement: detail.agreement)
                 SectionBar(selection: $viewModel.section, hidden: viewModel.includesCases ? [] : [.cases])
                 sectionContent(detail)

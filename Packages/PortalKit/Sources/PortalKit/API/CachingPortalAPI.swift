@@ -298,9 +298,26 @@ public actor CachingPortalAPI: PortalAPI {
         return try await guarded { try await $0.saveNotificationPreferences(preferences) }
     }
 
-    public func saveAssistantConversation(_ conversation: AssistantConversation) async throws {
+    @discardableResult
+    public func saveAssistantConversation(_ conversation: AssistantConversation) async throws -> String {
         try requireOnline()
-        try await guarded { try await $0.saveAssistantConversation(conversation) }
+        return try await guarded { try await $0.saveAssistantConversation(conversation) }
+    }
+
+    // Alex history isn't cached: it's read rarely and always wants the latest feedback.
+    public func assistantConversations(recordId: String?) async throws -> [AssistantChatSummary] {
+        try requireOnline()
+        return try await guarded { try await $0.assistantConversations(recordId: recordId) }
+    }
+
+    public func assistantConversation(id: String) async throws -> AssistantChatDetail {
+        try requireOnline()
+        return try await guarded { try await $0.assistantConversation(id: id) }
+    }
+
+    public func rateAssistantConversation(id: String, helpful: Bool, reason: AssistantFeedbackReason?) async throws -> AssistantChatSummary {
+        try requireOnline()
+        return try await guarded { try await $0.rateAssistantConversation(id: id, helpful: helpful, reason: reason) }
     }
 
     public func serverMeta() async throws -> ServerMeta {
