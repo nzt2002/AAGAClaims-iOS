@@ -146,6 +146,8 @@ public struct ServerMeta: Codable, Hashable, Sendable {
         case notificationPreferences
         /// `assistantAgentId` in `/meta`: staff with access can chat with Alex.
         case assistant
+        /// `POST /assistant/conversations`: closed Alex chats are saved in Salesforce.
+        case assistantHistory
     }
 }
 

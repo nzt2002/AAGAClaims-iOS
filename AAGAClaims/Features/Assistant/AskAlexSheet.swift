@@ -1,5 +1,6 @@
 import AgentforceSDK
 import AgentforceService
+import PortalKit
 import SalesforceSDKCore
 import SalesforceUser
 import SwiftUI
@@ -11,6 +12,8 @@ struct AskAlexSheet: View {
     let agentId: String
     /// The claim or lead on screen when Alex was opened: the conversation's starting context.
     let viewing: AlexRecordContext.ViewedRecord?
+    /// Saves the transcript when the chat closes (nil when the server can't store it).
+    var save: ((AssistantConversation) -> Void)? = nil
     let close: () -> Void
 
     @State private var assistant = AskAlexAssistant()
@@ -36,7 +39,12 @@ struct AskAlexSheet: View {
         }
         .background(Color.appBackground)
         .task { await assistant.start(agentId: agentId, viewing: viewing, close: close) }
-        .onDisappear { assistant.end() }
+        .onDisappear {
+            if let save, let conversation = assistant.transcript(viewing: viewing) {
+                save(conversation)
+            }
+            assistant.end()
+        }
     }
 }
 
@@ -163,6 +171,24 @@ final class AskAlexAssistant {
     func end() {
         conversation = nil
         client = nil
+        delegate = nil
+    }
+
+    /// The chat to save, or nil when the user never asked anything (only the automatic opening line).
+    func transcript(viewing: AlexRecordContext.ViewedRecord?) -> AssistantConversation? {
+        guard let messages = delegate?.transcript, let first = messages.first else { return nil }
+        let opening = viewing.map { [Self.openingLine(for: $0), Self.openingLineWithId(for: $0)] } ?? []
+        guard messages.contains(where: { $0.role == "user" && !opening.contains($0.text) }) else { return nil }
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return AssistantConversation(
+            recordId: viewing?.record.id,
+            startedAt: first.at,
+            endedAt: Date(),
+            source: "iOS app \(version) (\(build))",
+            messages: messages
+        )
     }
 
     private static func refresh(_ credentials: OAuthCredentials) async {
@@ -176,20 +202,49 @@ final class AskAlexAssistant {
     }
 }
 
-/// Sends the opening line with the record Id the user doesn't see: the chat shows the line as
-/// written, and this rewrites only what goes to Alex.
-final class AlexChatDelegate: AgentforceUIDelegate {
+/// Sends the opening line with the record Id the user doesn't see (the chat shows the line as
+/// written; this rewrites only what goes to Alex), and keeps the transcript for saving.
+final class AlexChatDelegate: AgentforceUIDelegate, @unchecked Sendable {
     private let shown: String?
     private let sent: String?
+    /// Guards `messages`: the SDK calls back from its own queues.
+    private let lock = NSLock()
+    private var messages: [AssistantConversation.Message] = []
 
     @MainActor init(viewing: AlexRecordContext.ViewedRecord?) {
         shown = viewing.map { AskAlexAssistant.openingLine(for: $0) }
         sent = viewing.map { AskAlexAssistant.openingLineWithId(for: $0) }
     }
 
+    /// What was said so far, in order.
+    var transcript: [AssistantConversation.Message] {
+        lock.withLock { messages }
+    }
+
     func modifyUtteranceBeforeSending(_ utterance: AgentforceUtterance) async -> AgentforceUtterance {
         guard let shown, let sent, utterance.utterance == shown else { return utterance }
         return AgentforceUtterance(utterance: sent, attachment: utterance.attachment)
+    }
+
+    func didSendUtterance(_ utterance: AgentforceUtterance) {
+        record(role: "user", text: utterance.utterance)
+    }
+
+    /// Replies stream in; only the finished message is kept.
+    func didReceiveResponse(_ message: AgentforceMessage, from conversation: any AgentConversation) {
+        guard !message.isUserMessage, !message.isWelcomeMessage, message.state == .finished,
+              let text = message.message else { return }
+        record(role: "alex", text: text)
+    }
+
+    private func record(role: String, text: String) {
+        let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        lock.withLock {
+            // The SDK can report a finished reply more than once.
+            if let last = messages.last, last.role == role, last.text == text { return }
+            messages.append(AssistantConversation.Message(role: role, text: text, at: Date()))
+        }
     }
 }
 

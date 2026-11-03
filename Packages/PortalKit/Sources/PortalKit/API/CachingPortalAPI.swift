@@ -298,6 +298,11 @@ public actor CachingPortalAPI: PortalAPI {
         return try await guarded { try await $0.saveNotificationPreferences(preferences) }
     }
 
+    public func saveAssistantConversation(_ conversation: AssistantConversation) async throws {
+        try requireOnline()
+        try await guarded { try await $0.saveAssistantConversation(conversation) }
+    }
+
     public func serverMeta() async throws -> ServerMeta {
         try requireOnline()
         return try await guarded { try await $0.serverMeta() }

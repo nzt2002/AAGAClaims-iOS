@@ -412,6 +412,11 @@ public struct HTTPPortalAPI: PortalAPI {
         try await post("/notification-preferences", body: preferences)
     }
 
+    public func saveAssistantConversation(_ conversation: AssistantConversation) async throws {
+        struct Saved: Decodable { let recordId: String }
+        let _: Saved = try await post("/assistant/conversations", body: conversation)
+    }
+
     // MARK: - Documents (pilot)
 
     public static let documentsBasePath = "/services/apexrest/portaldocs/v1"

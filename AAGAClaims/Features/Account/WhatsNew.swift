@@ -24,6 +24,11 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "2.3.0", date: "Nov 2, 2026", items: [
+            Item(icon: "clock.arrow.circlepath", title: "Your chats with Alex are saved",
+                 detail: "When you close Alex, the conversation is saved in Salesforce as an Alex Conversation on the claim or lead you were on, so the team can see what was asked and answered.",
+                 staffOnly: true),
+        ]),
         Release(version: "2.2.2", date: "Nov 2, 2026", items: [
             Item(icon: "sparkles", title: "Alex finds the claim you're on",
                  detail: "Alex now finds your claim even after you've opened an activity, case or file from it, and tells apart claims with the same name.",

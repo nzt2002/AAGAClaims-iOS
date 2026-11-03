@@ -93,6 +93,8 @@ public protocol PortalAPI: Sendable {
     func notificationPreferences() async throws -> NotificationPreferences
     /// Saves them and returns what the server stored.
     func saveNotificationPreferences(_ preferences: NotificationPreferences) async throws -> NotificationPreferences
+    /// Staff: saves a closed Alex chat as an Alex Conversation in Salesforce (feature `assistantHistory`).
+    func saveAssistantConversation(_ conversation: AssistantConversation) async throws
     func postToClaim(claimId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost
     func logCall(claimId: String, _ call: CallLog) async throws
     func sendEmail(claimId: String, _ email: OutgoingEmail) async throws
@@ -168,6 +170,38 @@ public struct AccountDeletionRequest: Codable, Hashable, Sendable {
     public init(caseId: String?, alreadyRequested: Bool) {
         self.caseId = caseId
         self.alreadyRequested = alreadyRequested
+    }
+}
+
+/// `POST /assistant/conversations`: one chat with Alex, saved when it's closed.
+public struct AssistantConversation: Codable, Hashable, Sendable {
+    public struct Message: Codable, Hashable, Sendable {
+        /// "user" or "alex".
+        public let role: String
+        public let text: String
+        public let at: Date
+
+        public init(role: String, text: String, at: Date) {
+            self.role = role
+            self.text = text
+            self.at = at
+        }
+    }
+
+    /// The claim or lead the chat was about, if any.
+    public let recordId: String?
+    public let startedAt: Date
+    public let endedAt: Date
+    /// e.g. "iOS app 2.3.0 (47)".
+    public let source: String
+    public let messages: [Message]
+
+    public init(recordId: String?, startedAt: Date, endedAt: Date, source: String, messages: [Message]) {
+        self.recordId = recordId
+        self.startedAt = startedAt
+        self.endedAt = endedAt
+        self.source = source
+        self.messages = messages
     }
 }
 

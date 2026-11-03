@@ -520,6 +520,7 @@ public actor MockPortalAPI: PortalAPI {
     private var deletionRequested = false
     private var pushPreferences = NotificationPreferences()
     public private(set) var diagnosticsReceived: [DiagnosticsReport.Item] = []
+    public private(set) var assistantConversations: [AssistantConversation] = []
 
     /// Claim and lead activity, seeded on first view (by record id).
     private var activityStore: [String: [AgendaItem]] = [:]
@@ -1056,6 +1057,11 @@ public actor MockPortalAPI: PortalAPI {
         try await simulate()
         pushPreferences = preferences
         return preferences
+    }
+
+    public func saveAssistantConversation(_ conversation: AssistantConversation) async throws {
+        try await simulate()
+        assistantConversations.append(conversation)
     }
 
     private func pastTask(_ id: String, _ subject: String, subtype: String, daysAgo: Int, description: String?, record: RecordRef) -> AgendaItem {

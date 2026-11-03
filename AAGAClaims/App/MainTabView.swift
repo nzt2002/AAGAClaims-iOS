@@ -187,11 +187,7 @@ struct MainTabView: View {
                 router.showingNewClaim = false
             }
         }
-        .sheet(isPresented: $showingAskAlex) {
-            if let agentId = assistantAgentId {
-                AskAlexSheet(agentId: agentId, viewing: alexContext.current(in: router.selection)) { showingAskAlex = false }
-            }
-        }
+        .sheet(isPresented: $showingAskAlex) { askAlexSheet }
         .sheet(isPresented: $router.showingNewEvent) {
             NewEventSheet(api: session.api, currentUserName: user.fullName) {
                 Task { await router.home.loadAgenda() }
@@ -270,6 +266,25 @@ struct MainTabView: View {
         guard !session.isDemo, !UserDefaults.standard.bool(forKey: "UITestDemo"),
               await PushNotifications.status() == .notDetermined else { return }
         _ = await PushNotifications.requestPermission(registerWithSalesforce: true)
+    }
+
+    /// Alex's chat, starting with the record open in the current tab.
+    @ViewBuilder
+    private var askAlexSheet: some View {
+        if let agentId = assistantAgentId {
+            let save: ((AssistantConversation) -> Void)? = serverMeta.supports(.assistantHistory)
+                ? { conversation in saveAlexChat(conversation) } : nil
+            AskAlexSheet(agentId: agentId, viewing: alexContext.current(in: router.selection), save: save) {
+                showingAskAlex = false
+            }
+        }
+    }
+
+    /// Saves a closed Alex chat as an Alex Conversation on its claim or lead. Best effort: a chat
+    /// closed while offline isn't kept.
+    private func saveAlexChat(_ conversation: AssistantConversation) {
+        let api = session.api
+        Task { try? await api.saveAssistantConversation(conversation) }
     }
 
     private func openCreatedClaim() {
