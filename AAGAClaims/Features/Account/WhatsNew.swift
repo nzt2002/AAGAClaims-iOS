@@ -24,6 +24,17 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.0.0", date: "Nov 4, 2026", items: [
+            Item(icon: "paperplane", title: "Alex sends your emails",
+                 detail: "Ask Alex to email the carrier: he drafts it, shows you who it goes to, and sends it only after you say yes. Sent emails are logged on the claim, and replies file back to it.",
+                 staffOnly: true),
+            Item(icon: "checklist", title: "Tasks and notes with Alex",
+                 detail: "\"Remind me to call State Farm Friday\", \"mark the inspection task done\", \"give these tasks to Daniel\" or \"note that the homeowner sent photos\": Alex previews each one and waits for your yes.",
+                 staffOnly: true),
+            Item(icon: "dollarsign.circle", title: "What is the carrier paying?",
+                 detail: "Ask Alex and he reads the latest estimate: RCV, depreciation, deductible, the net payment now and what's still recoverable once the work is done.",
+                 staffOnly: true),
+        ]),
         Release(version: "2.5.0", date: "Nov 2, 2026", items: [
             Item(icon: "doc.text.magnifyingglass", title: "Open files from Alex",
                  detail: "When Alex mentions a document, tap its name to open it right in the app.",
