@@ -159,7 +159,7 @@ final class AskAlexAssistant {
         .serviceAgentChatTitle: agentName,
         .serviceAIAgentName: agentName,
         .onboardingTitle: "You're about to use Alex",
-        .onboardingDescription: "Alex is ProClaimer's claims assistant. Ask about a claim, its documents or what the carrier is paying; have Alex draft and send emails, create tasks and notes, or run a report across your claims. Alex always shows you a preview and waits for your yes before changing or sending anything. Alex can make mistakes, so check answers before you act on them.",
+        .onboardingDescription: "Alex is ProClaimer's claims assistant. Ask about a claim or lead, its documents or what the carrier is paying, or what needs you today; have Alex draft and send emails, create tasks and notes, update a claim's status, build a supplement with photos, or run a report across your claims. Alex always shows you a preview and waits for your yes before changing or sending anything. Alex can make mistakes, so check answers before you act on them.",
         .loadingMessage: "Alex is on the way…",
     ]
 

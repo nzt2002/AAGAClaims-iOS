@@ -24,6 +24,23 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.1.0", date: "Nov 4, 2026", items: [
+            Item(icon: "sun.max", title: "What needs me today?",
+                 detail: "Ask Alex for your day: overdue and due-today tasks, new carrier emails on your claims, payments collected and claims that have gone quiet.",
+                 staffOnly: true),
+            Item(icon: "person.crop.rectangle", title: "Alex knows your leads",
+                 detail: "Open Alex on a lead and he picks it up: contact details, the loss, status, tasks, notes and files.",
+                 staffOnly: true),
+            Item(icon: "arrow.triangle.2.circlepath", title: "Update a claim's status",
+                 detail: "\"Move this to Negotiations; next step: wait for re-inspection.\" Alex shows the change and makes it after your yes.",
+                 staffOnly: true),
+            Item(icon: "photo.on.rectangle", title: "Photos in supplement requests",
+                 detail: "Supplement documents from Alex now include the claim's photos, grouped by roof area.",
+                 staffOnly: true),
+            Item(icon: "dollarsign.circle", title: "Clearer carrier payouts",
+                 detail: "Alex now accounts for prior payments and each coverage on supplement estimates.",
+                 staffOnly: true),
+        ]),
         Release(version: "3.0.0", date: "Nov 4, 2026", items: [
             Item(icon: "paperplane", title: "Alex sends your emails",
                  detail: "Ask Alex to email the carrier: he drafts it, shows you who it goes to, and sends it only after you say yes. Sent emails are logged on the claim, and replies file back to it.",
