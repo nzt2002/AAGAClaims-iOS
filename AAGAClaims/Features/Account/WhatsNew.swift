@@ -24,6 +24,11 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.2.0", date: "Nov 4, 2026", items: [
+            Item(icon: "checklist.checked", title: "Pick files with checkboxes",
+                 detail: "When Alex asks which estimate, report or document to use, tick the files in the list that pops up and tap Use. No more typing file names.",
+                 staffOnly: true),
+        ]),
         Release(version: "3.1.0", date: "Nov 4, 2026", items: [
             Item(icon: "sun.max", title: "What needs me today?",
                  detail: "Ask Alex for your day: overdue and due-today tasks, new carrier emails on your claims, payments collected and claims that have gone quiet.",

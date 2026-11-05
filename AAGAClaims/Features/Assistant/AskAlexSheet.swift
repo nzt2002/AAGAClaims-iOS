@@ -28,6 +28,8 @@ struct AskAlexSheet: View {
     @State private var showingPastChats = false
     @State private var preview: PreviewFile?
     @State private var previewError: String?
+    /// Files Alex asked the user to pick, shown as checkboxes.
+    @State private var fileChoice: AlexFileChoice?
 
     var body: some View {
         Group {
@@ -72,6 +74,12 @@ struct AskAlexSheet: View {
         } message: {
             Text(previewError ?? "")
         }
+        .sheet(item: $fileChoice) { choice in
+            AlexFilePickerSheet(choice: choice) { reply in
+                Task { await assistant.send(reply) }
+            }
+            .presentationDetents([.medium, .large])
+        }
         .sheet(isPresented: $showingPastChats) {
             if let history {
                 NavigationStack {
@@ -93,6 +101,7 @@ struct AskAlexSheet: View {
 
     private func start() async {
         assistant.onPastChats = history == nil ? nil : { showingPastChats = true }
+        assistant.onFileChoice = { fileChoice = $0 }
         if let files {
             assistant.navigation.openFile = { id in Task { await openFile(id, api: files) } }
         }
@@ -171,6 +180,8 @@ final class AskAlexAssistant {
     private var navigationBar = AlexNavigationBar(onPastChats: nil)
     /// Opens "Past chats" from the chat's top bar (nil hides the button).
     var onPastChats: (() -> Void)?
+    /// Alex listed files to choose from (a checklist in his reply).
+    var onFileChoice: ((AlexFileChoice) -> Void)?
     /// Adds the record Id to the opening line as it's sent (kept alive with the chat).
     private var delegate: AlexChatDelegate?
     /// Where links in Alex's replies go (kept alive with the chat).
@@ -211,6 +222,7 @@ final class AskAlexAssistant {
         let client = AgentforceClient(credentialProvider: provider, mode: .employeeAgent(configuration))
         let conversation = client.startAgentforceConversation(forAgentId: agentId, preferredAgentName: Self.agentName)
         let delegate = AlexChatDelegate(viewing: viewing)
+        delegate.onFileChoice = onFileChoice
         navigationBar = AlexNavigationBar(onPastChats: onPastChats)
         do {
             let chat = try client.createAgentforceChatView(
@@ -270,6 +282,14 @@ final class AskAlexAssistant {
         return false
     }
 
+    /// Sends a message as the user, as if typed (e.g. the files picked in the checklist).
+    func send(_ text: String) async {
+        guard let current = conversation else { return }
+        // The SDK's conversation isn't Sendable, but its implementations of this run on the main actor.
+        nonisolated(unsafe) let unchecked = current
+        await unchecked.sendUtterance(utterance: text, attachment: nil)
+    }
+
     func end() {
         conversation = nil
         client = nil
@@ -312,6 +332,8 @@ final class AlexChatDelegate: AgentforceUIDelegate, @unchecked Sendable {
     /// Guards `messages`: the SDK calls back from its own queues.
     private let lock = NSLock()
     private var messages: [AssistantConversation.Message] = []
+    /// Called on the main actor when a reply of Alex's asks the user to pick files.
+    @MainActor var onFileChoice: ((AlexFileChoice) -> Void)?
 
     @MainActor init(viewing: AlexRecordContext.ViewedRecord?) {
         shown = viewing.map { AskAlexAssistant.openingLine(for: $0) }
@@ -336,16 +358,21 @@ final class AlexChatDelegate: AgentforceUIDelegate, @unchecked Sendable {
     func didReceiveResponse(_ message: AgentforceMessage, from conversation: any AgentConversation) {
         guard !message.isUserMessage, !message.isWelcomeMessage, message.state == .finished,
               let text = message.message else { return }
-        record(role: "alex", text: text)
+        // Only a new reply opens the picker: the SDK can report a finished reply more than once.
+        guard record(role: "alex", text: text), let choice = AlexFileChoice.parse(text) else { return }
+        Task { @MainActor in onFileChoice?(choice) }
     }
 
-    private func record(role: String, text: String) {
+    /// Adds a message to the transcript; false when it's empty or a repeat of the last one.
+    @discardableResult
+    private func record(role: String, text: String) -> Bool {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
-        lock.withLock {
+        guard !text.isEmpty else { return false }
+        return lock.withLock {
             // The SDK can report a finished reply more than once.
-            if let last = messages.last, last.role == role, last.text == text { return }
+            if let last = messages.last, last.role == role, last.text == text { return false }
             messages.append(AssistantConversation.Message(role: role, text: text, at: Date()))
+            return true
         }
     }
 }
