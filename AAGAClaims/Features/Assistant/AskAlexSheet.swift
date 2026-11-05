@@ -194,8 +194,15 @@ final class AskAlexAssistant {
             return
         }
         // The SDK's requests don't go through the Mobile SDK, so it can't refresh an expired
-        // token itself: refresh first so the chat starts with a working one.
-        await Self.refresh(account.credentials)
+        // token itself: refresh first so the chat starts with a working one. A token refreshed
+        // in the last few minutes is still good (sessions last far longer), so reopening Alex
+        // skips that round trip.
+        if let last = Self.lastRefresh, Date().timeIntervalSince(last) < Self.refreshReuse {
+            // Fresh enough.
+        } else {
+            await Self.refresh(account.credentials)
+            Self.lastRefresh = Date()
+        }
 
         let credentials = account.credentials
         guard let orgId = credentials.organizationId, let userId = credentials.userId,
@@ -312,6 +319,10 @@ final class AskAlexAssistant {
             messages: messages
         )
     }
+
+    /// When the token was last refreshed for Alex, and how long that refresh is reused.
+    private static var lastRefresh: Date?
+    private static let refreshReuse: TimeInterval = 10 * 60
 
     private static func refresh(_ credentials: OAuthCredentials) async {
         await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
