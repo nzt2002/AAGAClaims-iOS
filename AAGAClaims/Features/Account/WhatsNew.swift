@@ -24,6 +24,10 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.3.0", date: "Nov 5, 2026", items: [
+            Item(icon: "paintbrush", title: "A fresh ProClaimer look",
+                 detail: "A new app icon, the ProClaimer logo when you sign in, and headings in the ProClaimer typeface."),
+        ]),
         Release(version: "3.2.2", date: "Nov 5, 2026", items: [
             Item(icon: "checkmark.bubble", title: "Alex names the right claim",
                  detail: "Opening Alex before a claim finished loading could make him confirm the wrong claim name. He now looks the claim up and confirms the real one.",

@@ -37,6 +37,11 @@
 	<string>live</string>
 	<key>SFDCOAuthLoginHost</key>
 	<string>portal.accurateadjustmentsga.com</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Poppins-Bold.ttf</string>
+		<string>Poppins-SemiBold.ttf</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

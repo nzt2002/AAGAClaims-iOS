@@ -35,10 +35,10 @@ enum Theme {
 
 /// Type styles, so headings and cards read the same everywhere. All scale with Dynamic Type.
 extension Font {
-    /// Record and Home hero titles: rounded, for a friendlier, more current look.
-    static let heroTitle = Font.system(.title, design: .rounded).weight(.bold)
+    /// Record and Home hero titles, in the brand's Poppins (as on the ProClaimer website).
+    static let heroTitle = Font.custom("Poppins-Bold", size: 28, relativeTo: .title)
     /// Section headings.
-    static let sectionTitle = Font.system(.title3, design: .rounded).weight(.bold)
+    static let sectionTitle = Font.custom("Poppins-SemiBold", size: 20, relativeTo: .title3)
     /// The main line of a card or row.
     static let cardTitle = Font.headline
     /// Small labels above values (e.g. "LOSS DATE").
@@ -115,10 +115,10 @@ extension View {
     }
 }
 
-/// The Salesforce-blue gradient used for the Home hero and the splash screen.
+/// The brand gradient used for the Home hero and the splash screen.
 enum BrandGradient {
     static func hero(_ colorScheme: ColorScheme) -> LinearGradient {
-        // White text on these stops is at least 5.9:1 (light) and 6.7:1 (dark).
+        // Brand blue into navy. White text on these stops is at least 4.6:1 (light) and 6.7:1 (dark).
         // The asset colours have light and dark variants; the scheme is resolved by the environment.
         _ = colorScheme
         return LinearGradient(colors: [.heroStart, .heroEnd], startPoint: .topLeading, endPoint: .bottomTrailing)
