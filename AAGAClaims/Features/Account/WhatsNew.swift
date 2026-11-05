@@ -24,6 +24,11 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.2.2", date: "Nov 5, 2026", items: [
+            Item(icon: "checkmark.bubble", title: "Alex names the right claim",
+                 detail: "Opening Alex before a claim finished loading could make him confirm the wrong claim name. He now looks the claim up and confirms the real one.",
+                 staffOnly: true),
+        ]),
         Release(version: "3.2.1", date: "Nov 4, 2026", items: [
             Item(icon: "hare", title: "Faster answers from Alex",
                  detail: "Alex opens faster when you come back to him, and follow-up questions about the same policy or estimate no longer re-read the whole PDF.",

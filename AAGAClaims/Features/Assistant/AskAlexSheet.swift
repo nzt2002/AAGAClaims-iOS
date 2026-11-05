@@ -269,8 +269,9 @@ final class AskAlexAssistant {
 
     /// What the user sees: the record's name, no Salesforce Id.
     static func openingLine(for viewing: AlexRecordContext.ViewedRecord) -> String {
-        let name = viewing.name.map { " \"\($0)\"" } ?? ""
-        let hint = viewing.hint.map { " (\($0))" } ?? ""
+        // A name not loaded yet (or blank) is left out: Alex then looks the record up by its Id.
+        let name = viewing.name.flatMap { $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : " \"\($0)\"" } ?? ""
+        let hint = viewing.hint.flatMap { $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : " (\($0))" } ?? ""
         return "I'm viewing the \(viewing.noun)\(name)\(hint)."
     }
 
