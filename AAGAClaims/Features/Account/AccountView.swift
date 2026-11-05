@@ -14,9 +14,34 @@ struct AccountView: View {
     @Environment(\.serverMeta) private var serverMeta
     @State private var notificationStatus: PushNotifications.Status = .notDetermined
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(AppAppearance.storageKey) private var appearance = AppAppearance.system
+
+    /// Shows the look on screen now; changing it picks light or dark from then on.
+    private var darkModeBinding: Binding<Bool> {
+        Binding(get: { colorScheme == .dark }, set: { setAppearance($0 ? .dark : .light) })
+    }
+
+    private func setAppearance(_ value: AppAppearance) {
+        appearance = value
+        AppAppearance.apply()
+    }
 
     var body: some View {
         List {
+            Section {
+                Toggle("Dark Mode", isOn: darkModeBinding)
+                    .accessibilityIdentifier("darkModeToggle")
+                if appearance != .system {
+                    Button("Match iPhone Setting") { setAppearance(.system) }
+                        .accessibilityIdentifier("matchSystemAppearance")
+                }
+            } footer: {
+                if appearance == .system {
+                    Text("Follows your iPhone's light or dark setting until you change it here.")
+                }
+            }
+
             Section("Profile") {
                 LabeledContent("Name", value: user.fullName)
                 LabeledContent("Email", value: user.email)
@@ -53,15 +78,6 @@ struct AccountView: View {
                 .accessibilityIdentifier("signOut")
             }
 
-            if serverMeta.supports(.accountDeletion) {
-                Section {
-                    Button("Delete Account", role: .destructive) { deletingAccount = true }
-                        .accessibilityIdentifier("deleteAccount")
-                } footer: {
-                    Text("Ask us to delete your account and personal information.")
-                }
-            }
-
             Section {
                 LabeledContent("Version", value: Self.versionString)
                 if let release = WhatsNew.current(isInternal: user.isInternal) {
@@ -72,6 +88,15 @@ struct AccountView: View {
                     ReleaseNotesView(isInternal: user.isInternal)
                 }
                 .accessibilityIdentifier("releaseNotesLink")
+            }
+
+            if serverMeta.supports(.accountDeletion) {
+                Section {
+                    Button("Delete Account", role: .destructive) { deletingAccount = true }
+                        .accessibilityIdentifier("deleteAccount")
+                } footer: {
+                    Text("Ask us to delete your account and personal information.")
+                }
             }
         }
         .scrollContentBackground(.hidden)

@@ -24,6 +24,10 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.3.1", date: "Nov 5, 2026", items: [
+            Item(icon: "moon", title: "Dark Mode switch",
+                 detail: "Turn Dark Mode on or off at the top of Account. Until you do, the app follows your iPhone. Delete Account is now at the bottom of Account."),
+        ]),
         Release(version: "3.3.0", date: "Nov 5, 2026", items: [
             Item(icon: "paintbrush", title: "A fresh ProClaimer look",
                  detail: "A new app icon, the ProClaimer logo when you sign in, and headings in the ProClaimer typeface."),
