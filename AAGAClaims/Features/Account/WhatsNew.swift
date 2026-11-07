@@ -24,6 +24,11 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.3.2", date: "Nov 6, 2026", items: [
+            Item(icon: "signature", title: "Live e-sign status",
+                 detail: "E-Sign requests now update on their own while the E-Sign screen is open, and when you come back to the app, so you see Viewed and Signed without pulling to refresh.",
+                 staffOnly: true),
+        ]),
         Release(version: "3.3.1", date: "Nov 5, 2026", items: [
             Item(icon: "moon", title: "Dark Mode switch",
                  detail: "Turn Dark Mode on or off at the top of Account. Until you do, the app follows your iPhone. Delete Account is now at the bottom of Account."),

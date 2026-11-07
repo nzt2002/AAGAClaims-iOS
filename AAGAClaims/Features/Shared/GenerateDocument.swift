@@ -56,6 +56,7 @@ struct GenerateDocumentSheet: View {
     @State private var showingSend = false
     @State private var requests: [SignatureRequestSummary] = []
     @State private var sentMessage: String?
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         NavigationStack {
@@ -88,6 +89,16 @@ struct GenerateDocumentSheet: View {
                 loadingTemplates = false
             }
             await loadRequests()
+            // Signers view and sign from their email, so keep open requests' status current.
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(15))
+                if requests.contains(where: { $0.status == "Sent" || $0.status == "Viewed" }) {
+                    await loadRequests()
+                }
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await loadRequests() } }
         }
         .onDisappear(perform: cleanUp)
     }
