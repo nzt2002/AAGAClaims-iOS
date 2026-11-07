@@ -192,6 +192,9 @@ struct ClaimDetailView: View {
             if isInternal && updatesFilter == .claimFeed {
                 ChatterFeedSection(model: claimFeed, emptyMessage: "No posts on this claim yet. Use Post to start one.", visibleCount: 3)
             } else {
+                if isInternal && serverMeta.supports(.portalUpdate) {
+                    PortalUpdateButton(api: api, record: viewModel.record) { await viewModel.loadUpdates() }
+                }
                 SectionLoader(state: viewModel.updates, subject: "updates", retry: { await viewModel.loadUpdates() }) { updates in
                     UpdatesList(updates: updates, emptyMessage: "No updates have been published for this claim yet.", visibleCount: 3)
                 }

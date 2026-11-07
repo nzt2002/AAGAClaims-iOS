@@ -17,6 +17,10 @@ public protocol PortalAPI: Sendable {
 
     // Shared by claims and leads
     func updates(for record: RecordRef) async throws -> [PortalUpdate]
+    /// Staff: the record's "Recent Portal Update" draft (`GET /{record}/portal-update`).
+    func portalUpdateDraft(for record: RecordRef) async throws -> PortalUpdateDraft
+    /// Staff: publishes the reviewed update to the portal and the app, and optionally emails it.
+    func postPortalUpdate(to record: RecordRef, _ update: PortalUpdatePost) async throws -> PortalUpdatePosted
     func files(for record: RecordRef) async throws -> [PortalFile]
     func addComment(to record: RecordRef, text: String) async throws
 

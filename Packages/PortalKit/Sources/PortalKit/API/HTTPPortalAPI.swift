@@ -103,6 +103,14 @@ public struct HTTPPortalAPI: PortalAPI {
         try await get("/\(record.collectionPath)/\(escaped(record.id))/files")
     }
 
+    public func portalUpdateDraft(for record: RecordRef) async throws -> PortalUpdateDraft {
+        try await get("/\(record.collectionPath)/\(escaped(record.id))/portal-update")
+    }
+
+    public func postPortalUpdate(to record: RecordRef, _ update: PortalUpdatePost) async throws -> PortalUpdatePosted {
+        try await post("/\(record.collectionPath)/\(escaped(record.id))/portal-update", body: update)
+    }
+
     public func addComment(to record: RecordRef, text: String) async throws {
         try await postNoContent("/\(record.collectionPath)/\(escaped(record.id))/comments", body: ["text": text])
     }

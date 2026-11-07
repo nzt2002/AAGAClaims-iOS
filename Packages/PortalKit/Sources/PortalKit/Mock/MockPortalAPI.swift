@@ -199,6 +199,29 @@ public actor MockPortalAPI: PortalAPI {
         return data.updates[record.id] ?? []
     }
 
+    public func portalUpdateDraft(for record: RecordRef) async throws -> PortalUpdateDraft {
+        try await simulate()
+        try requireRecord(record)
+        guard data.newClaimOptions != nil else { throw PortalAPIError.notFound }
+        return PortalUpdateDraft(
+            recordName: nil,
+            text: "**Current update**\nWe sent your supplement to the carrier.\n\n**Next step**\nWe will follow up this week.",
+            hasNewActivity: true, notice: nil,
+            recipients: [.init(id: "005-mock-portal", name: "Jordan Homeowner", email: "jordan@example.com")])
+    }
+
+    public func postPortalUpdate(to record: RecordRef, _ update: PortalUpdatePost) async throws -> PortalUpdatePosted {
+        try await simulate()
+        try requireRecord(record)
+        guard data.newClaimOptions != nil else { throw PortalAPIError.notFound }
+        guard !update.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw PortalAPIError.invalidRequest }
+        let id = "a1C-mock-\(UUID().uuidString.prefix(8))"
+        let posted = PortalUpdate(commentId: id, relatedRecordId: record.id, relatedRecordName: nil, createdDate: Date(),
+                                  title: "Recent Portal Update", text: update.text.replacingOccurrences(of: "\n", with: "<br>"))
+        data.updates[record.id] = [posted] + (data.updates[record.id] ?? [])
+        return PortalUpdatePosted(commentId: id, emailed: update.sendEmail ? update.recipientIds.count : 0)
+    }
+
     public func files(for record: RecordRef) async throws -> [PortalFile] {
         try await simulate()
         try requireRecord(record)

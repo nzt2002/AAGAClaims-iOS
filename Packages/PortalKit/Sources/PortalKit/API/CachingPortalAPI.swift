@@ -330,6 +330,16 @@ public actor CachingPortalAPI: PortalAPI {
         return try await guarded { try await $0.postToClaim(claimId: claimId, text: text, mentions: mentions, fileIds: fileIds) }
     }
 
+    public func portalUpdateDraft(for record: RecordRef) async throws -> PortalUpdateDraft {
+        try requireOnline()
+        return try await guarded { try await $0.portalUpdateDraft(for: record) }
+    }
+
+    public func postPortalUpdate(to record: RecordRef, _ update: PortalUpdatePost) async throws -> PortalUpdatePosted {
+        try requireOnline()
+        return try await guarded { try await $0.postPortalUpdate(to: record, update) }
+    }
+
     public func logCall(claimId: String, _ call: CallLog) async throws {
         try requireOnline()
         try await guarded { try await $0.logCall(claimId: claimId, call) }

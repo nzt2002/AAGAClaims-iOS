@@ -24,6 +24,11 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.4.0", date: "Nov 7, 2026", items: [
+            Item(icon: "square.and.pencil", title: "Write portal updates from the app",
+                 detail: "On a claim or lead, open Updates, choose Portal Updates and tap Write Portal Update. A draft is written from the last 30 days of activity: edit it, choose who to email, and post.",
+                 staffOnly: true),
+        ]),
         Release(version: "3.3.2", date: "Nov 6, 2026", items: [
             Item(icon: "signature", title: "Live e-sign status",
                  detail: "E-Sign requests now update on their own while the E-Sign screen is open, and when you come back to the app, so you see Viewed and Signed without pulling to refresh.",

@@ -269,6 +269,9 @@ struct LeadDetailView: View {
             if isInternal && updatesFilter == .leadFeed {
                 ChatterFeedSection(model: leadFeed, emptyMessage: "No posts on this lead yet. Use Post to start one.", visibleCount: 3)
             } else {
+                if isInternal && serverMeta.supports(.portalUpdate) {
+                    PortalUpdateButton(api: api, record: viewModel.record) { await viewModel.loadUpdates() }
+                }
                 SectionLoader(state: viewModel.updates, subject: "updates", retry: { await viewModel.loadUpdates() }) { updates in
                     UpdatesList(updates: updates, emptyMessage: "No updates have been published for this lead yet.", visibleCount: 3)
                 }

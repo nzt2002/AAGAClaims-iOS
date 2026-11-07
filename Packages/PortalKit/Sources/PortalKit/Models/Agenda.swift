@@ -148,6 +148,8 @@ public struct ServerMeta: Codable, Hashable, Sendable {
         case assistant
         /// `POST /assistant/conversations`: closed Alex chats are saved in Salesforce.
         case assistantHistory
+        /// Staff draft and post a claim or lead's "Recent Portal Update" (`/{record}/portal-update`).
+        case portalUpdate
     }
 }
 
