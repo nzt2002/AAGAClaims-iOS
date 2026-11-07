@@ -259,6 +259,13 @@ struct LeadDetailView: View {
     private func sectionContent(_ detail: LeadDetail) -> some View {
         switch viewModel.section {
         case .updates:
+            if isInternal && serverMeta.supports(.portalUpdate) {
+                // Staff: write the customer-facing update, then show it in Portal Updates.
+                PortalUpdateButton(api: api, record: viewModel.record) {
+                    updatesFilter = .portalUpdates
+                    await viewModel.loadUpdates()
+                }
+            }
             if isInternal {
                 Picker("Show", selection: $updatesFilter) {
                     ForEach(UpdatesFilter.allCases, id: \.self) { Text($0.rawValue).tag($0) }
@@ -269,9 +276,6 @@ struct LeadDetailView: View {
             if isInternal && updatesFilter == .leadFeed {
                 ChatterFeedSection(model: leadFeed, emptyMessage: "No posts on this lead yet. Use Post to start one.", visibleCount: 3)
             } else {
-                if isInternal && serverMeta.supports(.portalUpdate) {
-                    PortalUpdateButton(api: api, record: viewModel.record) { await viewModel.loadUpdates() }
-                }
                 SectionLoader(state: viewModel.updates, subject: "updates", retry: { await viewModel.loadUpdates() }) { updates in
                     UpdatesList(updates: updates, emptyMessage: "No updates have been published for this lead yet.", visibleCount: 3)
                 }

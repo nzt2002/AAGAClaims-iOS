@@ -24,6 +24,11 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.4.1", date: "Nov 7, 2026", items: [
+            Item(icon: "square.and.pencil", title: "Write Portal Update is easier to find",
+                 detail: "The Write Portal Update button is now at the top of a claim or lead's Updates, whichever feed you're viewing.",
+                 staffOnly: true),
+        ]),
         Release(version: "3.4.0", date: "Nov 7, 2026", items: [
             Item(icon: "square.and.pencil", title: "Write portal updates from the app",
                  detail: "On a claim or lead, open Updates, choose Portal Updates and tap Write Portal Update. A draft is written from the last 30 days of activity: edit it, choose who to email, and post.",

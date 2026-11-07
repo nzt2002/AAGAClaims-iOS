@@ -201,6 +201,10 @@ struct MainTabView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 router.refreshStale()
+                // Pick up server features deployed while the app was open (they gate staff buttons).
+                Task {
+                    if let meta = try? await session.api.serverMeta() { serverMeta = meta }
+                }
             }
         }
         .onChange(of: router.home.unreadCount, initial: true) { _, count in
