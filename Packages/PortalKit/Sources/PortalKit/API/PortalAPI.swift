@@ -34,6 +34,8 @@ public protocol PortalAPI: Sendable {
     func replyToCase(id: String, body: String) async throws
     /// `GET /{claims|leads}/{id}/cases`: support cases on a claim or lead (portal users: their own).
     func cases(for record: RecordRef) async throws -> [SupportCase]
+    /// `GET /{claims|leads}/{id}/contacts` (staff, servers with `recordContacts`): the record's contacts.
+    func contacts(for record: RecordRef) async throws -> [RecordContact]
     /// `POST /cases/{id}/complete`: the case contact marks their case Completed.
     func completeCase(id: String) async throws
     /// Request Assistance. `recordId` is a claim or lead id. Returns the new case id.

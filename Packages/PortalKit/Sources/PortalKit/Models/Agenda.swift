@@ -158,6 +158,8 @@ public struct ServerMeta: Codable, Hashable, Sendable {
         case portalUpdate
         /// In-app calling on the business line (`GET /voice/token`, `inAppCalling` in `/meta`).
         case voice
+        /// Staff see a record's contacts in a Contacts tab (`GET /{record}/contacts`).
+        case recordContacts
     }
 }
 

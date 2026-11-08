@@ -90,6 +90,19 @@ public enum LeadLifecycle {
             return LeadLifecycle.stages
         }
 
+        /// round(((index + 1) ÷ 4) × 100): New 25%, Working 50%, Qualified 75%, Converted 100%.
+        /// Nil when unknown or Unqualified (an unqualified lead isn't progressing).
+        public var percentComplete: Int? {
+            guard case .stage(let index, false) = self else { return nil }
+            return Int((Double(index + 1) / Double(LeadLifecycle.stages.count) * 100).rounded())
+        }
+
+        /// 1-based stage number, for "Stage 2 of 4". Nil when unknown or Unqualified.
+        public var stageNumber: Int? {
+            guard case .stage(let index, false) = self else { return nil }
+            return index + 1
+        }
+
         public func state(ofStageAt stageIndex: Int) -> StepState {
             guard case .stage(let index, _) = self else { return .upcoming }
             if stageIndex < index { return .complete }

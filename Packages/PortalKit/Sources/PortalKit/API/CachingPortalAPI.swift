@@ -389,6 +389,9 @@ public actor CachingPortalAPI: PortalAPI {
     public func cases(for record: RecordRef) async throws -> [SupportCase] {
         try await read("\(record.collectionPath)/\(record.id)/cases") { try await $0.cases(for: record) }
     }
+    public func contacts(for record: RecordRef) async throws -> [RecordContact] {
+        try await read("\(record.collectionPath)/\(record.id)/contacts") { try await $0.contacts(for: record) }
+    }
 
     // MARK: Online only (not cached, and they only matter while submitting)
 

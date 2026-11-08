@@ -56,6 +56,7 @@ struct ClaimDetailView: View {
             .task {
                 if viewModel.detail.value == nil {
                     viewModel.includesCases = serverMeta.supports(.recordCases)
+                    viewModel.includesContacts = showsContacts
                     await viewModel.load()
                 }
                 if isInternal, claimFeed.feed.value == nil {
@@ -75,6 +76,8 @@ struct ClaimDetailView: View {
                     NewEventSheet(api: api, currentUserName: currentUserName, record: .claim(viewModel.claimId)) {
                         Task { await loadActivity() }
                     }
+                case .portalUpdate:
+                    PortalUpdateComposer(api: api, record: viewModel.record) { await showPostedPortalUpdate() }
                 default:
                 ClaimActionSheet(action: action, actions: actions, feed: claimFeed, api: api,
                                  referenceId: viewModel.detail.value?.referenceId) {
@@ -121,7 +124,8 @@ struct ClaimDetailView: View {
                 ClaimHeader(detail: detail, position: detail.lifecycle)
                 LossAddressCard(address: detail.lossAddress)
                 if isInternal {
-                    ClaimQuickActions(onESign: { showingESign = true }) { openAction = $0 }
+                    ClaimQuickActions(onESign: { showingESign = true },
+                                      hidden: serverMeta.supports(.portalUpdate) ? [] : [.portalUpdate]) { openAction = $0 }
                 }
                 PaymentsCard(detail: detail, payments: viewModel.payments.value ?? [])
                 LifecycleCard(position: detail.lifecycle, status: detail.claimStatus)
@@ -133,7 +137,7 @@ struct ClaimDetailView: View {
                         AlexChatsLink(api: api, recordId: viewModel.claimId)
                     }
                 }
-                SectionBar(selection: $viewModel.section, hidden: viewModel.includesCases ? [] : [.cases])
+                SectionBar(selection: $viewModel.section, hidden: hiddenSections)
                 sectionContent(detail)
                 TeamCard(
                     adjuster: .init(name: detail.adjusterName, phone: detail.adjusterPhone, email: detail.adjusterEmail),
@@ -171,6 +175,23 @@ struct ClaimDetailView: View {
                             isPresented: $showingESign, isAvailable: $eSignAvailable)
     }
 
+    /// Contacts are staff-only; Cases and Contacts wait for the server to support them.
+    private var showsContacts: Bool { isInternal && serverMeta.supports(.recordContacts) }
+
+    private var hiddenSections: Set<ClaimDetailViewModel.Section> {
+        var hidden: Set<ClaimDetailViewModel.Section> = []
+        if !viewModel.includesCases { hidden.insert(.cases) }
+        if !showsContacts { hidden.insert(.contacts) }
+        return hidden
+    }
+
+    /// After a Portal Update is posted (from the tab or More): show it in Updates → Portal Updates.
+    private func showPostedPortalUpdate() async {
+        viewModel.section = .updates
+        updatesFilter = .portalUpdates
+        await viewModel.loadUpdates()
+    }
+
     /// Emails are included once the server has them.
     private func loadActivity() async {
         guard serverMeta.supports(.claimActivities) else { return }
@@ -182,13 +203,6 @@ struct ClaimDetailView: View {
     private func sectionContent(_ detail: ClaimDetail) -> some View {
         switch viewModel.section {
         case .updates:
-            if isInternal && serverMeta.supports(.portalUpdate) {
-                // Staff: write the customer-facing update, then show it in Portal Updates.
-                PortalUpdateButton(api: api, record: viewModel.record) {
-                    updatesFilter = .portalUpdates
-                    await viewModel.loadUpdates()
-                }
-            }
             if isInternal {
                 // Staff: the claim's Chatter feed (default) or the published portal updates.
                 Picker("Show", selection: $updatesFilter) {
@@ -197,8 +211,13 @@ struct ClaimDetailView: View {
                 .pickerStyle(.segmented)
                 .accessibilityIdentifier("updatesFilter")
             }
+            if isInternal && updatesFilter == .portalUpdates && serverMeta.supports(.portalUpdate) {
+                // Staff: write the customer-facing update, on the Portal Updates tab it lands in.
+                PortalUpdateButton(api: api, record: viewModel.record) { await showPostedPortalUpdate() }
+            }
             if isInternal && updatesFilter == .claimFeed {
-                ChatterFeedSection(model: claimFeed, emptyMessage: "No posts on this claim yet. Use Post to start one.", visibleCount: 3)
+                // Four posts at a time; the rest scroll inside the section.
+                ChatterFeedSection(model: claimFeed, emptyMessage: "No posts on this claim yet. Use Post to start one.", visibleCount: 4)
             } else {
                 SectionLoader(state: viewModel.updates, subject: "updates", retry: { await viewModel.loadUpdates() }) { updates in
                     UpdatesList(updates: updates, emptyMessage: "No updates have been published for this claim yet.", visibleCount: 3)
@@ -206,6 +225,8 @@ struct ClaimDetailView: View {
             }
         case .details:
             ClaimDetailsSection(detail: detail, lossReason: summary?.lossReason)
+        case .contacts:
+            RecordContactsSection(state: viewModel.contacts, noun: "claim") { await viewModel.loadContacts() }
         case .insurance:
             ClaimInsuranceSection(detail: detail)
         case .files:
@@ -230,8 +251,8 @@ private struct ClaimHeader: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        // The ring moves under the text at large sizes, so nothing is squeezed.
-        AdaptiveStack(horizontalAlignment: .top, verticalAlignment: .leading, spacing: Theme.Spacing.l) {
+        // The ring sits centered on the right; it moves under the text at large sizes, so nothing is squeezed.
+        AdaptiveStack(horizontalAlignment: .center, verticalAlignment: .leading, spacing: Theme.Spacing.l) {
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
                 if let status = PortalFormat.nonEmpty(detail.claimStatus) {
                     Text(status.uppercased())
@@ -265,13 +286,7 @@ private struct ClaimHeader: View {
             }
             AdaptiveSpacer()
             if let percent = position.percentComplete, case .stage(let index) = position {
-                VStack(spacing: Theme.Spacing.xs) {
-                    ProgressRing(percent: percent, onBrand: true)
-                    Text("Stage \(index + 1) of \(ClaimLifecycle.stages.count)")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .fixedSize()
-                }
+                HeroProgress(percent: percent, stage: index + 1, of: ClaimLifecycle.stages.count)
             }
         }
         .padding(Theme.Spacing.l)
@@ -486,6 +501,28 @@ private struct LifecycleCard: View {
             }
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// The % ring with "Stage N of M" centered under it, for the claim and lead heroes.
+struct HeroProgress: View {
+    let percent: Int
+    let stage: Int
+    let of: Int
+
+    var body: some View {
+        VStack(alignment: .center, spacing: Theme.Spacing.xs) {
+            ProgressRing(percent: percent, onBrand: true)
+            Text("Stage \(stage) of \(of)")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+                .fixedSize()
+        }
+        // A fixed column, so the ring and caption share one center line.
+        .frame(minWidth: 84)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(percent) percent complete, stage \(stage) of \(of)")
     }
 }
 

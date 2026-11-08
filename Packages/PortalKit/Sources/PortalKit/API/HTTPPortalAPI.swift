@@ -139,6 +139,10 @@ public struct HTTPPortalAPI: PortalAPI {
         try await get("/\(record.collectionPath)/\(escaped(record.id))/cases")
     }
 
+    public func contacts(for record: RecordRef) async throws -> [RecordContact] {
+        try await get("/\(record.collectionPath)/\(escaped(record.id))/contacts")
+    }
+
     public func completeCase(id: String) async throws {
         try await postNoContent("/cases/\(escaped(id))/complete", body: [String: String]())
     }

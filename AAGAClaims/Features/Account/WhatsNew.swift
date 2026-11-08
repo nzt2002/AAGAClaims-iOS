@@ -24,6 +24,19 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.7.0", date: "Nov 8, 2026", items: [
+            Item(icon: "person.2", title: "Contacts tab",
+                 detail: "Claims and leads have a Contacts tab after Details. Claims list their claim contacts and roles; leads show the homeowner, subcontractor and partner. Tap to call or email.",
+                 staffOnly: true),
+            Item(icon: "megaphone", title: "Portal Update in More",
+                 detail: "Write Portal Update is in the More menu on claims and leads, and on the Portal Updates tab under Updates. On leads, E-Sign has moved into More too.",
+                 staffOnly: true),
+            Item(icon: "text.bubble", title: "Longer feed view",
+                 detail: "A claim or lead's feed shows four posts at a time and scrolls inside the section for the rest.",
+                 staffOnly: true),
+            Item(icon: "chart.pie", title: "Progress at a glance",
+                 detail: "The percent-complete ring and stage are centred on the right of the claim's top card, and leads now show their progress there too."),
+        ]),
         Release(version: "3.6.1", date: "Nov 8, 2026", items: [
             Item(icon: "phone.down", title: "Call screen buttons fixed",
                  detail: "End now hangs up straight away, and Mute, Hold and Keypad respond immediately during business-line calls.",

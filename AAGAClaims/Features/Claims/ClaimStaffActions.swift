@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Staff actions on a claim's page: quick actions and communication.
 enum ClaimAction: String, Identifiable, CaseIterable {
-    case payments, addContact, edit, address, owner, proofOfLoss, post, email, task, event
+    case payments, addContact, edit, address, owner, proofOfLoss, post, email, task, event, portalUpdate
     var id: String { rawValue }
 
     var title: String {
@@ -18,6 +18,7 @@ enum ClaimAction: String, Identifiable, CaseIterable {
         case .email: "Send an Email"
         case .task: "New Task"
         case .event: "New Event"
+        case .portalUpdate: "Write Portal Update"
         }
     }
 
@@ -33,11 +34,12 @@ enum ClaimAction: String, Identifiable, CaseIterable {
         case .email: "envelope"
         case .task: "checklist"
         case .event: "calendar.badge.plus"
+        case .portalUpdate: "megaphone"
         }
     }
 
     /// In the More menu; the rest are on the action strip (and Edit Claim in the top bar).
-    static let more: [ClaimAction] = [.addContact, .email, .address, .owner, .proofOfLoss]
+    static let more: [ClaimAction] = [.addContact, .email, .portalUpdate, .address, .owner, .proofOfLoss]
 
     /// The label under a round action button.
     var shortTitle: String {
@@ -54,10 +56,12 @@ enum ClaimAction: String, Identifiable, CaseIterable {
 }
 
 /// The claim's action strip (staff only): Apply Payments, Add a Post, New Task, New Event and More
-/// (Add Contact, Send an Email, Update Address, Change Owner, Proof of Loss), as round icon buttons with labels on one card. Edit Claim is in the top bar.
+/// (Add Contact, Send an Email, Write Portal Update, Update Address, Change Owner, Proof of Loss), as round icon buttons with labels on one card. Edit Claim is in the top bar.
 struct ClaimQuickActions: View {
     /// In-house e-sign (pilot users only); shown in More when set.
     var onESign: (() -> Void)? = nil
+    /// More-menu actions the server doesn't support yet (e.g. Write Portal Update).
+    var hidden: Set<ClaimAction> = []
     let open: (ClaimAction) -> Void
     @Environment(\.isOffline) private var isOffline
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -79,7 +83,7 @@ struct ClaimQuickActions: View {
                 .accessibilityIdentifier("claimAction-\(action.rawValue)")
             }
             Menu {
-                ForEach(ClaimAction.more) { action in
+                ForEach(ClaimAction.more.filter { !hidden.contains($0) }) { action in
                     Button { open(action) } label: { Label(action.title, systemImage: action.icon) }
                         .accessibilityIdentifier("claimAction-\(action.rawValue)")
                 }
@@ -188,7 +192,7 @@ struct ClaimActionSheet: View {
         case .owner: ChangeOwnerForm(staff: staff, actions: actions, saved: saved)
         case .proofOfLoss: ProofOfLossForm(staff: staff, actions: actions, saved: saved)
         case .email: EmailForm(api: api, staff: staff, referenceId: referenceId, saved: saved)
-        case .payments, .addContact, .post, .task, .event: EmptyView()
+        case .payments, .addContact, .post, .task, .event, .portalUpdate: EmptyView()
         }
     }
 }

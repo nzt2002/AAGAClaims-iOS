@@ -280,6 +280,25 @@ public actor MockPortalAPI: PortalAPI {
         return data.cases.filter { $0.relatedRecordId == record.id }
     }
 
+    public func contacts(for record: RecordRef) async throws -> [RecordContact] {
+        try await simulate()
+        try requireRecord(record)
+        if case .lead = record {
+            return [
+                RecordContact(contactId: nil, name: "Jordan Rivera", role: "Homeowner", email: "jordan.rivera@example.com",
+                              phone: "(404) 555-0142", kind: "Lead"),
+                RecordContact(contactId: "003DEMO00000002", name: "Peachtree Roofing", role: "Subcontractor",
+                              email: "office@peachtreeroofing.example", phone: "(404) 555-0170"),
+            ]
+        }
+        return [
+            RecordContact(contactId: "003DEMO00000001", name: "Jordan Rivera", role: "Insured", email: "jordan.rivera@example.com",
+                          phone: "(404) 555-0142", mobilePhone: "(404) 555-0143"),
+            RecordContact(contactId: "003DEMO00000003", name: "Morgan Ellis", role: "Contractor", email: "morgan@ellisbuild.example",
+                          phone: "(678) 555-0190"),
+        ]
+    }
+
     public func completeCase(id: String) async throws {
         try await simulate()
         let detail = try found(data.caseDetails[id])

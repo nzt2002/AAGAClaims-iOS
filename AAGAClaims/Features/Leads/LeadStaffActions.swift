@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Staff actions on a lead's page, in the claim page's style.
 enum LeadAction: String, Identifiable {
-    case convert, post, agreement, edit, task, event
+    case convert, post, agreement, edit, task, event, portalUpdate
     var id: String { rawValue }
 
     var title: String {
@@ -14,6 +14,7 @@ enum LeadAction: String, Identifiable {
         case .edit: "Edit Lead"
         case .task: "New Task"
         case .event: "New Event"
+        case .portalUpdate: "Write Portal Update"
         }
     }
 
@@ -25,6 +26,7 @@ enum LeadAction: String, Identifiable {
         case .edit: "Edit"
         case .task: "Task"
         case .event: "Event"
+        case .portalUpdate: "Portal Update"
         }
     }
 
@@ -36,24 +38,30 @@ enum LeadAction: String, Identifiable {
         case .edit: "square.and.pencil"
         case .task: "checklist"
         case .event: "calendar.badge.plus"
+        case .portalUpdate: "megaphone"
         }
     }
 }
 
-/// The lead's action strip (staff only): Convert to Account, Post, New Task, New Event, and the
-/// agreement e-sign preview.
+/// The lead's action strip (staff only): Convert to Account, Post, New Task, New Event and More
+/// (the agreement e-sign preview and Write Portal Update), as on claims.
 /// Edit and Ask Question are in the top bar.
 struct LeadQuickActions: View {
     let isConverted: Bool
+    /// More-menu actions the server doesn't support yet (e.g. Write Portal Update).
+    var hidden: Set<LeadAction> = []
     let open: (LeadAction) -> Void
     @Environment(\.isOffline) private var isOffline
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    static let strip: [LeadAction] = [.convert, .post, .task, .event]
+    static let more: [LeadAction] = [.agreement, .portalUpdate]
 
     var body: some View {
         let columns = Array(repeating: GridItem(.flexible(), spacing: Theme.Spacing.xs, alignment: .top),
                             count: dynamicTypeSize.isAccessibilitySize ? 2 : 5)
         LazyVGrid(columns: columns, spacing: Theme.Spacing.m) {
-            ForEach([LeadAction.convert, .post, .task, .event, .agreement]) { action in
+            ForEach(Self.strip) { action in
                 Button { open(action) } label: {
                     ActionCircle(title: action == .convert && isConverted ? "View Claim" : action.shortTitle,
                                  icon: action == .convert && isConverted ? "doc.text" : action.icon)
@@ -63,6 +71,20 @@ struct LeadQuickActions: View {
                 .accessibilityLabel(action == .convert && isConverted ? "View the converted claim" : action.title)
                 .accessibilityIdentifier("leadAction-\(action.rawValue)")
             }
+            Menu {
+                ForEach(Self.more.filter { !hidden.contains($0) }) { action in
+                    Button { open(action) } label: {
+                        Label(action == .agreement ? "E-Sign" : action.title, systemImage: action.icon)
+                    }
+                    .accessibilityIdentifier("leadAction-\(action.rawValue)")
+                }
+            } label: {
+                ActionCircle(title: "More", icon: "ellipsis")
+            }
+            .buttonStyle(ActionCirclePressStyle())
+            .disabledWhenOffline(isOffline)
+            .accessibilityLabel("More actions")
+            .accessibilityIdentifier("leadActionMore")
         }
         .padding(.vertical, Theme.Spacing.m)
         .padding(.horizontal, Theme.Spacing.s)

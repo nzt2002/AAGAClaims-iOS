@@ -8,6 +8,8 @@ public final class LeadDetailViewModel {
     public enum Section: String, CaseIterable, Sendable {
         case updates = "Updates"
         case details = "Details"
+        /// Staff only, on servers with `recordContacts`.
+        case contacts = "Contacts"
         case referredBy = "Referred By"
         case insurance = "Insurance"
         case files = "Files"
@@ -30,6 +32,9 @@ public final class LeadDetailViewModel {
     /// (servers with `recordCases`).
     public private(set) var cases: LoadState<[SupportCase]> = .idle
     public var includesCases = false
+    /// The record's contacts, shown in the Contacts tab (staff, servers with `recordContacts`).
+    public private(set) var contacts: LoadState<[RecordContact]> = .idle
+    public var includesContacts = false
     public var section: Section = .updates
 
     private let api: PortalAPI
@@ -46,7 +51,8 @@ public final class LeadDetailViewModel {
         async let updates: Void = loadUpdates()
         async let files: Void = loadFiles()
         async let cases: Void = includesCases ? loadCases() : ()
-        _ = await (detail, updates, files, cases)
+        async let contacts: Void = includesContacts ? loadContacts() : ()
+        _ = await (detail, updates, files, cases, contacts)
     }
 
     public func loadDetail() async {
@@ -60,6 +66,12 @@ public final class LeadDetailViewModel {
         await PortalKit.load(self, \.updates) {
             try await api.updates(for: record).sorted { ($0.createdDate ?? .distantPast) > ($1.createdDate ?? .distantPast) }
         }
+    }
+
+    /// In the server's order (claim contacts as added; a lead's homeowner first).
+    public func loadContacts() async {
+        let api = self.api, record = self.record
+        await PortalKit.load(self, \.contacts) { try await api.contacts(for: record) }
     }
 
     /// Newest first.

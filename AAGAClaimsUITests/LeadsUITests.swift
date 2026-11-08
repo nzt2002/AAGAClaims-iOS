@@ -83,7 +83,12 @@ final class LeadsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["leadAction-edit"].label.contains("Edit"))
         XCTAssertTrue(app.buttons["requestAssistance"].exists)
         XCTAssertTrue(app.buttons["leadAction-post"].exists)
-        XCTAssertTrue(app.buttons["leadAction-agreement"].exists)
+        // E-Sign and Write Portal Update are in More, as on claims.
+        app.buttons["leadActionMore"].tap()
+        XCTAssertTrue(app.buttons["leadAction-agreement"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["leadAction-portalUpdate"].exists)
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.08)).tap()  // close the menu
+        XCTAssertTrue(app.buttons["leadAction-post"].waitForExistence(timeout: 5))
 
         app.buttons["leadAction-post"].tap()
         let text = app.descendants(matching: .any)["postText"]

@@ -49,6 +49,7 @@ struct LeadDetailView: View {
             .task {
                 if viewModel.detail.value == nil {
                     viewModel.includesCases = serverMeta.supports(.recordCases)
+                    viewModel.includesContacts = showsContacts
                     await viewModel.load()
                 }
                 if isInternal, leadFeed.feed.value == nil {
@@ -68,6 +69,8 @@ struct LeadDetailView: View {
                     NewEventSheet(api: api, currentUserName: currentUserName, record: .lead(viewModel.leadId)) {
                         Task { await loadActivity() }
                     }
+                case .portalUpdate:
+                    PortalUpdateComposer(api: api, record: viewModel.record) { await showPostedPortalUpdate() }
                 case .edit:
                     if let staff = leadActions.staff.value {
                         EditLeadForm(staff: staff, actions: leadActions, api: api) {
@@ -127,7 +130,8 @@ struct LeadDetailView: View {
                 header(detail)
                 LossAddressCard(address: detail.lossAddress)
                 if isInternal {
-                    LeadQuickActions(isConverted: isConverted(detail)) { handle($0, detail) }
+                    LeadQuickActions(isConverted: isConverted(detail),
+                                     hidden: serverMeta.supports(.portalUpdate) ? [] : [.portalUpdate]) { handle($0, detail) }
                 }
                 LeadLifecycleCard(position: detail.lifecycle, status: detail.prospectStatus)
                 if isInternal && serverMeta.supports(.leadActivities) {
@@ -137,7 +141,7 @@ struct LeadDetailView: View {
                     AlexChatsLink(api: api, recordId: viewModel.leadId)
                 }
                 AgreementCard(agreement: detail.agreement)
-                SectionBar(selection: $viewModel.section, hidden: viewModel.includesCases ? [] : [.cases])
+                SectionBar(selection: $viewModel.section, hidden: hiddenSections)
                 sectionContent(detail)
                 TeamCard(
                     adjuster: .init(name: detail.adjusterName, phone: detail.adjusterPhone, email: detail.adjusterEmail),
@@ -191,7 +195,7 @@ struct LeadDetailView: View {
             } else if leadActions.staff.value != nil {
                 showingConvert = true
             }
-        case .post, .edit, .task, .event:
+        case .post, .edit, .task, .event, .portalUpdate:
             openAction = action
         case .agreement:
             // In-house e-sign (Docs Made Easy is no longer used from the app).
@@ -212,41 +216,65 @@ struct LeadDetailView: View {
     /// The lead's hero: status, name and numbers on the green lead gradient. The address is its own
     /// card below, so it can be tapped to open Maps.
     private func header(_ detail: LeadDetail) -> some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-            if let status = PortalFormat.nonEmpty(detail.prospectStatus) {
-                Text(status.uppercased())
-                    .font(.caption.weight(.bold))
-                    .tracking(0.6)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, Theme.Spacing.s)
-                    .padding(.vertical, 4)
-                    .background(.white.opacity(0.2), in: Capsule())
+        // As on claims: the % ring and stage centered on the right; under the text at large sizes.
+        AdaptiveStack(horizontalAlignment: .center, verticalAlignment: .leading, spacing: Theme.Spacing.l) {
+            VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                if let status = PortalFormat.nonEmpty(detail.prospectStatus) {
+                    Text(status.uppercased())
+                        .font(.caption.weight(.bold))
+                        .tracking(0.6)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, Theme.Spacing.s)
+                        .padding(.vertical, 4)
+                        .background(.white.opacity(0.2), in: Capsule())
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Text(detail.prospectName ?? "Lead")
+                    .font(.heroTitle)
                     .fixedSize(horizontal: false, vertical: true)
-            }
-            Text(detail.prospectName ?? "Lead")
-                .font(.heroTitle)
-                .fixedSize(horizontal: false, vertical: true)
+                    .foregroundStyle(.white)
+                // One fact per line, so numbers never split.
+                VStack(alignment: .leading, spacing: 2) {
+                    if let number = PortalFormat.nonEmpty(detail.claimNumber) {
+                        Text("Claim \(number)")
+                    }
+                    if let policy = PortalFormat.nonEmpty(detail.policyNumber) {
+                        Text("Policy \(policy)")
+                    }
+                    if detail.lossDate != nil {
+                        Text("Loss date \(PortalFormat.date(detail.lossDate))")
+                    }
+                }
+                .font(.subheadline)
                 .foregroundStyle(.white)
-            // One fact per line, so numbers never split.
-            VStack(alignment: .leading, spacing: 2) {
-                if let number = PortalFormat.nonEmpty(detail.claimNumber) {
-                    Text("Claim \(number)")
-                }
-                if let policy = PortalFormat.nonEmpty(detail.policyNumber) {
-                    Text("Policy \(policy)")
-                }
-                if detail.lossDate != nil {
-                    Text("Loss date \(PortalFormat.date(detail.lossDate))")
-                }
+                .fixedSize(horizontal: false, vertical: true)
             }
-            .font(.subheadline)
-            .foregroundStyle(.white)
-            .fixedSize(horizontal: false, vertical: true)
+            AdaptiveSpacer()
+            if let percent = detail.lifecycle.percentComplete, let stage = detail.lifecycle.stageNumber {
+                HeroProgress(percent: percent, stage: stage, of: LeadLifecycle.stages.count)
+            }
         }
         .padding(Theme.Spacing.l)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(BrandGradient.leadHero, in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
         .accessibilityElement(children: .combine)
+    }
+
+    /// Contacts are staff-only; Cases and Contacts wait for the server to support them.
+    private var showsContacts: Bool { isInternal && serverMeta.supports(.recordContacts) }
+
+    private var hiddenSections: Set<LeadDetailViewModel.Section> {
+        var hidden: Set<LeadDetailViewModel.Section> = []
+        if !viewModel.includesCases { hidden.insert(.cases) }
+        if !showsContacts { hidden.insert(.contacts) }
+        return hidden
+    }
+
+    /// After a Portal Update is posted (from the tab or More): show it in Updates → Portal Updates.
+    private func showPostedPortalUpdate() async {
+        viewModel.section = .updates
+        updatesFilter = .portalUpdates
+        await viewModel.loadUpdates()
     }
 
     /// Emails are included once the server has them.
@@ -260,13 +288,6 @@ struct LeadDetailView: View {
     private func sectionContent(_ detail: LeadDetail) -> some View {
         switch viewModel.section {
         case .updates:
-            if isInternal && serverMeta.supports(.portalUpdate) {
-                // Staff: write the customer-facing update, then show it in Portal Updates.
-                PortalUpdateButton(api: api, record: viewModel.record) {
-                    updatesFilter = .portalUpdates
-                    await viewModel.loadUpdates()
-                }
-            }
             if isInternal {
                 Picker("Show", selection: $updatesFilter) {
                     ForEach(UpdatesFilter.allCases, id: \.self) { Text($0.rawValue).tag($0) }
@@ -274,8 +295,13 @@ struct LeadDetailView: View {
                 .pickerStyle(.segmented)
                 .accessibilityIdentifier("leadUpdatesFilter")
             }
+            if isInternal && updatesFilter == .portalUpdates && serverMeta.supports(.portalUpdate) {
+                // Staff: write the customer-facing update, on the Portal Updates tab it lands in.
+                PortalUpdateButton(api: api, record: viewModel.record) { await showPostedPortalUpdate() }
+            }
             if isInternal && updatesFilter == .leadFeed {
-                ChatterFeedSection(model: leadFeed, emptyMessage: "No posts on this lead yet. Use Post to start one.", visibleCount: 3)
+                // Four posts at a time; the rest scroll inside the section.
+                ChatterFeedSection(model: leadFeed, emptyMessage: "No posts on this lead yet. Use Post to start one.", visibleCount: 4)
             } else {
                 SectionLoader(state: viewModel.updates, subject: "updates", retry: { await viewModel.loadUpdates() }) { updates in
                     UpdatesList(updates: updates, emptyMessage: "No updates have been published for this lead yet.", visibleCount: 3)
@@ -283,6 +309,8 @@ struct LeadDetailView: View {
             }
         case .details:
             LeadDetailsSection(detail: detail)
+        case .contacts:
+            RecordContactsSection(state: viewModel.contacts, noun: "lead") { await viewModel.loadContacts() }
         case .referredBy:
             ReferralCard(detail: detail)
         case .insurance:
