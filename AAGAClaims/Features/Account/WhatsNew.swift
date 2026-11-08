@@ -24,6 +24,11 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.6.0", date: "Nov 8, 2026", items: [
+            Item(icon: "phone.connection", title: "Call screen for business-line calls",
+                 detail: "While you're on a business-line call, ProClaimer shows a call screen with Mute, Keypad, Speaker, Hold and End. Tap the arrow to get back to the app during the call, and the green bar at the top to return to it.",
+                 staffOnly: true),
+        ]),
         Release(version: "3.5.1", date: "Nov 8, 2026", items: [
             Item(icon: "speaker.wave.2", title: "Sound on incoming business-line calls",
                  detail: "Fixed incoming calls answered in ProClaimer connecting without sound.",

@@ -28,6 +28,25 @@ final class CallManager: NSObject {
     private(set) var businessLine: String?
     /// A call is ringing, connecting or connected.
     private(set) var hasActiveCall = false
+    /// The call on the in-app call screen (outgoing from the moment it starts, incoming once answered).
+    private(set) var activeCall: ActiveCall?
+    /// False after the user minimises the call screen; a "return to call" bar shows instead.
+    var showsCallScreen = true
+
+    struct ActiveCall: Equatable {
+        enum Phase: Equatable { case connecting, ringing, connected, reconnecting }
+        let uuid: UUID
+        /// Name when known, else the formatted number.
+        let title: String
+        /// The number under the name.
+        let subtitle: String?
+        let isOutgoing: Bool
+        var phase: Phase = .connecting
+        var connectedAt: Date?
+        var isMuted = false
+        var isOnHold = false
+        var isSpeaker = false
+    }
 
     @ObservationIgnored private var api: PortalAPI?
     @ObservationIgnored private var token: VoiceToken?
@@ -110,10 +129,15 @@ final class CallManager: NSObject {
         let action = CXStartCallAction(call: uuid, handle: handle)
         action.contactIdentifier = name
         outgoing[uuid] = OutgoingCall(number: number, recordId: recordId, name: name)
+        let formatted = CallManager.display(number) ?? number
+        let named = PortalFormat.nonEmpty(name)
+        activeCall = ActiveCall(uuid: uuid, title: named ?? formatted, subtitle: named == nil ? nil : formatted, isOutgoing: true)
+        showsCallScreen = true
         callController.request(CXTransaction(action: action)) { [weak self] error in
             guard let error else { return }
             Task { @MainActor in
                 self?.outgoing[uuid] = nil
+                self?.activeCall = nil
                 CallManager.log("start call failed: \(error.localizedDescription)")
             }
         }
@@ -126,6 +150,45 @@ final class CallManager: NSObject {
     }
 
     @ObservationIgnored private var outgoing: [UUID: OutgoingCall] = [:]
+
+    // MARK: - In-call controls (call screen)
+
+    func toggleMute() {
+        guard let call = activeCall else { return }
+        request(CXSetMutedCallAction(call: call.uuid, muted: !call.isMuted))
+    }
+
+    func toggleHold() {
+        guard let call = activeCall else { return }
+        request(CXSetHeldCallAction(call: call.uuid, onHold: !call.isOnHold))
+    }
+
+    func sendDigit(_ digit: String) {
+        guard let call = activeCall, call.phase == .connected else { return }
+        request(CXPlayDTMFCallAction(call: call.uuid, digits: digit, type: .singleTone))
+    }
+
+    func endCall() {
+        guard let call = activeCall else { return }
+        request(CXEndCallAction(call: call.uuid))
+    }
+
+    func toggleSpeaker() {
+        guard let call = activeCall else { return }
+        let speaker = !call.isSpeaker
+        do {
+            try AVAudioSession.sharedInstance().overrideOutputAudioPort(speaker ? .speaker : .none)
+            updateActive(call.uuid) { $0.isSpeaker = speaker }
+        } catch {
+            CallManager.log("speaker switch failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func request(_ action: CXCallAction) {
+        callController.request(CXTransaction(action: action)) { error in
+            if let error { CallManager.log("call action failed: \(error.localizedDescription)") }
+        }
+    }
 
     // MARK: - Tokens and registration
 
@@ -270,6 +333,17 @@ extension CallManager: @preconcurrency CallDelegate {
     func callDidStartRinging(call: Call) {
         guard let uuid = call.uuid else { return }
         provider.reportOutgoingCall(with: uuid, startedConnectingAt: Date())
+        updateActive(uuid) { $0.phase = .ringing }
+    }
+
+    func call(call: Call, isReconnectingWithError error: Error) {
+        guard let uuid = call.uuid else { return }
+        updateActive(uuid) { $0.phase = .reconnecting }
+    }
+
+    func callDidReconnect(call: Call) {
+        guard let uuid = call.uuid else { return }
+        updateActive(uuid) { $0.phase = .connected }
     }
 
     func callDidConnect(call: Call) {
@@ -282,6 +356,16 @@ extension CallManager: @preconcurrency CallDelegate {
         if outgoing[uuid] != nil {
             provider.reportOutgoingCall(with: uuid, connectedAt: Date())
         }
+        updateActive(uuid) {
+            $0.phase = .connected
+            if $0.connectedAt == nil { $0.connectedAt = Date() }
+        }
+    }
+
+    private func updateActive(_ uuid: UUID, _ change: (inout ActiveCall) -> Void) {
+        guard var call = activeCall, call.uuid == uuid else { return }
+        change(&call)
+        activeCall = call
     }
 
     func callDidFailToConnect(call: Call, error: Error) {
@@ -304,6 +388,10 @@ extension CallManager: @preconcurrency CallDelegate {
     }
 
     private func ended(_ uuid: UUID) {
+        if activeCall?.uuid == uuid {
+            activeCall = nil
+            showsCallScreen = true
+        }
         calls[uuid] = nil
         invites[uuid] = nil
         outgoing[uuid] = nil
@@ -322,6 +410,7 @@ extension CallManager: @preconcurrency CXProviderDelegate {
         calls = [:]
         invites = [:]
         outgoing = [:]
+        activeCall = nil
         pendingActions = [:]
         refreshActiveState()
     }
@@ -366,6 +455,9 @@ extension CallManager: @preconcurrency CXProviderDelegate {
             builder.uuid = invite.uuid
         }
         calls[uuid] = invite.accept(options: options, delegate: self)
+        let caller = invite.from?.replacingOccurrences(of: "client:", with: "") ?? "Unknown caller"
+        activeCall = ActiveCall(uuid: uuid, title: CallManager.display(caller) ?? caller, subtitle: nil, isOutgoing: false)
+        showsCallScreen = true
         refreshActiveState()
         action.fulfill()
     }
@@ -386,12 +478,14 @@ extension CallManager: @preconcurrency CXProviderDelegate {
     func provider(_ provider: CXProvider, perform action: CXSetMutedCallAction) {
         guard let call = calls[action.callUUID] else { return action.fail() }
         call.isMuted = action.isMuted
+        updateActive(action.callUUID) { $0.isMuted = action.isMuted }
         action.fulfill()
     }
 
     func provider(_ provider: CXProvider, perform action: CXSetHeldCallAction) {
         guard let call = calls[action.callUUID] else { return action.fail() }
         call.isOnHold = action.isOnHold
+        updateActive(action.callUUID) { $0.isOnHold = action.isOnHold }
         action.fulfill()
     }
 

@@ -44,6 +44,7 @@ struct MainTabView: View {
             .environment(\.currentUserName, user.fullName)
             .environment(\.serverMeta, serverMeta)
             .environment(\.alexRecordContext, assistantAgentId != nil ? alexContext : nil)
+            .businessLineCallScreen()
     }
 
     private var claimsList: some View {
