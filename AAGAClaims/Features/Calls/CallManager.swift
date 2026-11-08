@@ -152,41 +152,67 @@ final class CallManager: NSObject {
     @ObservationIgnored private var outgoing: [UUID: OutgoingCall] = [:]
 
     // MARK: - In-call controls (call screen)
+    //
+    // Each control acts on the Twilio call directly, then tells CallKit so its own screen (lock
+    // screen, Dynamic Island) matches. Going only through CallKit transactions meant a refused or
+    // lost transaction left the button doing nothing (End didn't hang up, 3.6.0).
 
     func toggleMute() {
-        guard let call = activeCall else { return }
-        request(CXSetMutedCallAction(call: call.uuid, muted: !call.isMuted))
+        guard let active = activeCall, let call = calls[active.uuid] else { return }
+        let muted = !active.isMuted
+        call.isMuted = muted
+        updateActive(active.uuid) { $0.isMuted = muted }
+        syncCallKit(CXSetMutedCallAction(call: active.uuid, muted: muted))
     }
 
     func toggleHold() {
-        guard let call = activeCall else { return }
-        request(CXSetHeldCallAction(call: call.uuid, onHold: !call.isOnHold))
+        guard let active = activeCall, let call = calls[active.uuid] else { return }
+        let held = !active.isOnHold
+        call.isOnHold = held
+        updateActive(active.uuid) { $0.isOnHold = held }
+        syncCallKit(CXSetHeldCallAction(call: active.uuid, onHold: held))
     }
 
     func sendDigit(_ digit: String) {
-        guard let call = activeCall, call.phase == .connected else { return }
-        request(CXPlayDTMFCallAction(call: call.uuid, digits: digit, type: .singleTone))
+        guard let active = activeCall, active.phase == .connected, let call = calls[active.uuid] else { return }
+        call.sendDigits(digit)
     }
 
+    /// Hangs up straight away. Twilio's callDidDisconnect then tells CallKit and closes the screen.
     func endCall() {
-        guard let call = activeCall else { return }
-        request(CXEndCallAction(call: call.uuid))
+        guard let active = activeCall else { return }
+        let uuid = active.uuid
+        if let call = calls[uuid] {
+            call.disconnect()
+        } else {
+            // Not connected yet (still fetching a token or connecting): cancel through CallKit.
+            outgoing[uuid] = nil
+            callController.request(CXTransaction(action: CXEndCallAction(call: uuid))) { [weak self] error in
+                guard error != nil else { return }
+                Task { @MainActor in
+                    self?.provider.reportCall(with: uuid, endedAt: Date(), reason: .remoteEnded)
+                    self?.ended(uuid)
+                }
+            }
+        }
     }
 
     func toggleSpeaker() {
-        guard let call = activeCall else { return }
-        let speaker = !call.isSpeaker
+        guard let active = activeCall else { return }
+        let speaker = !active.isSpeaker
         do {
             try AVAudioSession.sharedInstance().overrideOutputAudioPort(speaker ? .speaker : .none)
-            updateActive(call.uuid) { $0.isSpeaker = speaker }
+            updateActive(active.uuid) { $0.isSpeaker = speaker }
         } catch {
             CallManager.log("speaker switch failed: \(error.localizedDescription)")
         }
     }
 
-    private func request(_ action: CXCallAction) {
+    /// Mirrors a change already made on the call into CallKit. The perform handlers repeat it,
+    /// which is harmless (same value).
+    private func syncCallKit(_ action: CXCallAction) {
         callController.request(CXTransaction(action: action)) { error in
-            if let error { CallManager.log("call action failed: \(error.localizedDescription)") }
+            if let error { CallManager.log("CallKit sync failed: \(error.localizedDescription)") }
         }
     }
 
@@ -380,7 +406,8 @@ extension CallManager: @preconcurrency CallDelegate {
     func callDidDisconnect(call: Call, error: Error?) {
         let failed = error != nil
         guard let uuid = call.uuid else { return }
-        // Only report when the other side hung up; a CXEndCallAction already told CallKit.
+        // Report unless a CXEndCallAction (iOS's own End button) already told CallKit. The app's
+        // End button disconnects directly, so it's reported here.
         if calls[uuid] != nil {
             provider.reportCall(with: uuid, endedAt: Date(), reason: failed ? .failed : .remoteEnded)
         }
@@ -388,6 +415,8 @@ extension CallManager: @preconcurrency CallDelegate {
     }
 
     private func ended(_ uuid: UUID) {
+        // A start or answer still waiting for "connected" must be completed, or CallKit hangs on to it.
+        pendingActions.removeValue(forKey: uuid)?.fail()
         if activeCall?.uuid == uuid {
             activeCall = nil
             showsCallScreen = true
@@ -427,8 +456,11 @@ extension CallManager: @preconcurrency CXProviderDelegate {
         Task {
             guard let token = await freshToken() else {
                 action.fail()
-                outgoing[uuid] = nil
-                refreshActiveState()
+                ended(uuid) // closes the call screen too
+                return
+            }
+            guard outgoing[uuid] != nil else {
+                action.fail() // ended while the token was loading
                 return
             }
             var params = ["To": request.number]
