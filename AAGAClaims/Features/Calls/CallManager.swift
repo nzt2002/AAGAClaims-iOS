@@ -43,6 +43,8 @@ final class CallManager: NSObject {
     @ObservationIgnored private var calls: [UUID: Call] = [:]
     /// CallKit actions waiting for Twilio to connect (outgoing start, incoming answer).
     @ObservationIgnored private var pendingActions: [UUID: CXCallAction] = [:]
+    /// Between CallKit's didActivate and didDeactivate.
+    @ObservationIgnored private var audioSessionActive = false
 
     override private init() {
         let configuration = CXProviderConfiguration()
@@ -273,6 +275,10 @@ extension CallManager: @preconcurrency CallDelegate {
     func callDidConnect(call: Call) {
         guard let uuid = call.uuid else { return }
         pendingActions.removeValue(forKey: uuid)?.fulfill()
+        // Belt and braces: CallKit's session is live, so make sure Twilio's audio is on.
+        if audioSessionActive && !audioDevice.isEnabled {
+            audioDevice.isEnabled = true
+        }
         if outgoing[uuid] != nil {
             provider.reportOutgoingCall(with: uuid, connectedAt: Date())
         }
@@ -353,14 +359,15 @@ extension CallManager: @preconcurrency CXProviderDelegate {
             action.fail()
             return
         }
-        audioDevice.isEnabled = false
-        audioDevice.block()
+        // Don't switch the audio device off here (as for outgoing calls): when answering, CallKit
+        // can activate the audio session before this runs, and audio would then stay off. Fulfil
+        // straight away, as in Twilio's sample, so CallKit activates the session.
         let options = AcceptOptions(callInvite: invite) { builder in
             builder.uuid = invite.uuid
         }
         calls[uuid] = invite.accept(options: options, delegate: self)
-        pendingActions[uuid] = action
         refreshActiveState()
+        action.fulfill()
     }
 
     func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
@@ -395,10 +402,12 @@ extension CallManager: @preconcurrency CXProviderDelegate {
     }
 
     func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {
+        audioSessionActive = true
         audioDevice.isEnabled = true
     }
 
     func provider(_ provider: CXProvider, didDeactivate audioSession: AVAudioSession) {
+        audioSessionActive = false
         audioDevice.isEnabled = false
     }
 }
