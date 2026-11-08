@@ -19,6 +19,10 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationC
         UNUserNotificationCenter.current().delegate = self
         // Crash and hang reports from earlier sessions arrive through MetricKit.
         CrashReporter.shared.start()
+        // Business-line calls: PushKit only delivers VoIP pushes once a registry exists.
+        if AppEnvironment.current.auth == .salesforce {
+            CallManager.shared.startPushRegistry()
+        }
         // Salesforce's in-app sign-in screen (when the browser sheet isn't used): brand colours, no gear.
         if AppEnvironment.current.auth == .salesforce {
             let login = UserAccountManager.shared.loginViewControllerConfig

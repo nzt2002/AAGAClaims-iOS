@@ -1072,6 +1072,12 @@ public actor MockPortalAPI: PortalAPI {
         return .all
     }
 
+    /// Demo mode has no phone service; the app never asks because `.all` has no `inAppCalling`.
+    public func voiceToken() async throws -> VoiceToken {
+        try await simulate()
+        throw PortalAPIError.notFound
+    }
+
     public func notificationPreferences() async throws -> NotificationPreferences {
         try await simulate()
         return pushPreferences

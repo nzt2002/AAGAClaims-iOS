@@ -13,6 +13,7 @@
 		AA0000000000000000000104 /* SalesforceAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000304 /* SalesforceAnalytics */; };
 		AA0000000000000000000105 /* RecaptchaEnterprise in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000305 /* RecaptchaEnterprise */; };
 		AA0000000000000000000106 /* AgentforceSDK in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000306 /* AgentforceSDK */; };
+		AA0000000000000000000107 /* TwilioVoice in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000307 /* TwilioVoice */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,6 +57,7 @@
 				AA0000000000000000000104 /* SalesforceAnalytics in Frameworks */,
 				AA0000000000000000000105 /* RecaptchaEnterprise in Frameworks */,
 				AA0000000000000000000106 /* AgentforceSDK in Frameworks */,
+				AA0000000000000000000107 /* TwilioVoice in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -131,6 +133,7 @@
 				AA0000000000000000000304 /* SalesforceAnalytics */,
 				AA0000000000000000000305 /* RecaptchaEnterprise */,
 				AA0000000000000000000306 /* AgentforceSDK */,
+				AA0000000000000000000307 /* TwilioVoice */,
 			);
 			productName = AAGAClaims;
 			productReference = AA0000000000000000000201 /* AAGAClaims.app */;
@@ -190,6 +193,7 @@
 				AA0000000000000000000902 /* XCLocalSwiftPackageReference "Packages/PortalKit" */,
 				AA0000000000000000000903 /* XCRemoteSwiftPackageReference "recaptcha-enterprise-mobile-sdk" */,
 				AA0000000000000000000904 /* XCRemoteSwiftPackageReference "AgentforceMobileSDK-iOS" */,
+				AA0000000000000000000905 /* XCRemoteSwiftPackageReference "twilio-voice-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AA0000000000000000000003 /* Products */;
@@ -316,7 +320,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.4.1;
+				MARKETING_VERSION = 3.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.accurateadjustmentsga.claims;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -351,7 +355,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.4.1;
+				MARKETING_VERSION = 3.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.accurateadjustmentsga.claims;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -373,7 +377,7 @@
 				CURRENT_PROJECT_VERSION = 60;
 				DEVELOPMENT_TEAM = 62Z8PRAHTS;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 3.4.1;
+				MARKETING_VERSION = 3.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.accurateadjustmentsga.claims.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -390,7 +394,7 @@
 				CURRENT_PROJECT_VERSION = 60;
 				DEVELOPMENT_TEAM = 62Z8PRAHTS;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 3.4.1;
+				MARKETING_VERSION = 3.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.accurateadjustmentsga.claims.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -464,6 +468,14 @@
 				version = 18.26.23;
 			};
 		};
+		AA0000000000000000000905 /* XCRemoteSwiftPackageReference "twilio-voice-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/twilio/twilio-voice-ios";
+			requirement = {
+				kind = exactVersion;
+				version = 6.13.8;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -495,6 +507,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA0000000000000000000904 /* XCRemoteSwiftPackageReference "AgentforceMobileSDK-iOS" */;
 			productName = AgentforceSDK;
+		};
+		AA0000000000000000000307 /* TwilioVoice */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000905 /* XCRemoteSwiftPackageReference "twilio-voice-ios" */;
+			productName = TwilioVoice;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

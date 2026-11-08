@@ -325,6 +325,12 @@ public actor CachingPortalAPI: PortalAPI {
         return try await guarded { try await $0.serverMeta() }
     }
 
+    /// Never cached: tokens are short-lived and per device session.
+    public func voiceToken() async throws -> VoiceToken {
+        try requireOnline()
+        return try await guarded { try await $0.voiceToken() }
+    }
+
     public func postToClaim(claimId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost {
         try requireOnline()
         return try await guarded { try await $0.postToClaim(claimId: claimId, text: text, mentions: mentions, fileIds: fileIds) }

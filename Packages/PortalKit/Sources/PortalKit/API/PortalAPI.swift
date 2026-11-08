@@ -89,6 +89,8 @@ public protocol PortalAPI: Sendable {
     func activityOptions() async throws -> ActivityOptions
     /// What the server supports (`ServerMeta.legacy` for servers without `/meta`).
     func serverMeta() async throws -> ServerMeta
+    /// Staff: Twilio Voice access token for in-app calling (`ServerMeta.canCallInApp`).
+    func voiceToken() async throws -> VoiceToken
     /// Account deletion (App Store 5.1.1(v)): opens a support case to delete the user's account.
     func requestAccountDeletion(reason: String?) async throws -> AccountDeletionRequest
     /// Crash and hang reports from MetricKit, for Mobile App Logs in Salesforce.

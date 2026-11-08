@@ -28,7 +28,12 @@
 	<key>NSFaceIDUsageDescription</key>
 	<string>Use Face ID to unlock ProClaimer.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Speak to Alex, the claims assistant, instead of typing.</string>
+	<string>Talk on calls to and from your business line, and speak to Alex, the claims assistant, instead of typing.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+		<string>voip</string>
+	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose photos to upload to a claim or share with Alex, the claims assistant.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

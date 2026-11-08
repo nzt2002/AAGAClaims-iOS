@@ -259,6 +259,7 @@ public struct HTTPPortalAPI: PortalAPI {
             return .legacy
         }
     }
+    public func voiceToken() async throws -> VoiceToken { try await get("/voice/token") }
     public func postToClaim(claimId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost {
         try await post(claimPath(claimId, "posts"), body: ChatterBody(text, mentions, fileIds: fileIds))
     }

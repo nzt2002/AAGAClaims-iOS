@@ -167,6 +167,7 @@ struct LeadDetailView: View {
             }
         }
         .environment(\.emailReference, EmailReference.reference(forRecordId: viewModel.leadId))
+        .businessLineCalls(recordId: viewModel.leadId, recordName: recordName)
         // Lead pages are green: their buttons, links and tabs too.
         .environment(\.isLeadRecord, true)
         .tint(.leadAccent)

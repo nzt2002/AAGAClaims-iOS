@@ -24,6 +24,11 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.5.0", date: "Nov 8, 2026", items: [
+            Item(icon: "phone.badge.waveform", title: "Your business line in the app",
+                 detail: "If your firm has Calling, calls to your business line ring ProClaimer like a normal phone call, even when your iPhone is locked. Miss one and it goes to your mobile, then voicemail. Tap a phone number on a claim or lead to call from your business line: customers see your work number and the call is logged on the record.",
+                 staffOnly: true),
+        ]),
         Release(version: "3.4.1", date: "Nov 7, 2026", items: [
             Item(icon: "square.and.pencil", title: "Write Portal Update is easier to find",
                  detail: "The Write Portal Update button is now at the top of a claim or lead's Updates, whichever feed you're viewing.",

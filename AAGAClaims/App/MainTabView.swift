@@ -207,6 +207,10 @@ struct MainTabView: View {
                 }
             }
         }
+        .onChange(of: serverMeta) { _, meta in
+            // Business-line calls ring this app only for staff the server has set up for them.
+            CallManager.shared.configure(api: session.api, enabled: user.isInternal && !session.isDemo && meta.canCallInApp)
+        }
         .onChange(of: router.home.unreadCount, initial: true) { _, count in
             AppBadge.update(count)
         }

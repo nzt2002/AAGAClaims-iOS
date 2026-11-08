@@ -164,6 +164,7 @@ struct ClaimDetailView: View {
             }
         }
         .environment(\.emailReference, detail.referenceId ?? EmailReference.reference(forRecordId: viewModel.claimId))
+        .businessLineCalls(recordId: viewModel.claimId, recordName: recordName)
         // Ask Question is a top-bar icon on claims; there's no Add Comment here.
         .recordActions(record: viewModel.record, recordName: recordName, api: api, placement: .toolbarIcon)
         .documentGeneration(record: viewModel.record, recordName: recordName, api: api,

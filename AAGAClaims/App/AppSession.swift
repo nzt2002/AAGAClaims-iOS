@@ -99,6 +99,7 @@ final class AppSession {
     }
 
     func didSignOut() {
+        CallManager.shared.signOut()
         lock.reset()
         // Searches can contain customer names; don't keep them across accounts.
         UserDefaultsRecentSearchStore.clear()

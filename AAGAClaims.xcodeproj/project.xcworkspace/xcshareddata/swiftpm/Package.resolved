@@ -1,5 +1,5 @@
 {
-  "originHash" : "449b36e5957c8921dc5891dd730294686054bac948e78a34494aef148455500a",
+  "originHash" : "126489bf41e5f4ca0255dc3ea0ea22de4a6cb4a12cf458882f26ab108fa702bb",
   "pins" : [
     {
       "identity" : "agentforcemobilesdk-ios",
@@ -89,6 +89,15 @@
       "state" : {
         "revision" : "205df55271aa1ba512a9bfe3fd1813bc9ac52a19",
         "version" : "4.17.0"
+      }
+    },
+    {
+      "identity" : "twilio-voice-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/twilio/twilio-voice-ios",
+      "state" : {
+        "revision" : "9c05c86f76200aa58ae0f6d6b7266d46b112b7f0",
+        "version" : "6.13.8"
       }
     }
   ],

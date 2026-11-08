@@ -118,12 +118,18 @@ public struct ServerMeta: Codable, Hashable, Sendable {
     public let features: Set<String>
     /// The Alex agent (Agentforce) when the signed-in user may use it; nil otherwise.
     public let assistantAgentId: String?
+    /// Staff with a Calling seat at a firm set up for in-app calling: calls ring the app and can be
+    /// placed from it over the business line (`GET /voice/token`). Absent on older servers.
+    public let inAppCalling: Bool?
 
-    public init(apiVersion: Int, features: Set<String>, assistantAgentId: String? = nil) {
+    public init(apiVersion: Int, features: Set<String>, assistantAgentId: String? = nil, inAppCalling: Bool? = nil) {
         self.apiVersion = apiVersion
         self.features = features
         self.assistantAgentId = assistantAgentId
+        self.inAppCalling = inAppCalling
     }
+
+    public var canCallInApp: Bool { supports(.voice) && inAppCalling == true }
 
     /// A server from before `/meta`: the features it already had are assumed.
     public static let legacy = ServerMeta(apiVersion: 4, features: ["claimActivities", "chatterAttachments", "claimReferenceId"])
@@ -150,7 +156,29 @@ public struct ServerMeta: Codable, Hashable, Sendable {
         case assistantHistory
         /// Staff draft and post a claim or lead's "Recent Portal Update" (`/{record}/portal-update`).
         case portalUpdate
+        /// In-app calling on the business line (`GET /voice/token`, `inAppCalling` in `/meta`).
+        case voice
     }
+}
+
+/// `GET /voice/token`: a short-lived Twilio Voice access token for the business line.
+public struct VoiceToken: Codable, Hashable, Sendable {
+    public let token: String
+    /// The Salesforce user Id; incoming calls are addressed to it.
+    public let identity: String
+    /// E.164, e.g. +16788466386. Shown on the call screen; customers see it as caller ID.
+    public let businessLine: String?
+    /// Unix seconds.
+    public let expiresAt: Int
+
+    public init(token: String, identity: String, businessLine: String?, expiresAt: Int) {
+        self.token = token
+        self.identity = identity
+        self.businessLine = businessLine
+        self.expiresAt = expiresAt
+    }
+
+    public var expiresSoon: Bool { Date(timeIntervalSince1970: TimeInterval(expiresAt)).timeIntervalSinceNow < 300 }
 }
 
 /// `GET /task-assignees`.
