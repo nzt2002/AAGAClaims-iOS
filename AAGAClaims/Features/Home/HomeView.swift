@@ -11,20 +11,48 @@ struct HomeView: View {
     @Environment(\.isOffline) private var isOffline
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.colorScheme) private var colorScheme
+    /// iPad, with room for two columns.
+    @State private var isWide = false
 
     var body: some View {
         LoadingContainer(state: viewModel.state, subject: "your dashboard", retry: reload) { _ in
             ScrollView {
-                VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
-                    hero
-                    quickActions
-                    NeedsAttentionSection(viewModel: viewModel, router: router)
-                    upcoming
-                    recentClaims
-                    recentActivity
+                Group {
+                    if isWide {
+                        // iPad: actions in one row; what needs doing and the activity feed on the
+                        // left, the agenda and recent claims in a rail on the right.
+                        VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                            hero
+                            quickActions
+                            HStack(alignment: .top, spacing: Theme.Spacing.xl) {
+                                VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                                    NeedsAttentionSection(viewModel: viewModel, router: router)
+                                    recentActivity
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                                    upcoming
+                                    recentClaims
+                                }
+                                .frame(width: WideLayout.railWidth + 20)
+                            }
+                        }
+                        .frame(maxWidth: WideLayout.maxContentWidth)
+                        .frame(maxWidth: .infinity)
+                    } else {
+                        VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                            hero
+                            quickActions
+                            NeedsAttentionSection(viewModel: viewModel, router: router)
+                            upcoming
+                            recentClaims
+                            recentActivity
+                        }
+                    }
                 }
-                .padding(Theme.Spacing.l)
+                .padding(isWide ? Theme.Spacing.xl : Theme.Spacing.l)
             }
+            .readsWideLayout($isWide)
             .refreshable { await viewModel.load() }
         }
         .background(Color.appBackground)
@@ -101,8 +129,8 @@ struct HomeView: View {
     // MARK: - Quick actions
 
     private var quickActions: some View {
-        let columns = Array(repeating: GridItem(.flexible(), spacing: Theme.Spacing.s), count: dynamicTypeSize.isAccessibilitySize ? 1 : 2)
-        // Two columns: New Event sits directly above New Task.
+        let columns = Array(repeating: GridItem(.flexible(), spacing: Theme.Spacing.s), count: dynamicTypeSize.isAccessibilitySize ? 1 : (isWide ? 4 : 2))
+        // Two columns: New Event sits directly above New Task. iPad: all four in one row.
         return LazyVGrid(columns: columns, spacing: Theme.Spacing.s) {
             quickAction("New Lead", "person.badge.plus", id: "quickSubmitLead") { router.submitLead() }
                 .disabledWhenOffline(isOffline)

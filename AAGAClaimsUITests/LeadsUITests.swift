@@ -16,10 +16,14 @@ final class LeadsUITests: XCTestCase {
         app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
     }
 
-    func testLeadRecentActivity() {
+    func testLeadActivities() {
         let card = app.buttons["leadCard-a0r000000000001AAA"]
         XCTAssertTrue(card.waitForExistence(timeout: 10))
         card.tap()
+        let filter = app.segmentedControls["leadUpdatesFilter"]
+        XCTAssertTrue(filter.waitForExistence(timeout: 10))
+        app.scrollIntoView(filter)
+        filter.buttons["Activities"].tap()
         let call = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'leadActivity-'")).firstMatch
         XCTAssertTrue(call.waitForExistence(timeout: 10))
         app.scrollIntoView(call)
@@ -35,7 +39,7 @@ final class LeadsUITests: XCTestCase {
         XCTAssertTrue(element(containing: "Public Adjuster Agreement").waitForExistence(timeout: 5))
         XCTAssertTrue(element(containing: "Sent").exists)
         XCTAssertTrue(element(containing: "Working").exists)
-        // Staff (the demo user) start on the Lead Feed; published updates are one tap away.
+        // Staff (the demo user) start on the Feed; published updates are one tap away.
         let filter = app.segmentedControls["leadUpdatesFilter"]
         app.scrollIntoView(filter)
         filter.buttons["Portal Updates"].tap()
@@ -97,7 +101,7 @@ final class LeadsUITests: XCTestCase {
         app.buttons["actionSave"].tap()
         let filter = app.segmentedControls["leadUpdatesFilter"]
         app.scrollIntoView(filter)
-        XCTAssertTrue(filter.buttons["Lead Feed"].isSelected)
+        XCTAssertTrue(filter.buttons["Feed"].isSelected)
         XCTAssertTrue(element(containing: "Homeowner will sign tonight.").waitForExistence(timeout: 5))
     }
 

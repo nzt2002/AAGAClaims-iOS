@@ -20,6 +20,12 @@ final class AppRouter {
     var leadsPath = NavigationPath()
     var supportPath = NavigationPath()
     var searchPath = NavigationPath()
+    /// iPad split view: the claim and lead shown in the detail column. Their stacks (`claimsPath`,
+    /// `leadsPath`) hold what's opened from that record on top of it.
+    var selectedClaim: ClaimRoute?
+    var selectedLead: LeadRoute?
+    /// Claims and Leads show list and record side by side (regular width). Set by MainTabView.
+    var usesSplitView = false
 
     var showingNotifications = false
     var showingSubmitLead = false
@@ -115,9 +121,43 @@ final class AppRouter {
         showingNotifications = false
         showingAccount = false
         switch record {
-        case .claim(let id): push(ClaimRoute(id: id, name: name), recordTab: .claims)
-        case .lead(let id): push(LeadRoute(id: id, name: name), recordTab: .leads)
+        case .claim(let id):
+            // iPad, nothing open yet in the Claims or Leads detail column: show it there instead.
+            if usesSplitView && selection == .claims && selectedClaim == nil {
+                select(ClaimRoute(id: id, name: name))
+            } else {
+                push(ClaimRoute(id: id, name: name), recordTab: .claims)
+            }
+        case .lead(let id):
+            if usesSplitView && selection == .leads && selectedLead == nil {
+                select(LeadRoute(id: id, name: name))
+            } else {
+                push(LeadRoute(id: id, name: name), recordTab: .leads)
+            }
         }
+    }
+
+    /// iPad: shows a claim from the list in the detail column, replacing whatever was there.
+    func select(_ claim: ClaimRoute) {
+        claimsPath = NavigationPath()
+        selectedClaim = claim
+    }
+
+    /// iPad: shows a lead from the list in the detail column, replacing whatever was there.
+    func select(_ lead: LeadRoute) {
+        leadsPath = NavigationPath()
+        selectedLead = lead
+    }
+
+    /// Moving between the split view and one column (iPad multitasking): the record in the detail
+    /// column goes onto the phone-style stack, so it stays open.
+    func splitViewChanged(_ isSplit: Bool) {
+        usesSplitView = isSplit
+        guard !isSplit else { return }
+        if let claim = selectedClaim, claimsPath.isEmpty { claimsPath.append(claim) }
+        if let lead = selectedLead, leadsPath.isEmpty { leadsPath.append(lead) }
+        selectedClaim = nil
+        selectedLead = nil
     }
 
     private func push<Route: Hashable>(_ route: Route, recordTab: AppTab) {

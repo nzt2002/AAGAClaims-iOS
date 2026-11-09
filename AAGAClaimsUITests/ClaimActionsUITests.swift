@@ -1,6 +1,6 @@
 import XCTest
 
-/// Staff claim page: quick actions, collapsible progress, Claim Feed and communication actions.
+/// Staff claim page: quick actions, collapsible progress, Feed, Activities and communication actions.
 final class ClaimActionsUITests: XCTestCase {
     private var app: XCUIApplication!
 
@@ -22,6 +22,13 @@ final class ClaimActionsUITests: XCTestCase {
     }
 
     private static let inMoreMenu: Set<String> = ["addContact", "email", "address", "owner", "proofOfLoss"]
+
+    /// Updates → Activities: the claim's tasks, events and emails.
+    private func showActivities() {
+        let filter = app.segmentedControls["updatesFilter"]
+        app.scrollIntoView(filter)
+        filter.buttons["Activities"].tap()
+    }
 
     private func open(_ action: String) {
         if Self.inMoreMenu.contains(action) {
@@ -73,10 +80,10 @@ final class ClaimActionsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Restoration"].waitForExistence(timeout: 5))
         toggle.tap()
 
-        // Updates default to the Claim Feed for staff.
+        // Updates default to the Feed for staff.
         let filter = app.segmentedControls["updatesFilter"]
         app.scrollIntoView(filter)
-        XCTAssertTrue(filter.buttons["Claim Feed"].isSelected)
+        XCTAssertTrue(filter.buttons["Feed"].isSelected)
         XCTAssertTrue(element(containing: "Carrier called back").exists)
 
         let contactUs = app.staticTexts["Contact Us"]
@@ -218,7 +225,8 @@ final class ClaimActionsUITests: XCTestCase {
         XCTAssertFalse(app.buttons["activityComplete"].exists, "Done tasks can't be completed again")
     }
 
-    func testEmailsShowInRecentActivity() {
+    func testEmailsShowInActivities() {
+        showActivities()
         let email = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'claimActivity-02s'")).firstMatch
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         app.scrollIntoView(email)
@@ -243,7 +251,8 @@ final class ClaimActionsUITests: XCTestCase {
         XCTAssertTrue(progress.label.contains("collected of"), progress.label)
     }
 
-    func testRecentActivityOpensTaskRecord() {
+    func testActivitiesOpenTaskRecord() {
+        showActivities()
         // Open items first, then done ones; three at a time.
         let done = app.buttons["claimActivity-00Thist1AAA1"]
         XCTAssertTrue(done.waitForExistence(timeout: 10))
@@ -261,7 +270,7 @@ final class ClaimActionsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Claim CLM-1234"].waitForExistence(timeout: 5), "Back on the claim")
     }
 
-    func testNewTaskShowsInRecentActivity() {
+    func testNewTaskShowsInActivities() {
         open("task")
         let subject = app.textFields["newTaskSubject"]
         XCTAssertTrue(subject.waitForExistence(timeout: 5))

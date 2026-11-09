@@ -13,7 +13,9 @@ struct LeadDetailView: View {
     @State private var convertedClaim: (id: String, name: String)?
     @State private var showingESign = false
     @State private var eSignAvailable = false
-    @State private var updatesFilter: UpdatesFilter = .leadFeed
+    @State private var updatesFilter: UpdatesFilter = .feed
+    /// iPad, with room for two columns.
+    @State private var isWide = false
     @Environment(\.isInternalUser) private var isInternal
     @Environment(\.openRecord) private var openRecord
     @Environment(\.currentUserName) private var currentUserName
@@ -21,7 +23,9 @@ struct LeadDetailView: View {
     @Environment(\.serverMeta) private var serverMeta
 
     enum UpdatesFilter: String, CaseIterable {
-        case leadFeed = "Lead Feed"
+        case feed = "Feed"
+        /// Tasks and events (staff, once the server has them).
+        case activities = "Activities"
         case portalUpdates = "Portal Updates"
     }
 
@@ -63,11 +67,11 @@ struct LeadDetailView: View {
                 switch action {
                 case .task:
                     NewTaskSheet(api: api, currentUserName: currentUserName, record: .lead(viewModel.leadId)) {
-                        Task { await loadActivity() }
+                        Task { await showActivities() }
                     }
                 case .event:
                     NewEventSheet(api: api, currentUserName: currentUserName, record: .lead(viewModel.leadId)) {
-                        Task { await loadActivity() }
+                        Task { await showActivities() }
                     }
                 case .portalUpdate:
                     PortalUpdateComposer(api: api, record: viewModel.record) { await showPostedPortalUpdate() }
@@ -126,32 +130,41 @@ struct LeadDetailView: View {
 
     private func loaded(_ detail: LeadDetail) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Theme.Spacing.l) {
-                header(detail)
-                LossAddressCard(address: detail.lossAddress)
-                if isInternal {
-                    LeadQuickActions(isConverted: isConverted(detail),
-                                     hidden: serverMeta.supports(.portalUpdate) ? [] : [.portalUpdate]) { handle($0, detail) }
+            Group {
+                if isWide {
+                    // iPad: the hero across the top; actions, stage and tabs on the left; address,
+                    // agreement, people and activity in a rail on the right.
+                    VStack(alignment: .leading, spacing: Theme.Spacing.l) {
+                        header(detail)
+                        TwoColumns {
+                            quickActions(detail)
+                            LeadLifecycleCard(position: detail.lifecycle, status: detail.prospectStatus)
+                            SectionBar(selection: $viewModel.section, hidden: hiddenSections)
+                            sectionContent(detail)
+                        } rail: {
+                            LossAddressCard(address: detail.lossAddress)
+                            AgreementCard(agreement: detail.agreement)
+                            teamCard(detail)
+                            staffExtras
+                        }
+                    }
+                } else {
+                    VStack(alignment: .leading, spacing: Theme.Spacing.l) {
+                        header(detail)
+                        LossAddressCard(address: detail.lossAddress)
+                        quickActions(detail)
+                        LeadLifecycleCard(position: detail.lifecycle, status: detail.prospectStatus)
+                        staffExtras
+                        AgreementCard(agreement: detail.agreement)
+                        SectionBar(selection: $viewModel.section, hidden: hiddenSections)
+                        sectionContent(detail)
+                        teamCard(detail)
+                    }
                 }
-                LeadLifecycleCard(position: detail.lifecycle, status: detail.prospectStatus)
-                if isInternal && serverMeta.supports(.leadActivities) {
-                    RecordActivitySection(model: activity, api: api, noun: "lead")
-                }
-                if isInternal && serverMeta.supports(.assistantHistory) {
-                    AlexChatsLink(api: api, recordId: viewModel.leadId)
-                }
-                AgreementCard(agreement: detail.agreement)
-                SectionBar(selection: $viewModel.section, hidden: hiddenSections)
-                sectionContent(detail)
-                TeamCard(
-                    adjuster: .init(name: detail.adjusterName, phone: detail.adjusterPhone, email: detail.adjusterEmail),
-                    deskAdjuster: .init(name: detail.deskAdjusterName, phone: nil, email: detail.deskAdjusterEmail),
-                    accountManager: .init(name: detail.accountManagerName, phone: detail.accountManagerPhone, email: detail.accountManagerEmail),
-                    adjusterFees: detail.adjusterFees
-                )
             }
-            .padding(Theme.Spacing.l)
+            .padding(isWide ? Theme.Spacing.xl : Theme.Spacing.l)
         }
+        .readsWideLayout($isWide)
         .refreshable {
             await viewModel.load()
             if isInternal {
@@ -179,6 +192,45 @@ struct LeadDetailView: View {
         .recordActions(record: viewModel.record, recordName: recordName, api: api, placement: .toolbarIcon)
         .documentGeneration(record: viewModel.record, recordName: recordName, api: api,
                             isPresented: $showingESign, isAvailable: $eSignAvailable)
+    }
+
+    @ViewBuilder
+    private func quickActions(_ detail: LeadDetail) -> some View {
+        if isInternal {
+            LeadQuickActions(isConverted: isConverted(detail),
+                             hidden: serverMeta.supports(.portalUpdate) ? [] : [.portalUpdate]) { handle($0, detail) }
+        }
+    }
+
+    /// Staff only: Alex chats about this lead. (Tasks and events are in Updates → Activities.)
+    @ViewBuilder
+    private var staffExtras: some View {
+        if isInternal && serverMeta.supports(.assistantHistory) {
+            AlexChatsLink(api: api, recordId: viewModel.leadId)
+        }
+    }
+
+    /// The Updates tab's segments: Activities once the server has them.
+    private var updatesFilters: [UpdatesFilter] {
+        UpdatesFilter.allCases.filter { $0 != .activities || serverMeta.supports(.leadActivities) }
+    }
+
+    /// After a task or event is added: show it in Updates → Activities.
+    private func showActivities() async {
+        if serverMeta.supports(.leadActivities) {
+            viewModel.section = .updates
+            updatesFilter = .activities
+        }
+        await loadActivity()
+    }
+
+    private func teamCard(_ detail: LeadDetail) -> some View {
+        TeamCard(
+            adjuster: .init(name: detail.adjusterName, phone: detail.adjusterPhone, email: detail.adjusterEmail),
+            deskAdjuster: .init(name: detail.deskAdjusterName, phone: nil, email: detail.deskAdjusterEmail),
+            accountManager: .init(name: detail.accountManagerName, phone: detail.accountManagerPhone, email: detail.accountManagerEmail),
+            adjusterFees: detail.adjusterFees
+        )
     }
 
     private func isConverted(_ detail: LeadDetail) -> Bool {
@@ -290,7 +342,7 @@ struct LeadDetailView: View {
         case .updates:
             if isInternal {
                 Picker("Show", selection: $updatesFilter) {
-                    ForEach(UpdatesFilter.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                    ForEach(updatesFilters, id: \.self) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 .accessibilityIdentifier("leadUpdatesFilter")
@@ -299,9 +351,11 @@ struct LeadDetailView: View {
                 // Staff: write the customer-facing update, on the Portal Updates tab it lands in.
                 PortalUpdateButton(api: api, record: viewModel.record) { await showPostedPortalUpdate() }
             }
-            if isInternal && updatesFilter == .leadFeed {
+            if isInternal && updatesFilter == .feed {
                 // Four posts at a time; the rest scroll inside the section.
                 ChatterFeedSection(model: leadFeed, emptyMessage: "No posts on this lead yet. Use Post to start one.", visibleCount: 4)
+            } else if isInternal && updatesFilter == .activities {
+                RecordActivitySection(model: activity, api: api, noun: "lead")
             } else {
                 SectionLoader(state: viewModel.updates, subject: "updates", retry: { await viewModel.loadUpdates() }) { updates in
                     UpdatesList(updates: updates, emptyMessage: "No updates have been published for this lead yet.", visibleCount: 3)

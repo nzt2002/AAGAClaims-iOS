@@ -17,6 +17,10 @@ struct LeadsListView: View {
     let openSupport: () -> Void
     /// Staff see "Mine" (leads where they're the adjuster or account manager).
     var showsMine = false
+    /// iPad split view: the lead in the detail column, highlighted here.
+    var selectedId: String?
+    /// iPad split view: tapping a card (or submitting a lead) shows it in the detail column.
+    var select: ((LeadRoute) -> Void)?
 
     @Environment(\.isOffline) private var isOffline
 
@@ -41,8 +45,18 @@ struct LeadsListView: View {
                         }
                         LazyVStack(spacing: Theme.Spacing.m) {
                             ForEach(viewModel.filteredLeads) { lead in
-                                NavigationLink(value: LeadRoute(id: lead.recordId, name: lead.recordName)) {
-                                    LeadCard(lead: lead)
+                                let route = LeadRoute(id: lead.recordId, name: lead.recordName)
+                                Group {
+                                    if let select {
+                                        Button { select(route) } label: {
+                                            LeadCard(lead: lead)
+                                                .selectedCard(lead.recordId == selectedId, accent: .leadAccent)
+                                        }
+                                    } else {
+                                        NavigationLink(value: route) {
+                                            LeadCard(lead: lead)
+                                        }
+                                    }
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityIdentifier("leadCard-\(lead.recordId)")
@@ -82,7 +96,8 @@ struct LeadsListView: View {
             SubmitLeadView(api: api, userEmail: userEmail) { newLeadId, name in
                 showingSubmit = false
                 Task { await viewModel.load() }
-                path.append(LeadRoute(id: newLeadId, name: name))
+                let route = LeadRoute(id: newLeadId, name: name)
+                if let select { select(route) } else { path.append(route) }
             }
         }
         .task {

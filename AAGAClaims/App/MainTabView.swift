@@ -47,9 +47,13 @@ struct MainTabView: View {
             .businessLineCallScreen()
     }
 
+    private var isSplit: Bool { horizontalSizeClass == .regular }
+
     private var claimsList: some View {
         ClaimsListView(viewModel: router.claims, api: session.api, openSupport: { router.openSupport(caseId: nil) },
-                       showsMine: user.isInternal)
+                       showsMine: user.isInternal,
+                       selectedId: isSplit ? router.selectedClaim?.id : nil,
+                       select: isSplit ? { claim in router.select(ClaimRoute(id: claim.recordId, name: claim.recordName)) } : nil)
             .onAppear { router.claims.currentUserName = user.fullName }
             .statusBanners(session)
             .toolbar { topBarButtons() }
@@ -58,7 +62,9 @@ struct MainTabView: View {
     private var leadsList: some View {
         LeadsListView(viewModel: router.leads, path: $router.leadsPath, showingSubmit: $router.showingSubmitLead,
                       api: session.api, userEmail: user.email,
-                      openSupport: { router.openSupport(caseId: nil) }, showsMine: user.isInternal)
+                      openSupport: { router.openSupport(caseId: nil) }, showsMine: user.isInternal,
+                      selectedId: isSplit ? router.selectedLead?.id : nil,
+                      select: isSplit ? { lead in router.select(lead) } : nil)
             .onAppear { router.leads.currentUserName = user.fullName }
             .statusBanners(session)
             .toolbar { topBarButtons() }
@@ -76,19 +82,28 @@ struct MainTabView: View {
                 .environment(\.alexTab, .home)
             }
             Tab("Claims", systemImage: "doc.text", value: .claims) {
-                if horizontalSizeClass == .regular {
+                if isSplit {
+                    // iPad: the list on the left; the chosen claim fills the detail column, and
+                    // anything opened from it (a related lead, a case) goes on top of it there.
                     NavigationSplitView {
                         claimsList
+                            .navigationSplitViewColumnWidth(min: 320, ideal: 380, max: 460)
                     } detail: {
                         NavigationStack(path: $router.claimsPath) {
-                            RecordPlaceholder(noun: "claim", systemImage: "doc.text")
-                                .modifier(RecordDestinations(router: router, api: session.api))
-                                .navigationDestination(for: ClaimSummary.self) { claim in
-                                    ClaimDetailView(claimId: claim.recordId, summary: claim, api: session.api)
-                                        .id(claim.recordId)
+                            Group {
+                                if let claim = router.selectedClaim {
+                                    ClaimDetailView(claimId: claim.id,
+                                                    summary: router.claims.claims.first { $0.recordId == claim.id },
+                                                    api: session.api)
+                                        .id(claim.id)
+                                } else {
+                                    RecordPlaceholder(noun: "claim", systemImage: "doc.text", accent: .brandPrimary)
                                 }
+                            }
+                            .modifier(RecordDestinations(router: router, api: session.api))
                         }
                     }
+                    .navigationSplitViewStyle(.balanced)
                     .environment(\.alexTab, .claims)
                 } else {
                     NavigationStack(path: $router.claimsPath) {
@@ -99,15 +114,27 @@ struct MainTabView: View {
                 }
             }
             Tab("Leads", systemImage: "person.2", value: .leads) {
-                if horizontalSizeClass == .regular {
+                if isSplit {
+                    // The leads list's cards select a lead rather than push one: value links in a
+                    // split view's sidebar only open in the detail column when the sidebar itself
+                    // declares the destination, and LeadRoute's lives in the detail stack.
                     NavigationSplitView {
                         leadsList
+                            .navigationSplitViewColumnWidth(min: 320, ideal: 380, max: 460)
                     } detail: {
                         NavigationStack(path: $router.leadsPath) {
-                            RecordPlaceholder(noun: "lead", systemImage: "person.2")
-                                .modifier(RecordDestinations(router: router, api: session.api))
+                            Group {
+                                if let lead = router.selectedLead {
+                                    LeadDetailView(leadId: lead.id, fallbackName: lead.name, api: session.api)
+                                        .id(lead.id)
+                                } else {
+                                    RecordPlaceholder(noun: "lead", systemImage: "person.2", accent: .leadAccent)
+                                }
+                            }
+                            .modifier(RecordDestinations(router: router, api: session.api))
                         }
                     }
+                    .navigationSplitViewStyle(.balanced)
                     .environment(\.alexTab, .leads)
                 } else {
                     NavigationStack(path: $router.leadsPath) {
@@ -198,6 +225,9 @@ struct MainTabView: View {
             NewTaskSheet(api: session.api, currentUserName: user.fullName) {
                 Task { await router.home.loadAgenda() }
             }
+        }
+        .onChange(of: horizontalSizeClass, initial: true) { _, sizeClass in
+            router.splitViewChanged(sizeClass == .regular)
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
@@ -382,11 +412,26 @@ struct UnreadBadge: View {
 private struct RecordPlaceholder: View {
     let noun: String
     let systemImage: String
+    /// Blue for claims, green for leads, as on their pages.
+    let accent: Color
 
     var body: some View {
-        ContentUnavailableView("Choose a \(noun)", systemImage: systemImage,
-                               description: Text("Pick a \(noun) from the list to see it here."))
-            .background(Color.appBackground)
+        ContentUnavailableView {
+            Label {
+                Text("Choose a \(noun)")
+                    .font(.sectionTitle)
+            } icon: {
+                Image(systemName: systemImage)
+                    .font(.system(size: 34, weight: .semibold))
+                    .foregroundStyle(accent)
+                    .frame(width: 84, height: 84)
+                    .background(accent.opacity(0.12), in: Circle())
+            }
+        } description: {
+            Text("Pick a \(noun) from the list to see it here.")
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.appBackground)
     }
 }
 

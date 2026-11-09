@@ -5,14 +5,16 @@ import SwiftUI
 /// Claim detail (spec §6.5).
 struct ClaimDetailView: View {
     @State private var viewModel: ClaimDetailViewModel
-    /// Staff only: quick actions, communication and the Claim Feed.
+    /// Staff only: quick actions, communication and the Feed.
     @State private var actions: ClaimActionsViewModel
     @State private var claimFeed: ChatterFeedViewModel
     @State private var activity: RecordActivityViewModel
     @State private var openAction: ClaimAction?
     @State private var showingESign = false
     @State private var eSignAvailable = false
-    @State private var updatesFilter: UpdatesFilter = .claimFeed
+    @State private var updatesFilter: UpdatesFilter = .feed
+    /// iPad, with room for two columns.
+    @State private var isWide = false
     @Environment(\.isInternalUser) private var isInternal
     @Environment(\.isOffline) private var isOffline
     @Environment(\.currentUserName) private var currentUserName
@@ -20,7 +22,9 @@ struct ClaimDetailView: View {
     @Environment(\.serverMeta) private var serverMeta
 
     enum UpdatesFilter: String, CaseIterable {
-        case claimFeed = "Claim Feed"
+        case feed = "Feed"
+        /// Tasks, events and emails (staff, once the server has them).
+        case activities = "Activities"
         case portalUpdates = "Portal Updates"
     }
     /// The list row, for fields only `GET /claims` returns (loss reason).
@@ -70,11 +74,11 @@ struct ClaimDetailView: View {
                 switch action {
                 case .task:
                     NewTaskSheet(api: api, currentUserName: currentUserName, record: .claim(viewModel.claimId)) {
-                        Task { await loadActivity() }
+                        Task { await showActivities() }
                     }
                 case .event:
                     NewEventSheet(api: api, currentUserName: currentUserName, record: .claim(viewModel.claimId)) {
-                        Task { await loadActivity() }
+                        Task { await showActivities() }
                     }
                 case .portalUpdate:
                     PortalUpdateComposer(api: api, record: viewModel.record) { await showPostedPortalUpdate() }
@@ -120,34 +124,41 @@ struct ClaimDetailView: View {
 
     private func loaded(_ detail: ClaimDetail) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Theme.Spacing.l) {
-                ClaimHeader(detail: detail, position: detail.lifecycle)
-                LossAddressCard(address: detail.lossAddress)
-                if isInternal {
-                    ClaimQuickActions(onESign: { showingESign = true },
-                                      hidden: serverMeta.supports(.portalUpdate) ? [] : [.portalUpdate]) { openAction = $0 }
-                }
-                PaymentsCard(detail: detail, payments: viewModel.payments.value ?? [])
-                LifecycleCard(position: detail.lifecycle, status: detail.claimStatus)
-                if isInternal {
-                    if serverMeta.supports(.claimActivities) {
-                        RecordActivitySection(model: activity, api: api, noun: "claim")
+            Group {
+                if isWide {
+                    // iPad: the hero across the top; the work (actions, stage, tabs) on the left and
+                    // reference facts (address, money, people, activity) in a rail on the right.
+                    VStack(alignment: .leading, spacing: Theme.Spacing.l) {
+                        ClaimHeader(detail: detail, position: detail.lifecycle)
+                        TwoColumns {
+                            quickActions
+                            LifecycleCard(position: detail.lifecycle, status: detail.claimStatus)
+                            SectionBar(selection: $viewModel.section, hidden: hiddenSections)
+                            sectionContent(detail)
+                        } rail: {
+                            LossAddressCard(address: detail.lossAddress)
+                            PaymentsCard(detail: detail, payments: viewModel.payments.value ?? [])
+                            teamCard(detail)
+                            staffExtras
+                        }
                     }
-                    if serverMeta.supports(.assistantHistory) {
-                        AlexChatsLink(api: api, recordId: viewModel.claimId)
+                } else {
+                    VStack(alignment: .leading, spacing: Theme.Spacing.l) {
+                        ClaimHeader(detail: detail, position: detail.lifecycle)
+                        LossAddressCard(address: detail.lossAddress)
+                        quickActions
+                        PaymentsCard(detail: detail, payments: viewModel.payments.value ?? [])
+                        LifecycleCard(position: detail.lifecycle, status: detail.claimStatus)
+                        staffExtras
+                        SectionBar(selection: $viewModel.section, hidden: hiddenSections)
+                        sectionContent(detail)
+                        teamCard(detail)
                     }
                 }
-                SectionBar(selection: $viewModel.section, hidden: hiddenSections)
-                sectionContent(detail)
-                TeamCard(
-                    adjuster: .init(name: detail.adjusterName, phone: detail.adjusterPhone, email: detail.adjusterEmail),
-                    deskAdjuster: .init(name: detail.deskAdjusterName, phone: nil, email: detail.deskAdjusterEmail),
-                    accountManager: .init(name: detail.accountManagerName, phone: detail.accountManagerPhone, email: detail.accountManagerEmail),
-                    adjusterFees: detail.adjusterFees
-                )
             }
-            .padding(Theme.Spacing.l)
+            .padding(isWide ? Theme.Spacing.xl : Theme.Spacing.l)
         }
+        .readsWideLayout($isWide)
         .refreshable {
             await viewModel.load()
             if isInternal {
@@ -173,6 +184,45 @@ struct ClaimDetailView: View {
         .recordActions(record: viewModel.record, recordName: recordName, api: api, placement: .toolbarIcon)
         .documentGeneration(record: viewModel.record, recordName: recordName, api: api,
                             isPresented: $showingESign, isAvailable: $eSignAvailable)
+    }
+
+    @ViewBuilder
+    private var quickActions: some View {
+        if isInternal {
+            ClaimQuickActions(onESign: { showingESign = true },
+                              hidden: serverMeta.supports(.portalUpdate) ? [] : [.portalUpdate]) { openAction = $0 }
+        }
+    }
+
+    /// Staff only: Alex chats about this claim. (Tasks, events and emails are in Updates → Activities.)
+    @ViewBuilder
+    private var staffExtras: some View {
+        if isInternal && serverMeta.supports(.assistantHistory) {
+            AlexChatsLink(api: api, recordId: viewModel.claimId)
+        }
+    }
+
+    /// The Updates tab's segments: Activities once the server has them.
+    private var updatesFilters: [UpdatesFilter] {
+        UpdatesFilter.allCases.filter { $0 != .activities || serverMeta.supports(.claimActivities) }
+    }
+
+    /// After a task or event is added: show it in Updates → Activities.
+    private func showActivities() async {
+        if serverMeta.supports(.claimActivities) {
+            viewModel.section = .updates
+            updatesFilter = .activities
+        }
+        await loadActivity()
+    }
+
+    private func teamCard(_ detail: ClaimDetail) -> some View {
+        TeamCard(
+            adjuster: .init(name: detail.adjusterName, phone: detail.adjusterPhone, email: detail.adjusterEmail),
+            deskAdjuster: .init(name: detail.deskAdjusterName, phone: nil, email: detail.deskAdjusterEmail),
+            accountManager: .init(name: detail.accountManagerName, phone: detail.accountManagerPhone, email: detail.accountManagerEmail),
+            adjusterFees: detail.adjusterFees
+        )
     }
 
     /// Contacts are staff-only; Cases and Contacts wait for the server to support them.
@@ -204,9 +254,10 @@ struct ClaimDetailView: View {
         switch viewModel.section {
         case .updates:
             if isInternal {
-                // Staff: the claim's Chatter feed (default) or the published portal updates.
+                // Staff: the claim's Chatter feed (default), its tasks, events and emails, or the
+                // published portal updates.
                 Picker("Show", selection: $updatesFilter) {
-                    ForEach(UpdatesFilter.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                    ForEach(updatesFilters, id: \.self) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 .accessibilityIdentifier("updatesFilter")
@@ -215,9 +266,11 @@ struct ClaimDetailView: View {
                 // Staff: write the customer-facing update, on the Portal Updates tab it lands in.
                 PortalUpdateButton(api: api, record: viewModel.record) { await showPostedPortalUpdate() }
             }
-            if isInternal && updatesFilter == .claimFeed {
+            if isInternal && updatesFilter == .feed {
                 // Four posts at a time; the rest scroll inside the section.
                 ChatterFeedSection(model: claimFeed, emptyMessage: "No posts on this claim yet. Use Post to start one.", visibleCount: 4)
+            } else if isInternal && updatesFilter == .activities {
+                RecordActivitySection(model: activity, api: api, noun: "claim")
             } else {
                 SectionLoader(state: viewModel.updates, subject: "updates", retry: { await viewModel.loadUpdates() }) { updates in
                     UpdatesList(updates: updates, emptyMessage: "No updates have been published for this claim yet.", visibleCount: 3)

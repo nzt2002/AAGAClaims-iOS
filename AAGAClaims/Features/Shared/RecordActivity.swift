@@ -1,7 +1,7 @@
 import PortalKit
 import SwiftUI
 
-/// Staff: a claim's or lead's tasks, events and emails in Home's Recent activity style, three at
+/// Staff: a claim's or lead's tasks, events and emails (Updates → Activities), three at
 /// a time. Tapping one opens its page.
 struct RecordActivitySection: View {
     let model: RecordActivityViewModel
@@ -12,13 +12,12 @@ struct RecordActivitySection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-            SectionHeader("Recent activity")
             switch model.activities {
             case .idle, .loading:
                 SkeletonList(rows: 1)
             case .failed:
                 HStack {
-                    Text("Unable to load recent activity.")
+                    Text("Unable to load activities.")
                         .foregroundStyle(Color.textSecondary)
                     Spacer()
                     Button("Retry") { Task { await model.load() } }

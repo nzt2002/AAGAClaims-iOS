@@ -24,6 +24,15 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.8.0", date: "Nov 8, 2026", items: [
+            Item(icon: "ipad.landscape", title: "Made for iPad",
+                 detail: "On iPad, Claims and Leads show the list and the chosen record side by side, with the open one highlighted. Claim and lead pages use two columns, and Home puts your activity, agenda and recent claims next to each other."),
+            Item(icon: "person.2", title: "Leads open beside the list",
+                 detail: "Tapping a lead on iPad now opens it in the main window."),
+            Item(icon: "checklist", title: "Activities in Updates",
+                 detail: "A claim or lead's tasks, events and emails are now the Activities tab under Updates, next to the Feed (formerly Claim Feed and Lead Feed). New tasks and events open it.",
+                 staffOnly: true),
+        ]),
         Release(version: "3.7.0", date: "Nov 8, 2026", items: [
             Item(icon: "person.2", title: "Contacts tab",
                  detail: "Claims and leads have a Contacts tab after Details. Claims list their claim contacts and roles; leads show the homeowner, subcontractor and partner. Tap to call or email.",

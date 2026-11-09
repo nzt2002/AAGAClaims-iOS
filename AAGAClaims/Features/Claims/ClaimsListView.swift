@@ -8,6 +8,10 @@ struct ClaimsListView: View {
     let openSupport: () -> Void
     /// Staff see "Mine" (claims where they're the adjuster or account manager).
     var showsMine = false
+    /// iPad split view: the claim in the detail column, highlighted here.
+    var selectedId: String?
+    /// iPad split view: tapping a card shows it in the detail column instead of pushing it.
+    var select: ((ClaimSummary) -> Void)?
 
     var body: some View {
         LoadingContainer(state: viewModel.state, subject: "claims", retry: reload) { _ in
@@ -26,8 +30,17 @@ struct ClaimsListView: View {
                         }
                         LazyVStack(spacing: Theme.Spacing.m) {
                             ForEach(viewModel.filteredClaims) { claim in
-                                NavigationLink(value: claim) {
-                                    ClaimCard(claim: claim)
+                                Group {
+                                    if let select {
+                                        Button { select(claim) } label: {
+                                            ClaimCard(claim: claim)
+                                                .selectedCard(claim.recordId == selectedId, accent: .brandPrimary)
+                                        }
+                                    } else {
+                                        NavigationLink(value: claim) {
+                                            ClaimCard(claim: claim)
+                                        }
+                                    }
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityIdentifier("claimCard-\(claim.recordId)")
