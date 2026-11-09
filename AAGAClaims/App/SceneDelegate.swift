@@ -153,7 +153,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         receive(userActivity)
     }
 
-    /// Portal universal links (https://portal.accurateadjustmentsga.com/s/...).
+    /// Portal universal links (https://aaga.myproclaimer.com/s/... and the legacy portal domain).
     private func receive(_ activity: NSUserActivity) {
         if activity.activityType == NSUserActivityTypeBrowsingWeb, let url = activity.webpageURL {
             DeepLinkInbox.shared.receive(url)

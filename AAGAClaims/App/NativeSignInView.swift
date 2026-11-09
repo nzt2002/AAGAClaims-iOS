@@ -277,9 +277,9 @@ struct NativeSignInView: View {
 
 /// Native login's view controller, as the SDK presents it.
 enum NativeSignIn {
-    static let portalURL = "https://portal.accurateadjustmentsga.com"
+    static let portalURL = "https://aaga.myproclaimer.com"
     /// Headless login's redirect: the site's echo endpoint, also listed as the app's callback URL in Salesforce.
-    static let callbackURL = "https://portal.accurateadjustmentsga.com/services/oauth2/echo"
+    static let callbackURL = "https://aaga.myproclaimer.com/services/oauth2/echo"
     /// Posted when the app's own sign-in has handed a new session to the SDK.
     static let didSucceed = Notification.Name("NativeSignInDidSucceed")
 

@@ -11,7 +11,7 @@ struct WelcomeView: View {
     @State private var showingHelp = false
     @Environment(\.colorScheme) private var colorScheme
 
-    private static let forgotPasswordURL = URL(string: "https://portal.accurateadjustmentsga.com/s/login/ForgotPassword")!
+    private static let forgotPasswordURL = URL(string: "https://aaga.myproclaimer.com/s/login/ForgotPassword")!
 
     var body: some View {
         BrandBackdrop {

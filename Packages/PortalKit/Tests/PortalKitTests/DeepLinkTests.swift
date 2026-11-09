@@ -16,9 +16,8 @@ struct DeepLinkTests {
         #expect(DeepLink(url: URL(string: "AAGACLAIMS://Claim/\(claimId)")!) == .claim(id: claimId))
     }
 
-    @Test("Portal universal links")
-    func universalLinks() {
-        let base = "https://portal.accurateadjustmentsga.com"
+    @Test("Portal universal links", arguments: ["https://aaga.myproclaimer.com", "https://AAGA.myproclaimer.com", "https://portal.accurateadjustmentsga.com"])
+    func universalLinks(base: String) {
         #expect(DeepLink(url: URL(string: "\(base)/s/detail/\(claimId)")!) == .claim(id: claimId))
         #expect(DeepLink(url: URL(string: "\(base)/s/detail/\(leadId)")!) == .lead(id: leadId))
         #expect(DeepLink(url: URL(string: "\(base)/s/my-case-detail?recordId=\(caseId)")!) == .supportCase(id: caseId))
@@ -30,6 +29,8 @@ struct DeepLinkTests {
         "aagaclaims://claim/a23000000000001AAA/extra%20junk%27",
         "aagaclaims://payments/a23000000000001AAA",
         "https://evil.example.com/s/detail/a23000000000001AAA",
+        "https://other.myproclaimer.com/s/detail/a23000000000001AAA",
+        "http://aaga.myproclaimer.com/s/detail/a23000000000001AAA",
         "http://portal.accurateadjustmentsga.com/s/detail/a23000000000001AAA",
         "https://portal.accurateadjustmentsga.com/s/detail/001000000000001AAA",
         "https://portal.accurateadjustmentsga.com/s/my-case-detail?recordId=a23000000000001AAA",

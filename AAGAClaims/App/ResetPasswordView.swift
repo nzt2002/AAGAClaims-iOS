@@ -21,7 +21,7 @@ struct ResetPasswordView: View {
     @State private var errorDetail: String?
     @Environment(\.dismiss) private var dismiss
 
-    private static let webResetURL = URL(string: "https://portal.accurateadjustmentsga.com/s/login/ForgotPassword")!
+    private static let webResetURL = URL(string: "https://aaga.myproclaimer.com/s/login/ForgotPassword")!
 
     init(username: String, finished: @escaping (String) -> Void) {
         self.username = username

@@ -41,7 +41,7 @@
 	<key>PortalDataSource</key>
 	<string>live</string>
 	<key>SFDCOAuthLoginHost</key>
-	<string>portal.accurateadjustmentsga.com</string>
+	<string>aaga.myproclaimer.com</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Poppins-Bold.ttf</string>
