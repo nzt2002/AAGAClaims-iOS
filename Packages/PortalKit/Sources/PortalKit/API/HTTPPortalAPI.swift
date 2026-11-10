@@ -264,6 +264,12 @@ public struct HTTPPortalAPI: PortalAPI {
         }
     }
     public func voiceToken() async throws -> VoiceToken { try await get("/voice/token") }
+
+    public func setCallRecording(callSid: String, recording: Bool) async throws -> Bool {
+        let result: CallRecordingState = try await post("/voice/recording",
+                                                        body: CallRecordingRequest(callSid: callSid, recording: recording))
+        return result.recording
+    }
     public func postToClaim(claimId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost {
         try await post(claimPath(claimId, "posts"), body: ChatterBody(text, mentions, fileIds: fileIds))
     }

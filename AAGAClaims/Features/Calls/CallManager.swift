@@ -32,6 +32,8 @@ final class CallManager: NSObject {
     private(set) var activeCall: ActiveCall?
     /// False after the user minimises the call screen; a "return to call" bar shows instead.
     var showsCallScreen = true
+    /// The firm records calls and the server can pause them: the call screen shows Record.
+    private(set) var canControlRecording = false
 
     struct ActiveCall: Equatable {
         enum Phase: Equatable { case connecting, ringing, connected, reconnecting }
@@ -46,6 +48,12 @@ final class CallManager: NSObject {
         var isMuted = false
         var isOnHold = false
         var isSpeaker = false
+        /// Calls start recorded when the firm records calls; Record pauses and resumes it.
+        var isRecording = false
+        /// A pause/resume request is in flight.
+        var isChangingRecording = false
+        /// Shown under the status when a pause/resume failed.
+        var recordingError: String?
     }
 
     @ObservationIgnored private var api: PortalAPI?
@@ -92,8 +100,9 @@ final class CallManager: NSObject {
 
     /// After `/meta` loads (sign-in, foreground). Registers this device for incoming calls, or
     /// unregisters it when the user no longer has in-app calling.
-    func configure(api: PortalAPI, enabled: Bool) {
+    func configure(api: PortalAPI, enabled: Bool, recordingControl: Bool = false) {
         self.api = api
+        canControlRecording = enabled && recordingControl
         if enabled {
             isEnabled = true
             Task { await registerForIncomingCalls() }
@@ -107,6 +116,7 @@ final class CallManager: NSObject {
     func signOut() {
         unregister()
         isEnabled = false
+        canControlRecording = false
         businessLine = nil
         token = nil
         api = nil
@@ -131,7 +141,8 @@ final class CallManager: NSObject {
         outgoing[uuid] = OutgoingCall(number: number, recordId: recordId, name: name)
         let formatted = CallManager.display(number) ?? number
         let named = PortalFormat.nonEmpty(name)
-        activeCall = ActiveCall(uuid: uuid, title: named ?? formatted, subtitle: named == nil ? nil : formatted, isOutgoing: true)
+        activeCall = ActiveCall(uuid: uuid, title: named ?? formatted, subtitle: named == nil ? nil : formatted, isOutgoing: true,
+                                isRecording: canControlRecording)
         showsCallScreen = true
         callController.request(CXTransaction(action: action)) { [weak self] error in
             guard let error else { return }
@@ -171,6 +182,31 @@ final class CallManager: NSObject {
         call.isOnHold = held
         updateActive(active.uuid) { $0.isOnHold = held }
         syncCallKit(CXSetHeldCallAction(call: active.uuid, onHold: held))
+    }
+
+    /// Pauses or resumes the call recording on the server (Twilio). The recording starts when the
+    /// other side answers, so this works once the call is connected. Paused audio is left out.
+    func toggleRecording() {
+        guard canControlRecording, let api, let active = activeCall, active.phase == .connected,
+              !active.isChangingRecording, let sid = calls[active.uuid]?.sid, !sid.isEmpty else { return }
+        let uuid = active.uuid
+        let wanted = !active.isRecording
+        updateActive(uuid) {
+            $0.isChangingRecording = true
+            $0.recordingError = nil
+        }
+        Task {
+            do {
+                let now = try await api.setCallRecording(callSid: sid, recording: wanted)
+                updateActive(uuid) { $0.isRecording = now }
+            } catch {
+                CallManager.log("recording \(wanted ? "resume" : "pause") failed: \(error)")
+                updateActive(uuid) {
+                    $0.recordingError = wanted ? "Couldn't resume recording. Try again." : "Couldn't pause recording. Try again."
+                }
+            }
+            updateActive(uuid) { $0.isChangingRecording = false }
+        }
     }
 
     func sendDigit(_ digit: String) {
@@ -488,7 +524,8 @@ extension CallManager: @preconcurrency CXProviderDelegate {
         }
         calls[uuid] = invite.accept(options: options, delegate: self)
         let caller = invite.from?.replacingOccurrences(of: "client:", with: "") ?? "Unknown caller"
-        activeCall = ActiveCall(uuid: uuid, title: CallManager.display(caller) ?? caller, subtitle: nil, isOutgoing: false)
+        activeCall = ActiveCall(uuid: uuid, title: CallManager.display(caller) ?? caller, subtitle: nil, isOutgoing: false,
+                                isRecording: canControlRecording)
         showsCallScreen = true
         refreshActiveState()
         action.fulfill()

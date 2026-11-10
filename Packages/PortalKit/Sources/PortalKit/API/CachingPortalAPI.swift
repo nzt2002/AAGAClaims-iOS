@@ -331,6 +331,12 @@ public actor CachingPortalAPI: PortalAPI {
         return try await guarded { try await $0.voiceToken() }
     }
 
+    /// Never cached: it changes a live call.
+    public func setCallRecording(callSid: String, recording: Bool) async throws -> Bool {
+        try requireOnline()
+        return try await guarded { try await $0.setCallRecording(callSid: callSid, recording: recording) }
+    }
+
     public func postToClaim(claimId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost {
         try requireOnline()
         return try await guarded { try await $0.postToClaim(claimId: claimId, text: text, mentions: mentions, fileIds: fileIds) }

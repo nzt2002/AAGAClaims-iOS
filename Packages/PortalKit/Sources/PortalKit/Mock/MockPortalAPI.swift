@@ -1097,6 +1097,11 @@ public actor MockPortalAPI: PortalAPI {
         throw PortalAPIError.notFound
     }
 
+    public func setCallRecording(callSid: String, recording: Bool) async throws -> Bool {
+        try await simulate()
+        return recording
+    }
+
     public func notificationPreferences() async throws -> NotificationPreferences {
         try await simulate()
         return pushPreferences

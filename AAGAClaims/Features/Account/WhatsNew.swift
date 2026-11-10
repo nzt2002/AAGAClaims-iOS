@@ -24,6 +24,11 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.9.0", date: "Nov 9, 2026", items: [
+            Item(icon: "record.circle", title: "Pause call recording",
+                 detail: "Business-line calls are recorded by default. On the call screen, tap Record to pause the recording, and tap it again to resume. Paused parts are left out of the recording and the transcript.",
+                 staffOnly: true),
+        ]),
         Release(version: "3.8.0", date: "Nov 8, 2026", items: [
             Item(icon: "ipad.landscape", title: "Made for iPad",
                  detail: "On iPad, Claims and Leads show the list and the chosen record side by side, with the open one highlighted. Claim and lead pages use two columns, and Home puts your activity, agenda and recent claims next to each other."),

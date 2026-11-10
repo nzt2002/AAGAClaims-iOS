@@ -71,6 +71,9 @@ struct CallScreen: View {
             status(call)
                 .font(.body.monospacedDigit())
                 .foregroundStyle(.white.opacity(0.7))
+            if calls.canControlRecording && call.phase == .connected {
+                recordingBadge(call)
+            }
             if showsKeypad && !typedDigits.isEmpty {
                 Text(typedDigits)
                     .font(.title2.monospacedDigit())
@@ -113,13 +116,48 @@ struct CallScreen: View {
                               isOn: call.isSpeaker) { calls.toggleSpeaker() }
             }
             GridRow {
-                Color.clear.frame(width: 1, height: 1)
+                if calls.canControlRecording {
+                    // Calls start recorded; tap to pause the recording, tap again to resume.
+                    ControlButton(title: call.isRecording ? "Recording" : "Record",
+                                  systemImage: call.isRecording ? "record.circle.fill" : "record.circle",
+                                  isOn: call.isRecording, onTint: .red) { calls.toggleRecording() }
+                        .disabled(!connected || call.isChangingRecording)
+                        .accessibilityLabel(call.isRecording ? "Recording. Double-tap to pause." : "Recording paused. Double-tap to resume.")
+                        .accessibilityIdentifier("callRecord")
+                } else {
+                    Color.clear.frame(width: 1, height: 1)
+                }
                 ControlButton(title: call.isOnHold ? "Resume" : "Hold", systemImage: "pause.fill",
                               isOn: call.isOnHold) { calls.toggleHold() }
                     .disabled(!connected)
                 Color.clear.frame(width: 1, height: 1)
             }
         }
+    }
+
+    /// "● REC" while recording, "Recording paused" when not, and any pause/resume error.
+    private func recordingBadge(_ call: CallManager.ActiveCall) -> some View {
+        VStack(spacing: 4) {
+            if call.isRecording {
+                Label("REC", systemImage: "circle.fill")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.red)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(.white.opacity(0.12), in: Capsule())
+                    .accessibilityLabel("This call is being recorded")
+            } else {
+                Text("Recording paused")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+            if let error = call.recordingError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+        }
+        .padding(.top, 4)
     }
 
     private var keypad: some View {
@@ -173,6 +211,8 @@ private struct ControlButton: View {
     let title: String
     let systemImage: String
     let isOn: Bool
+    /// The icon colour when on (Record is red).
+    var onTint: Color = .black
     let action: () -> Void
     @Environment(\.isEnabled) private var isEnabled
 
@@ -182,7 +222,7 @@ private struct ControlButton: View {
                 Image(systemName: systemImage)
                     .font(.system(size: 26))
                     .frame(width: 76, height: 76)
-                    .foregroundStyle(isOn ? Color.black : Color.white)
+                    .foregroundStyle(isOn ? onTint : Color.white)
                     .background(isOn ? Color.white : Color.white.opacity(0.15), in: Circle())
                 Text(title)
                     .font(.footnote)

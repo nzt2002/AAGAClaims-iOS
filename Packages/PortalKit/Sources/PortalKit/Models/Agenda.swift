@@ -121,15 +121,22 @@ public struct ServerMeta: Codable, Hashable, Sendable {
     /// Staff with a Calling seat at a firm set up for in-app calling: calls ring the app and can be
     /// placed from it over the business line (`GET /voice/token`). Absent on older servers.
     public let inAppCalling: Bool?
+    /// In-app calls start recorded (the firm records calls). Absent on older servers.
+    public let callRecording: Bool?
 
-    public init(apiVersion: Int, features: Set<String>, assistantAgentId: String? = nil, inAppCalling: Bool? = nil) {
+    public init(apiVersion: Int, features: Set<String>, assistantAgentId: String? = nil, inAppCalling: Bool? = nil,
+                callRecording: Bool? = nil) {
         self.apiVersion = apiVersion
         self.features = features
         self.assistantAgentId = assistantAgentId
         self.inAppCalling = inAppCalling
+        self.callRecording = callRecording
     }
 
     public var canCallInApp: Bool { supports(.voice) && inAppCalling == true }
+
+    /// The call screen shows a Record button: calls start recorded and the server can pause them.
+    public var canControlCallRecording: Bool { canCallInApp && supports(.voiceRecording) && callRecording == true }
 
     /// A server from before `/meta`: the features it already had are assumed.
     public static let legacy = ServerMeta(apiVersion: 4, features: ["claimActivities", "chatterAttachments", "claimReferenceId"])
@@ -160,7 +167,20 @@ public struct ServerMeta: Codable, Hashable, Sendable {
         case voice
         /// Staff see a record's contacts in a Contacts tab (`GET /{record}/contacts`).
         case recordContacts
+        /// Staff pause and resume recording on an in-app call (`POST /voice/recording`).
+        case voiceRecording
     }
+}
+
+/// `POST /voice/recording` body.
+struct CallRecordingRequest: Encodable, Sendable {
+    let callSid: String
+    let recording: Bool
+}
+
+/// `POST /voice/recording` response.
+struct CallRecordingState: Decodable, Sendable {
+    let recording: Bool
 }
 
 /// `GET /voice/token`: a short-lived Twilio Voice access token for the business line.
