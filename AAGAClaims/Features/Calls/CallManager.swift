@@ -214,12 +214,16 @@ final class CallManager: NSObject {
         call.sendDigits(digit)
     }
 
-    /// Hangs up straight away. Twilio's callDidDisconnect then tells CallKit and closes the screen.
+    /// Hangs up straight away and closes both the in-app and the iOS call screens at once.
+    /// Waiting for Twilio's callDidDisconnect to close the iOS one left it up whenever that
+    /// callback was late or missing, so users had to end the call twice (3.9.1).
     func endCall() {
         guard let active = activeCall else { return }
         let uuid = active.uuid
-        if let call = calls[uuid] {
+        if let call = calls.removeValue(forKey: uuid) {
             call.disconnect()
+            provider.reportCall(with: uuid, endedAt: Date(), reason: .remoteEnded)
+            ended(uuid)
         } else {
             // Not connected yet (still fetching a token or connecting): cancel through CallKit.
             outgoing[uuid] = nil
@@ -442,8 +446,8 @@ extension CallManager: @preconcurrency CallDelegate {
     func callDidDisconnect(call: Call, error: Error?) {
         let failed = error != nil
         guard let uuid = call.uuid else { return }
-        // Report unless a CXEndCallAction (iOS's own End button) already told CallKit. The app's
-        // End button disconnects directly, so it's reported here.
+        // Report only when the other side hung up. Either End button has already removed the
+        // call and told CallKit, so this is then just a no-op tidy-up.
         if calls[uuid] != nil {
             provider.reportCall(with: uuid, endedAt: Date(), reason: failed ? .failed : .remoteEnded)
         }
@@ -538,10 +542,9 @@ extension CallManager: @preconcurrency CXProviderDelegate {
         } else if let call = calls.removeValue(forKey: uuid) {
             call.disconnect()
         }
-        outgoing[uuid] = nil
-        pendingActions.removeValue(forKey: uuid)?.fail()
-        refreshActiveState()
         action.fulfill()
+        // Close the in-app call screen now rather than waiting for Twilio's callDidDisconnect.
+        ended(uuid)
     }
 
     func provider(_ provider: CXProvider, perform action: CXSetMutedCallAction) {
