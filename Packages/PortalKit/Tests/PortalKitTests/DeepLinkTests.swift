@@ -21,6 +21,8 @@ struct DeepLinkTests {
         #expect(DeepLink(url: URL(string: "\(base)/s/detail/\(claimId)")!) == .claim(id: claimId))
         #expect(DeepLink(url: URL(string: "\(base)/s/detail/\(leadId)")!) == .lead(id: leadId))
         #expect(DeepLink(url: URL(string: "\(base)/s/my-case-detail?recordId=\(caseId)")!) == .supportCase(id: caseId))
+        // Support_Request__c ids: the key prefix differs per firm org.
+        #expect(DeepLink(url: URL(string: "\(base)/s/my-case-detail?recordId=a1B000000000001AAA")!) == .supportCase(id: "a1B000000000001AAA"))
     }
 
     @Test("Rejected links", arguments: [
@@ -64,6 +66,8 @@ struct DeepLinkTests {
         #expect(DeepLink(pushPayload: ["type": "post", "recordId": claimId]) == .claim(id: claimId))
         #expect(DeepLink(pushPayload: ["type": "esign", "recordId": claimId]) == .claim(id: claimId))
         #expect(DeepLink(pushPayload: ["type": "case", "recordId": caseId]) == .supportCase(id: caseId))
+        #expect(DeepLink(pushPayload: ["type": "caseReply", "recordId": "a1B000000000001AAA"]) == .supportCase(id: "a1B000000000001AAA"))
+        #expect(DeepLink(pushPayload: ["type": "case", "recordId": "a1B000000000001AAA"]) == .supportCase(id: "a1B000000000001AAA"))
         #expect(DeepLink(pushPayload: ["type": "case", "recordId": claimId]) == .claim(id: claimId))
         #expect(DeepLink(pushPayload: ["type": "marketing", "recordId": claimId]) == nil)
         #expect(DeepLink(pushPayload: ["type": "update", "recordId": 42]) == nil)

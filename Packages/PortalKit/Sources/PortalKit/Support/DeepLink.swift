@@ -22,7 +22,14 @@ public enum DeepLink: Hashable, Sendable {
     public enum KeyPrefix {
         public static let claim = "a23"   // Claims2__c
         public static let lead = "a0r"    // Prospects__c
+        /// Old Case-based support requests. New ones are Support_Request__c records, whose key prefix
+        /// differs in each firm's org, so `isSupportCaseId` accepts any id that isn't a claim or lead.
         public static let supportCase = "500"
+    }
+
+    /// A support request ("case") id: a valid id that isn't a claim or lead.
+    static func isSupportCaseId(_ id: String) -> Bool {
+        isValidId(id) && !id.hasPrefix(KeyPrefix.claim) && !id.hasPrefix(KeyPrefix.lead)
     }
 
     /// Parses:
@@ -55,7 +62,7 @@ public enum DeepLink: Hashable, Sendable {
         // /s/my-case-detail?recordId={id}
         if path.count >= 2, path[0] == "s", path[1] == "my-case-detail" {
             guard let id = components?.queryItems?.first(where: { $0.name == "recordId" })?.value,
-                  Self.isValidId(id), id.hasPrefix(KeyPrefix.supportCase) else { return nil }
+                  Self.isSupportCaseId(id) else { return nil }
             self = .supportCase(id: id)
             return
         }
@@ -89,9 +96,9 @@ public enum DeepLink: Hashable, Sendable {
                 return nil
             }
         case "caseReply":
-            guard recordId.hasPrefix(KeyPrefix.supportCase) else { return nil }
+            guard Self.isSupportCaseId(recordId) else { return nil }
             self = .supportCase(id: recordId)
-        case "case" where recordId.hasPrefix(KeyPrefix.supportCase):
+        case "case" where Self.isSupportCaseId(recordId):
             self = .supportCase(id: recordId)
         case "payment", "mention", "task", "post", "esign", "case":
             // A payment, an @mention, a Chatter post, a task, an e-sign status change or (for staff)

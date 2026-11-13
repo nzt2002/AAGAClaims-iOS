@@ -4,9 +4,9 @@
 **Subtitle** (30 max): Your claim, every step
 **Primary category:** Business. **Secondary:** Productivity
 **Age rating:** 4+ (no objectionable content)
-**Copyright:** 2026 ProClaimer Inc
-**Support URL:** https://portal.accurateadjustmentsga.com/s/
-**Marketing URL** (optional): https://www.accurateadjustmentsga.com
+**Copyright:** 2026 Lyons Business Solutions, LLC
+**Support URL:** https://getproclaimer.com/
+**Marketing URL** (optional): https://getproclaimer.com/
 
 ## Promotional text (170 max)
 Follow your property claim from inspection to final payment. Get updates the moment they're

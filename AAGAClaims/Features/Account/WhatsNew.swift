@@ -24,6 +24,14 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.9.2", date: "Nov 13, 2026", items: [
+            Item(icon: "lifepreserver", title: "Support requests open from links and notifications",
+                 detail: "Requests for assistance moved to a new kind of support request. Tapping a reply notification or a support link in an email now opens the request in the app.",
+                 staffOnly: false),
+            Item(icon: "exclamationmark.bubble", title: "Calls say why they didn't connect",
+                 detail: "If a business-line call can't start or drops, the app now tells you why (for example an expired sign-in, no signal or microphone access) instead of just hanging up.",
+                 staffOnly: true),
+        ]),
         Release(version: "3.9.1", date: "Nov 12, 2026", items: [
             Item(icon: "phone.down", title: "End a call once",
                  detail: "Ending a business-line call, from the app's call screen or from the iPhone's, now hangs up and closes both screens. You no longer need to end the call twice.",
