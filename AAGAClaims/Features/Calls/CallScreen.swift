@@ -288,5 +288,14 @@ private struct CallScreenPresenter: ViewModifier {
             )) {
                 CallScreen()
             }
+            // A call that didn't start or dropped says why instead of just vanishing (3.9.2).
+            .alert(calls.failure?.title ?? "Call failed", isPresented: Binding(
+                get: { calls.failure != nil && calls.activeCall == nil },
+                set: { if !$0 { calls.failure = nil } }
+            )) {
+                Button("OK", role: .cancel) { calls.failure = nil }
+            } message: {
+                Text(calls.failure?.message ?? "")
+            }
     }
 }

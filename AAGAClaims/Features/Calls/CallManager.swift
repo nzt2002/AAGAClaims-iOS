@@ -34,6 +34,8 @@ final class CallManager: NSObject {
     var showsCallScreen = true
     /// The firm records calls and the server can pause them: the call screen shows Record.
     private(set) var canControlRecording = false
+    /// Why the last call didn't start or dropped; shown as an alert, then cleared (3.9.2).
+    var failure: CallFailure?
 
     struct ActiveCall: Equatable {
         enum Phase: Equatable { case connecting, ringing, connected, reconnecting }
@@ -128,7 +130,11 @@ final class CallManager: NSObject {
     func start(to number: String, recordId: String?, name: String?) {
         guard isEnabled, !hasActiveCall else { return }
         AVAudioApplication.requestRecordPermission { granted in
-            guard granted else { return CallManager.log("microphone permission denied") }
+            guard granted else {
+                CallManager.log("microphone permission denied")
+                Task { @MainActor in CallManager.shared.failure = .microphoneDenied }
+                return
+            }
             Task { @MainActor in CallManager.shared.requestStart(to: number, recordId: recordId, name: name) }
         }
     }
@@ -149,6 +155,7 @@ final class CallManager: NSObject {
             Task { @MainActor in
                 self?.outgoing[uuid] = nil
                 self?.activeCall = nil
+                self?.failure = .callKit(error.localizedDescription)
                 CallManager.log("start call failed: \(error.localizedDescription)")
             }
         }
@@ -259,8 +266,14 @@ final class CallManager: NSObject {
     // MARK: - Tokens and registration
 
     private func freshToken() async -> VoiceToken? {
+        try? await fetchToken()
+    }
+
+    /// The cached token, or a new one from the server. Throws the server's error so a failed
+    /// outgoing call can say why.
+    private func fetchToken() async throws -> VoiceToken {
         if let token, !token.expiresSoon { return token }
-        guard let api else { return nil }
+        guard let api else { throw PortalAPIError.sessionExpired }
         do {
             let fetched = try await api.voiceToken()
             token = fetched
@@ -268,7 +281,7 @@ final class CallManager: NSObject {
             return fetched
         } catch {
             CallManager.log("voice token failed: \(error.localizedDescription)")
-            return nil
+            throw error
         }
     }
 
@@ -438,6 +451,8 @@ extension CallManager: @preconcurrency CallDelegate {
         let message = error.localizedDescription
         guard let uuid = call.uuid else { return }
         CallManager.log("connect failed: \(message)")
+        let nsError = error as NSError
+        failure = .twilio(code: nsError.code, description: message, connected: false)
         pendingActions.removeValue(forKey: uuid)?.fail()
         provider.reportCall(with: uuid, endedAt: Date(), reason: .failed)
         ended(uuid)
@@ -446,6 +461,11 @@ extension CallManager: @preconcurrency CallDelegate {
     func callDidDisconnect(call: Call, error: Error?) {
         let failed = error != nil
         guard let uuid = call.uuid else { return }
+        // Dropped by an error, not by either side hanging up: say why.
+        if let error, calls[uuid] != nil {
+            let connected = activeCall?.uuid == uuid && activeCall?.connectedAt != nil
+            failure = .twilio(code: (error as NSError).code, description: error.localizedDescription, connected: connected)
+        }
         // Report only when the other side hung up. Either End button has already removed the
         // call and told CallKit, so this is then just a no-op tidy-up.
         if calls[uuid] != nil {
@@ -494,7 +514,11 @@ extension CallManager: @preconcurrency CXProviderDelegate {
         audioDevice.block()
         refreshActiveState()
         Task {
-            guard let token = await freshToken() else {
+            let token: VoiceToken
+            do {
+                token = try await fetchToken()
+            } catch {
+                failure = .token(error)
                 action.fail()
                 ended(uuid) // closes the call screen too
                 return
