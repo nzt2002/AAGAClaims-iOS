@@ -38,6 +38,9 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         switch self.session.environment.auth {
         case .demo:
             self.session.didSignIn(.demo)
+        case .platform:
+            // The sign-in screen shows itself; a saved sign-in is picked up here.
+            Task { await self.session.restorePlatformSession() }
         case .salesforce:
             if BootConfigCheck.usesNativeLogin, let key = BootConfigCheck.consumerKey {
                 // The SDK shows our sign-in screen instead of the web page whenever sign-in is needed.

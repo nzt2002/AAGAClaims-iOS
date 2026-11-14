@@ -130,7 +130,7 @@ struct AccountView: View {
         } set: { wantsOn in
             if wantsOn, notificationStatus == .notDetermined {
                 Task {
-                    _ = await PushNotifications.requestPermission(registerWithSalesforce: !session.isDemo)
+                    _ = await PushNotifications.requestPermission(registerWithSalesforce: session.registersPush)
                     notificationStatus = await PushNotifications.status()
                 }
             } else {
@@ -160,11 +160,7 @@ struct AccountView: View {
     }
 
     private func signOut() {
-        if session.isDemo {
-            session.didSignOut()
-        } else {
-            SalesforceSession.signOut()
-        }
+        session.signOut()
     }
 
     static var versionString: String {

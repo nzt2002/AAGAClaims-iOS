@@ -26,6 +26,8 @@ final class AppSession {
 
     private(set) var state: State = .signingIn
     let environment: AppEnvironment
+    /// Signs in to the platform and keeps the sign-in fresh. Nil unless this build uses the platform.
+    let platform: PlatformAuth?
     let api: PortalAPI
     let lock = AppLock()
     let offline = OfflineState()
@@ -56,13 +58,20 @@ final class AppSession {
 
     init(environment: AppEnvironment) {
         self.environment = environment
+        let platform = environment.platform.map { PlatformAuth(config: $0, store: KeychainPlatformSessionStore()) }
+        self.platform = platform
         let base: PortalAPI = switch environment.dataSource {
         case .mock:
             // -MockFailure YES makes every call fail, to check error states (spec §7).
             UserDefaults.standard.bool(forKey: "MockFailure")
                 ? MockPortalAPI(fixtures: .empty, latency: environment.mockLatency, failure: .server(status: 500))
                 : MockPortalAPI.standard(latency: environment.mockLatency)
-        case .live: HTTPPortalAPI(transport: SalesforceTransport())
+        case .live:
+            if let config = environment.platform, let platform {
+                HTTPPortalAPI(transport: PlatformTransport(config: config, auth: platform))
+            } else {
+                HTTPPortalAPI(transport: SalesforceTransport())
+            }
         }
         let offline = self.offline
         cachingAPI = CachingPortalAPI(base: base, cache: FileResponseCache.standard()) { savedAt in
@@ -85,6 +94,17 @@ final class AppSession {
                 }
             }
         }
+        if environment.auth == .platform {
+            // 401 after a renewal: the sign-in is over. Back to the sign-in screen.
+            Task {
+                await cachingAPI.setSessionExpiredHandler {
+                    await MainActor.run { NotificationCenter.default.post(name: AppSession.platformSessionExpired, object: nil) }
+                }
+            }
+            NotificationCenter.default.addObserver(forName: Self.platformSessionExpired, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.signOut() }
+            }
+        }
         connectivity.start { online in
             offline.setOffline(!online)
             Task { await cachingAPI.setOnline(online) }
@@ -92,6 +112,64 @@ final class AppSession {
     }
 
     var isDemo: Bool { environment.auth == .demo }
+
+    /// Push notifications are registered through Salesforce; the platform doesn't send them yet.
+    var registersPush: Bool { environment.auth == .salesforce }
+
+    static let platformSessionExpired = Notification.Name("PlatformSessionExpired")
+
+    /// Signs out whichever way this build signs in.
+    func signOut() {
+        switch environment.auth {
+        case .demo: didSignOut()
+        case .salesforce: SalesforceSession.signOut()
+        case .platform:
+            Task {
+                await platform?.signOut()
+                PlatformProfileCache.clear()
+                didSignOut()
+            }
+        }
+    }
+
+    // MARK: - Platform sign-in
+
+    /// Email and password: signs in, loads who it is, and opens the app.
+    func signInPlatform(email: String, password: String) async throws {
+        guard let platform else { return }
+        noteSignInStep("signing in")
+        _ = try await platform.signIn(email: email, password: password)
+        do {
+            let profile = try await platform.profile()
+            PlatformProfileCache.save(profile)
+            lock.didSignIn()
+            didSignIn(CurrentUser(profile))
+        } catch {
+            // Signed in but couldn't be identified: don't leave a half-open session.
+            await platform.signOut()
+            throw error
+        }
+    }
+
+    func requestPasswordReset(email: String) async throws {
+        try await platform?.requestPasswordReset(email: email)
+    }
+
+    /// Picks up the sign-in from the last launch. Offline, the saved profile opens the app (the cache holds its data).
+    func restorePlatformSession() async {
+        guard let platform, await platform.restore() != nil else { return }
+        isRestoringSession = true
+        defer { isRestoringSession = false }
+        do {
+            let profile = try await platform.profile()
+            PlatformProfileCache.save(profile)
+            didSignIn(CurrentUser(profile))
+        } catch PlatformAuthError.notSignedIn {
+            await platform.signOut()
+        } catch {
+            if let cached = PlatformProfileCache.load() { didSignIn(CurrentUser(cached)) }
+        }
+    }
 
     func didSignIn(_ user: CurrentUser) {
         signInSteps = []

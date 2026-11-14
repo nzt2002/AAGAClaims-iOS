@@ -10,7 +10,9 @@ struct RootView: View {
         ZStack {
             switch session.state {
             case .signingIn:
-                if session.isRestoringSession || session.usesNativeLogin {
+                if session.environment.auth == .platform && !session.isRestoringSession {
+                    PlatformSignInView(session: session)
+                } else if session.isRestoringSession || session.usesNativeLogin {
                     // A saved session is coming back, or the app's sign-in screen is shown over this:
                     // no welcome screen (and no second Sign In button).
                     BrandBackdrop {

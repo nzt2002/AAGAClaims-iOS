@@ -303,7 +303,7 @@ struct MainTabView: View {
     /// After sign-in (and What's New and the Face ID offer), ask once to allow notifications:
     /// new updates, payments, @mentions and tasks (spec §8). Not in demo mode or UI tests.
     private func askForNotifications() async {
-        guard !session.isDemo, !UserDefaults.standard.bool(forKey: "UITestDemo"),
+        guard session.registersPush, !UserDefaults.standard.bool(forKey: "UITestDemo"),
               await PushNotifications.status() == .notDetermined else { return }
         _ = await PushNotifications.requestPermission(registerWithSalesforce: true)
     }

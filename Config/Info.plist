@@ -38,6 +38,14 @@
 	<string>Choose photos to upload to a claim or share with Alex, the claims assistant.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Turn what you say to Alex, the claims assistant, into text.</string>
+	<key>PlatformAPIBase</key>
+	<string>https://aaga.myproclaimer.com</string>
+	<key>PlatformPublishableKey</key>
+	<string>sb_publishable_eKV_fE_N90WxcaSzdINszg_2inWMZvc</string>
+	<key>PlatformSupabaseURL</key>
+	<string>https://lwiitqqquykwylqlmwni.supabase.co</string>
+	<key>PortalBackend</key>
+	<string>salesforce</string>
 	<key>PortalDataSource</key>
 	<string>live</string>
 	<key>SFDCOAuthLoginHost</key>
