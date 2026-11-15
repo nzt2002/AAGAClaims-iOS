@@ -166,4 +166,18 @@ struct HTTPPortalAPITests {
                                                         reports: [.init(kind: "App crash", reason: "SIGABRT", details: "{}")]))
         #expect(await transport.requests.map(\.path) == ["/account/deletion-request", "/diagnostics"])
     }
+
+    @Test("Push registration sends the phone's token and which Apple service it is for")
+    func pushDevices() async throws {
+        let transport = ScriptedTransport([
+            ("/devices", 200, #"{"registered":true}"#),
+            ("/devices/remove", 200, #"{"removed":true}"#),
+        ])
+        let api = HTTPPortalAPI(transport: transport)
+        try await api.registerPushDevice(token: "ab12cd", environment: "sandbox")
+        try await api.unregisterPushDevice(token: "ab12cd")
+        #expect(await transport.requests.map(\.path) == ["/devices", "/devices/remove"])
+        let body = await transport.requests.first?.body.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: String] }
+        #expect(body == ["token": "ab12cd", "environment": "sandbox"])
+    }
 }

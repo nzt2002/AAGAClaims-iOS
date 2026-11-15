@@ -260,6 +260,10 @@ struct MainTabView: View {
                 serverMeta = meta
             }
             await Outbox.shared.send(using: session.api)
+            if session.environment.auth == .platform {
+                PushRegistrar.shared.attach(api: session.api)
+                await PushNotifications.registerIfAllowed(registerWithSalesforce: true)
+            }
             if !session.isDemo && serverMeta.supports(.diagnostics) {
                 await CrashReporter.shared.send(using: session.api)
             }

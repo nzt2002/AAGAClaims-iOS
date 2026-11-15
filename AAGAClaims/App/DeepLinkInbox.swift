@@ -56,7 +56,12 @@ enum PushNotifications {
 
     @MainActor
     private static func register() {
-        PushNotificationManager.sharedInstance().registerForRemoteNotifications()
+        if AppEnvironment.current.auth == .platform {
+            // The platform sends through Apple directly; the address comes back to the AppDelegate
+            UIApplication.shared.registerForRemoteNotifications()
+        } else {
+            PushNotificationManager.sharedInstance().registerForRemoteNotifications()
+        }
     }
 
     @MainActor

@@ -418,6 +418,16 @@ public struct HTTPPortalAPI: PortalAPI {
         try await post("/account/deletion-request", body: ["reason": reason ?? ""])
     }
 
+    public func registerPushDevice(token: String, environment: String) async throws {
+        struct Registered: Decodable { let registered: Bool }
+        let _: Registered = try await post("/devices", body: ["token": token, "environment": environment])
+    }
+
+    public func unregisterPushDevice(token: String) async throws {
+        struct Removed: Decodable { let removed: Bool }
+        let _: Removed = try await post("/devices/remove", body: ["token": token])
+    }
+
     public func sendDiagnostics(_ report: DiagnosticsReport) async throws {
         struct Received: Decodable { let received: Int }
         let _: Received = try await post("/diagnostics", body: report)

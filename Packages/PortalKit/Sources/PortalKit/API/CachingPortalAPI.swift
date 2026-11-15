@@ -283,6 +283,16 @@ public actor CachingPortalAPI: PortalAPI {
         return try await guarded { try await $0.requestAccountDeletion(reason: reason) }
     }
 
+    public func registerPushDevice(token: String, environment: String) async throws {
+        try requireOnline()
+        try await guarded { try await $0.registerPushDevice(token: token, environment: environment) }
+    }
+
+    public func unregisterPushDevice(token: String) async throws {
+        try requireOnline()
+        try await guarded { try await $0.unregisterPushDevice(token: token) }
+    }
+
     public func sendDiagnostics(_ report: DiagnosticsReport) async throws {
         try requireOnline()
         try await guarded { try await $0.sendDiagnostics(report) }

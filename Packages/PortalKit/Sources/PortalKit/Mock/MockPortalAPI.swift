@@ -560,6 +560,8 @@ public actor MockPortalAPI: PortalAPI {
     }
 
     private var deletionRequested = false
+    /// Phones registered for push: token → "sandbox" or "production".
+    public private(set) var pushDevices: [String: String] = [:]
     private var pushPreferences = NotificationPreferences()
     public private(set) var diagnosticsReceived: [DiagnosticsReport.Item] = []
     /// Saved Alex chats, by Id, with any "Did Alex help?" answer.
@@ -1079,6 +1081,16 @@ public actor MockPortalAPI: PortalAPI {
         try await simulate()
         defer { deletionRequested = true }
         return AccountDeletionRequest(caseId: "500000000000099AAA", alreadyRequested: deletionRequested)
+    }
+
+    public func registerPushDevice(token: String, environment: String) async throws {
+        try await simulate()
+        pushDevices[token] = environment
+    }
+
+    public func unregisterPushDevice(token: String) async throws {
+        try await simulate()
+        pushDevices[token] = nil
     }
 
     public func sendDiagnostics(_ report: DiagnosticsReport) async throws {

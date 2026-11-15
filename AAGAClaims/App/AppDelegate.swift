@@ -45,9 +45,15 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationC
     // MARK: - Push registration (Mobile SDK)
 
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-        guard AppEnvironment.current.auth == .salesforce else { return }
-        // The SDK stores the token and registers it with Salesforce for the signed-in user.
-        PushNotificationManager.sharedInstance().didRegisterForRemoteNotifications(withDeviceToken: deviceToken)
+        switch AppEnvironment.current.auth {
+        case .salesforce:
+            // The SDK stores the token and registers it with Salesforce for the signed-in user.
+            PushNotificationManager.sharedInstance().didRegisterForRemoteNotifications(withDeviceToken: deviceToken)
+        case .platform:
+            Task { @MainActor in PushRegistrar.shared.received(deviceToken) }
+        case .demo:
+            break
+        }
     }
 
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {

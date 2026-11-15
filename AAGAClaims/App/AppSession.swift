@@ -113,8 +113,8 @@ final class AppSession {
 
     var isDemo: Bool { environment.auth == .demo }
 
-    /// Push notifications are registered through Salesforce; the platform doesn't send them yet.
-    var registersPush: Bool { environment.auth == .salesforce }
+    /// Push notifications are registered through Salesforce's SDK or, on the platform, with the platform itself.
+    var registersPush: Bool { environment.auth != .demo }
 
     static let platformSessionExpired = Notification.Name("PlatformSessionExpired")
 
@@ -125,6 +125,7 @@ final class AppSession {
         case .salesforce: SalesforceSession.signOut()
         case .platform:
             Task {
+                await PushRegistrar.shared.unregister()
                 await platform?.signOut()
                 PlatformProfileCache.clear()
                 didSignOut()

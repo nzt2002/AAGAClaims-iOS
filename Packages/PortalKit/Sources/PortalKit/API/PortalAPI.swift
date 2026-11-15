@@ -100,6 +100,11 @@ public protocol PortalAPI: Sendable {
     func requestAccountDeletion(reason: String?) async throws -> AccountDeletionRequest
     /// Crash and hang reports from MetricKit, for Mobile App Logs in Salesforce.
     func sendDiagnostics(_ report: DiagnosticsReport) async throws
+    /// Tells the ProClaimer platform which phone to send this person's push notifications to
+    /// (`POST /devices`). `environment` is "sandbox" for Xcode builds and "production" for TestFlight and the App Store.
+    func registerPushDevice(token: String, environment: String) async throws
+    /// Stops sending to this phone (`POST /devices/remove`), on sign-out.
+    func unregisterPushDevice(token: String) async throws
     /// Which kinds of push notification the user wants.
     func notificationPreferences() async throws -> NotificationPreferences
     /// Saves them and returns what the server stored.
