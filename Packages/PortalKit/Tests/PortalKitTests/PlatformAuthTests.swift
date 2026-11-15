@@ -20,6 +20,7 @@ private actor ScriptedHTTP: PlatformHTTP {
         let reply = handler(request, n)
         if delay > .zero { try await Task.sleep(for: delay) }
         if reply.status == -1 { throw URLError(.notConnectedToInternet) }
+        if reply.status == -2 { throw URLError(.cannotFindHost) }
         let response = HTTPURLResponse(url: request.url!, statusCode: reply.status, httpVersion: nil, headerFields: nil)!
         return (Data(reply.body.utf8), response)
     }
@@ -49,6 +50,12 @@ private func jsonBody(_ request: URLRequest) -> [String: String] {
 }
 
 private let config = PlatformConfig(supabaseURL: URL(string: "https://proj.supabase.co")!, publishableKey: "sb_publishable_x", apiBaseURL: URL(string: "https://aaga.myproclaimer.com")!)
+
+private let aaga = PlatformCompany(name: "Accurate Adjustments GA", subdomain: "aaga", apiBase: URL(string: "https://aaga.myproclaimer.com")!,
+                                   brandColor: "#014486", logoUrl: URL(string: "https://cdn.test/aaga/logo.png"), markText: "AA")
+
+private let companyJSON = ##"{"name":"Accurate Adjustments GA","subdomain":"aaga","host":"aaga.myproclaimer.com","apiBase":"https://aaga.myproclaimer.com","brandColor":"#014486","logoUrl":"https://cdn.test/aaga/logo.png","markText":"AA"}"##
+private let meBody = #"{"firstName":"Amy","fullName":"Amy Lee","email":"amy@a.test","isInternal":true,"company":\#(companyJSON)}"#
 
 private func tokenBody(access: String = "access-1", refresh: String = "refresh-1", expiresIn: Int = 3600) -> String {
     #"{"access_token":"\#(access)","refresh_token":"\#(refresh)","expires_in":\#(expiresIn),"token_type":"bearer","user":{"id":"u1"}}"#
@@ -205,14 +212,107 @@ struct PlatformAuthTests {
 
     @Test("The profile comes from /me with the token")
     func profile() async throws {
-        let http = ScriptedHTTP { _, _ in (200, #"{"firstName":"Amy","fullName":"Amy Lee","email":"amy@a.test","isInternal":true,"company":"Accurate Adjustments GA"}"#) }
+        let http = ScriptedHTTP { _, _ in (200, meBody) }
         let auth = PlatformAuth(config: config, http: http, store: MemoryStore(session(expiresAt: Date().addingTimeInterval(3000))))
         await auth.restore()
         let p = try await auth.profile()
-        #expect(p == PlatformProfile(firstName: "Amy", fullName: "Amy Lee", email: "amy@a.test", isInternal: true, company: "Accurate Adjustments GA"))
+        #expect(p == PlatformProfile(firstName: "Amy", fullName: "Amy Lee", email: "amy@a.test", isInternal: true, company: aaga))
         let request = try #require(await http.requests.first)
         #expect(request.url?.absoluteString == "https://aaga.myproclaimer.com/api/portal/v1/me")
         #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer access-1")
+    }
+}
+
+@Suite("One app, every company")
+struct PlatformRoutingTests {
+    /// The default address is the central one; companies live at their own addresses.
+    private let central = PlatformConfig(supabaseURL: URL(string: "https://proj.supabase.co")!, publishableKey: "k", apiBaseURL: URL(string: "https://app.myproclaimer.com")!)
+
+    @Test("The email finds its company, with its address and look")
+    func discovers() async throws {
+        let http = ScriptedHTTP { _, _ in (200, #"{"companies":[\#(companyJSON)]}"#) }
+        let auth = PlatformAuth(config: central, http: http, store: MemoryStore())
+
+        let found = await auth.discoverCompanies(email: " amy@a.test ")
+
+        #expect(found == [aaga])
+        let request = try #require(await http.requests.first)
+        #expect(request.url?.absoluteString == "https://app.myproclaimer.com/api/portal/v1/company?email=amy@a.test")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == nil) // it's asked before anyone is signed in
+    }
+
+    @Test("An unknown address, a bad answer or no connection finds nothing, quietly")
+    func discoversNothing() async throws {
+        for reply in [(200, #"{"companies":[]}"#), (429, #"{"error":"rate_limited"}"#), (500, ""), (200, "not json"), (-1, "")] {
+            let auth = PlatformAuth(config: central, http: ScriptedHTTP { _, _ in reply }, store: MemoryStore())
+            #expect(await auth.discoverCompanies(email: "amy@a.test").isEmpty)
+        }
+        let none = ScriptedHTTP { _, _ in (200, #"{"companies":[]}"#) }
+        #expect(await PlatformAuth(config: central, http: none, store: MemoryStore()).discoverCompanies(email: "not an email").isEmpty)
+        #expect(await none.requests.isEmpty) // nothing was asked
+    }
+
+    @Test("After sign-in the app talks to the company's own address, and remembers it")
+    func adoptsCompany() async throws {
+        let http = ScriptedHTTP { request, _ in
+            if request.url?.path.hasSuffix("/me") == true { return (200, meBody) }
+            return (200, "[]")
+        }
+        let store = MemoryStore(PortalKitTests.session(expiresAt: Date().addingTimeInterval(3000)))
+        let auth = PlatformAuth(config: central, http: http, store: store)
+        await auth.restore()
+        #expect(await auth.apiBase().absoluteString == "https://app.myproclaimer.com")
+
+        _ = try await auth.profile() // the first call goes to the default address, which serves everyone
+        #expect(await auth.apiBase().absoluteString == "https://aaga.myproclaimer.com")
+        #expect(store.load()?.apiBase?.absoluteString == "https://aaga.myproclaimer.com")
+
+        _ = try await PlatformTransport(config: central, auth: auth, http: http).send(TransportRequest(method: .get, path: "/claims"))
+        #expect(await http.requests.last?.url?.absoluteString == "https://aaga.myproclaimer.com/api/portal/v1/claims")
+
+        // The next launch picks it up from the saved session.
+        let next = PlatformAuth(config: central, http: http, store: store)
+        await next.restore()
+        #expect(await next.apiBase().absoluteString == "https://aaga.myproclaimer.com")
+    }
+
+    @Test("A company site that can't be reached falls back to the default address, and stays there")
+    func fallsBack() async throws {
+        let http = ScriptedHTTP { request, _ in
+            request.url?.host == "aaga.myproclaimer.com" ? (-2, "") : (200, "[]")
+        }
+        let saved = PlatformSession(accessToken: "access-1", refreshToken: "refresh-1", expiresAt: Date().addingTimeInterval(3000), email: "amy@a.test", apiBase: URL(string: "https://aaga.myproclaimer.com"))
+        let store = MemoryStore(saved)
+        let auth = PlatformAuth(config: central, http: http, store: store)
+        await auth.restore()
+        let transport = PlatformTransport(config: central, auth: auth, http: http)
+
+        let response = try await transport.send(TransportRequest(method: .get, path: "/claims"))
+
+        #expect(response.statusCode == 200)
+        #expect(await http.requests.map { $0.url?.host } == ["aaga.myproclaimer.com", "app.myproclaimer.com"])
+        #expect(await auth.apiBase().absoluteString == "https://app.myproclaimer.com")
+        #expect(store.load()?.apiBase == nil)
+        _ = try await transport.send(TransportRequest(method: .get, path: "/claims"))
+        #expect(await http.requests.count == 3) // no second try at the company site
+    }
+
+    @Test("Being offline isn't mistaken for a missing site")
+    func offlineKeepsCompany() async throws {
+        let http = ScriptedHTTP { _, _ in (-1, "") }
+        let saved = PlatformSession(accessToken: "access-1", refreshToken: "refresh-1", expiresAt: Date().addingTimeInterval(3000), email: "amy@a.test", apiBase: URL(string: "https://aaga.myproclaimer.com"))
+        let auth = PlatformAuth(config: central, http: http, store: MemoryStore(saved))
+        await auth.restore()
+        await #expect(throws: URLError.self) { try await PlatformTransport(config: central, auth: auth, http: http).send(TransportRequest(method: .get, path: "/claims")) }
+        #expect(await auth.apiBase().absoluteString == "https://aaga.myproclaimer.com")
+        #expect(await http.requests.count == 1)
+    }
+
+    @Test("A session saved before companies existed still loads")
+    func oldSessions() throws {
+        let old = #"{"accessToken":"a","refreshToken":"r","expiresAt":790000000,"email":"amy@a.test"}"#
+        let s = try JSONDecoder().decode(PlatformSession.self, from: Data(old.utf8))
+        #expect(s.apiBase == nil && s.email == "amy@a.test")
     }
 }
 

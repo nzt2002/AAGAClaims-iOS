@@ -25,12 +25,15 @@ public struct PlatformSession: Codable, Equatable, Sendable {
     public var refreshToken: String
     public var expiresAt: Date
     public var email: String
+    /// The signed-in person's company site, learned from `GET /me`. Nil: use the default address.
+    public var apiBase: URL?
 
-    public init(accessToken: String, refreshToken: String, expiresAt: Date, email: String) {
+    public init(accessToken: String, refreshToken: String, expiresAt: Date, email: String, apiBase: URL? = nil) {
         self.accessToken = accessToken
         self.refreshToken = refreshToken
         self.expiresAt = expiresAt
         self.email = email
+        self.apiBase = apiBase
     }
 
     /// Still good for at least `margin` seconds, so a request started now won't expire in flight.
@@ -70,6 +73,27 @@ public enum PlatformAuthError: Error, Equatable, Sendable {
     case server(Int)
 }
 
+/// A company on the platform: its own address and look. `GET /company?email=` and `GET /me` describe it.
+public struct PlatformCompany: Codable, Equatable, Sendable {
+    public let name: String
+    public let subdomain: String
+    /// The company's site, e.g. https://aaga.myproclaimer.com (its own domain if it has one).
+    public let apiBase: URL
+    /// "#014486", when the company has set one.
+    public let brandColor: String?
+    public let logoUrl: URL?
+    public let markText: String?
+
+    public init(name: String, subdomain: String, apiBase: URL, brandColor: String? = nil, logoUrl: URL? = nil, markText: String? = nil) {
+        self.name = name
+        self.subdomain = subdomain
+        self.apiBase = apiBase
+        self.brandColor = brandColor
+        self.logoUrl = logoUrl
+        self.markText = markText
+    }
+}
+
 /// `GET /me`: who's signed in.
 public struct PlatformProfile: Codable, Equatable, Sendable {
     public let firstName: String?
@@ -77,9 +101,9 @@ public struct PlatformProfile: Codable, Equatable, Sendable {
     public let email: String
     /// On the company's team (staff), rather than a homeowner.
     public let isInternal: Bool
-    public let company: String?
+    public let company: PlatformCompany?
 
-    public init(firstName: String?, fullName: String, email: String, isInternal: Bool, company: String?) {
+    public init(firstName: String?, fullName: String, email: String, isInternal: Bool, company: PlatformCompany?) {
         self.firstName = firstName
         self.fullName = fullName
         self.email = email
@@ -105,6 +129,39 @@ public actor PlatformAuth {
     }
 
     public var isSignedIn: Bool { session != nil }
+
+    /// Where API requests go: the company's own site once known, otherwise the default address.
+    public func apiBase() -> URL { session?.apiBase ?? config.apiBaseURL }
+
+    /// The company's site couldn't be reached (not set up yet, or a bad address): go back to the default address.
+    public func fallBackToDefaultBase() {
+        guard var current = session, current.apiBase != nil else { return }
+        current.apiBase = nil
+        session = current
+        store.save(current)
+    }
+
+    /// Which company (or companies) an email address belongs to, for "Signing in to …" while the email is typed.
+    /// Quiet on any failure: it's a nicety, and sign-in doesn't depend on it.
+    public func discoverCompanies(email: String) async -> [PlatformCompany] {
+        let address = email.trimmingCharacters(in: .whitespaces)
+        guard address.contains("@"), var parts = URLComponents(url: config.apiBaseURL.appending(path: PlatformConfig.apiPath + "/company"), resolvingAgainstBaseURL: false) else { return [] }
+        parts.queryItems = [URLQueryItem(name: "email", value: address)]
+        guard let url = parts.url else { return [] }
+        var request = URLRequest(url: url)
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        struct Found: Decodable { let companies: [PlatformCompany] }
+        guard let (data, response) = try? await http.send(request), response.statusCode == 200,
+              let found = try? JSONDecoder().decode(Found.self, from: data) else { return [] }
+        return found.companies
+    }
+
+    private func adopt(_ company: PlatformCompany?) {
+        guard var current = session, let base = company?.apiBase, current.apiBase != base else { return }
+        current.apiBase = base
+        session = current
+        store.save(current)
+    }
 
     /// Picks up the session saved by an earlier launch.
     @discardableResult
@@ -181,14 +238,26 @@ public actor PlatformAuth {
     /// Who's signed in, from the platform's `GET /me`.
     public func profile() async throws -> PlatformProfile {
         let token = try await validAccessToken()
-        var request = URLRequest(url: config.apiBaseURL.appending(path: PlatformConfig.apiPath + "/me"))
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        let (data, response) = try await http.send(request)
+        let (data, response) = try await meRequest(token: token, base: apiBase())
         guard response.statusCode == 200, let profile = try? JSONDecoder().decode(PlatformProfile.self, from: data) else {
             throw response.statusCode == 401 ? PlatformAuthError.notSignedIn : PlatformAuthError.server(response.statusCode)
         }
+        adopt(profile.company)
         return profile
+    }
+
+    /// Asks the company's site first; if it can't be reached, the default address (which serves every company).
+    private func meRequest(token: String, base: URL) async throws -> (Data, HTTPURLResponse) {
+        func ask(_ base: URL) async throws -> (Data, HTTPURLResponse) {
+            var request = URLRequest(url: base.appending(path: PlatformConfig.apiPath + "/me"))
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            return try await http.send(request)
+        }
+        do { return try await ask(base) } catch let error as URLError where base != config.apiBaseURL && error.isUnreachableHost {
+            fallBackToDefaultBase()
+            return try await ask(config.apiBaseURL)
+        }
     }
 
     // MARK: - Requests
@@ -262,7 +331,16 @@ public struct PlatformTransport: PortalTransport {
     }
 
     private func perform(_ request: TransportRequest, token: String) async throws -> TransportResponse {
-        var parts = URLComponents(url: config.apiBaseURL.appending(path: PlatformConfig.apiPath + request.path), resolvingAgainstBaseURL: false)
+        let base = await auth.apiBase()
+        do { return try await perform(request, token: token, base: base) } catch let error as URLError where base != config.apiBaseURL && error.isUnreachableHost {
+            // The company's own site isn't reachable (yet): use the default address, which serves every company.
+            await auth.fallBackToDefaultBase()
+            return try await perform(request, token: token, base: config.apiBaseURL)
+        }
+    }
+
+    private func perform(_ request: TransportRequest, token: String, base: URL) async throws -> TransportResponse {
+        var parts = URLComponents(url: base.appending(path: PlatformConfig.apiPath + request.path), resolvingAgainstBaseURL: false)
         if !request.queryItems.isEmpty { parts?.queryItems = request.queryItems }
         guard let url = parts?.url else { throw URLError(.badURL) }
         var urlRequest = URLRequest(url: url)
@@ -275,5 +353,13 @@ public struct PlatformTransport: PortalTransport {
         }
         let (data, response) = try await http.send(urlRequest)
         return TransportResponse(statusCode: response.statusCode, body: data)
+    }
+}
+
+extension URLError {
+    /// The server's name or address can't be reached or trusted (not the same as being offline).
+    var isUnreachableHost: Bool {
+        [.cannotFindHost, .dnsLookupFailed, .cannotConnectToHost, .secureConnectionFailed,
+         .serverCertificateUntrusted, .serverCertificateHasBadDate, .serverCertificateHasUnknownRoot, .serverCertificateNotYetValid].contains(code)
     }
 }

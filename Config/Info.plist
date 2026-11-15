@@ -39,7 +39,7 @@
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Turn what you say to Alex, the claims assistant, into text.</string>
 	<key>PlatformAPIBase</key>
-	<string>https://aaga.myproclaimer.com</string>
+	<string>https://app.myproclaimer.com</string>
 	<key>PlatformPublishableKey</key>
 	<string>sb_publishable_eKV_fE_N90WxcaSzdINszg_2inWMZvc</string>
 	<key>PlatformSupabaseURL</key>

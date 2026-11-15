@@ -16,6 +16,9 @@ struct PlatformSignInView: View {
     @State private var resetEmail = ""
     @State private var hasSavedSignIn = SavedSignIn.exists
     @State private var didOfferSavedSignIn = false
+    /// The company the typed email belongs to (shown above the fields once found).
+    @State private var company: PlatformCompany?
+    @State private var lookedUp = ""
     @FocusState private var focus: Field?
 
     private enum Field { case email, password }
@@ -59,6 +62,10 @@ struct PlatformSignInView: View {
             }
         }
         .onDisappear { didOfferSavedSignIn = false }
+        // Leaving the email field (to the password, or elsewhere) looks the company up.
+        .onChange(of: focus) { old, _ in
+            if old == .email { Task { await findCompany() } }
+        }
         .alert("Reset your password", isPresented: $showingReset) {
             TextField("Email", text: $resetEmail)
                 .textContentType(.emailAddress)
@@ -82,6 +89,9 @@ struct PlatformSignInView: View {
                 .foregroundStyle(Color.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
+            if let company {
+                companyBadge(company)
+            }
             field(icon: "envelope.fill") {
                 TextField("Email", text: $email)
                     .textContentType(.username)
@@ -90,7 +100,10 @@ struct PlatformSignInView: View {
                     .autocorrectionDisabled()
                     .submitLabel(.next)
                     .focused($focus, equals: .email)
-                    .onSubmit { focus = .password }
+                    .onSubmit {
+                        focus = .password
+                        Task { await findCompany() }
+                    }
                     .accessibilityIdentifier("platformEmail")
             }
             field(icon: "lock.fill") {
@@ -185,6 +198,51 @@ struct PlatformSignInView: View {
         }
     }
 
+    /// "Signing in to Accurate Adjustments GA", with its logo, so the person knows the app found the right company.
+    private func companyBadge(_ company: PlatformCompany) -> some View {
+        HStack(spacing: Theme.Spacing.s) {
+            AsyncImage(url: company.logoUrl) { image in
+                image.resizable().scaledToFit()
+            } placeholder: {
+                Text(company.markText ?? String(company.name.prefix(2)).uppercased())
+                    .font(.caption.bold())
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Self.color(company.brandColor) ?? Color.brandPrimary)
+            }
+            .frame(width: 32, height: 32)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .accessibilityHidden(true)
+            Text("Signing in to **\(company.name)**")
+                .font(.subheadline)
+                .foregroundStyle(Color.textPrimary)
+            Spacer(minLength: 0)
+        }
+        .padding(Theme.Spacing.s)
+        .background(Color.surfaceTinted, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("platformCompany")
+        .transition(.opacity)
+    }
+
+    private static func color(_ hex: String?) -> Color? {
+        guard var text = hex?.trimmingCharacters(in: .whitespaces), text.hasPrefix("#") else { return nil }
+        text.removeFirst()
+        guard text.count == 6, let value = UInt32(text, radix: 16) else { return nil }
+        return Color(red: Double((value >> 16) & 0xFF) / 255, green: Double((value >> 8) & 0xFF) / 255, blue: Double(value & 0xFF) / 255)
+    }
+
+    /// Asks which company this email belongs to, once per address.
+    private func findCompany() async {
+        let address = email.trimmingCharacters(in: .whitespaces).lowercased()
+        guard address.contains("@"), address != lookedUp else { return }
+        lookedUp = address
+        let found = await session.discoverCompanies(email: address)
+        // Only if the field still holds the address that was asked about.
+        guard address == email.trimmingCharacters(in: .whitespaces).lowercased() else { return }
+        withAnimation { company = found.first }
+    }
+
     private func field<Content: View>(icon: String, @ViewBuilder content: () -> Content) -> some View {
         HStack(spacing: Theme.Spacing.s) {
             Image(systemName: icon)
@@ -231,6 +289,7 @@ struct PlatformSignInView: View {
         }
         email = saved.username
         password = saved.password
+        await findCompany()
         if await signIn() == .invalidCredentials {
             // The saved password no longer works (changed elsewhere): forget it.
             SavedSignIn.delete()

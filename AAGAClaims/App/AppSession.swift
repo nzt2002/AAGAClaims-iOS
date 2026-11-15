@@ -151,6 +151,11 @@ final class AppSession {
         }
     }
 
+    /// The company an email address belongs to, for "Signing in to …" (nothing when unknown or offline).
+    func discoverCompanies(email: String) async -> [PlatformCompany] {
+        await platform?.discoverCompanies(email: email) ?? []
+    }
+
     func requestPasswordReset(email: String) async throws {
         try await platform?.requestPasswordReset(email: email)
     }
