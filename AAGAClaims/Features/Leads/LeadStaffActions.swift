@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Staff actions on a lead's page, in the claim page's style.
 enum LeadAction: String, Identifiable {
-    case convert, post, agreement, edit, task, event, portalUpdate
+    case convert, post, agreement, edit, status, task, event, portalUpdate
     var id: String { rawValue }
 
     var title: String {
@@ -12,6 +12,7 @@ enum LeadAction: String, Identifiable {
         case .post: "Add a Post"
         case .agreement: "Generate Agreement Preview E-Sign"
         case .edit: "Edit Lead"
+        case .status: "Change Status"
         case .task: "New Task"
         case .event: "New Event"
         case .portalUpdate: "Write Portal Update"
@@ -24,6 +25,7 @@ enum LeadAction: String, Identifiable {
         case .post: "Post"
         case .agreement: "E-Sign"
         case .edit: "Edit"
+        case .status: "Status"
         case .task: "Task"
         case .event: "Event"
         case .portalUpdate: "Portal Update"
@@ -36,6 +38,7 @@ enum LeadAction: String, Identifiable {
         case .post: "text.bubble"
         case .agreement: "signature"
         case .edit: "square.and.pencil"
+        case .status: "circle.dotted"
         case .task: "checklist"
         case .event: "calendar.badge.plus"
         case .portalUpdate: "megaphone"
@@ -43,57 +46,73 @@ enum LeadAction: String, Identifiable {
     }
 }
 
-/// The lead's action strip (staff only): Convert to Account, Post, New Task, New Event and More
-/// (the agreement e-sign preview and Write Portal Update), as on claims.
-/// Edit and Ask Question are in the top bar.
+/// The lead's action row (staff only): Convert, Post, Event, Status, Task and More (the agreement e-sign preview and
+/// Write Portal Update), as icon tiles on the page like a claim's. Edit is the pencil in the header.
 struct LeadQuickActions: View {
     let isConverted: Bool
-    /// More-menu actions the server doesn't support yet (e.g. Write Portal Update).
+    /// Actions the server doesn't support yet (e.g. Write Portal Update).
     var hidden: Set<LeadAction> = []
     let open: (LeadAction) -> Void
-    @Environment(\.isOffline) private var isOffline
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    static let strip: [LeadAction] = [.convert, .post, .task, .event]
-    static let more: [LeadAction] = [.agreement, .portalUpdate]
+    static let row: [LeadAction] = [.convert, .post, .event, .status, .task, .portalUpdate, .agreement]
 
     var body: some View {
-        let columns = Array(repeating: GridItem(.flexible(), spacing: Theme.Spacing.xs, alignment: .top),
-                            count: dynamicTypeSize.isAccessibilitySize ? 2 : 5)
-        LazyVGrid(columns: columns, spacing: Theme.Spacing.m) {
-            ForEach(Self.strip) { action in
-                Button { open(action) } label: {
-                    ActionCircle(title: action == .convert && isConverted ? "View Claim" : action.shortTitle,
-                                 icon: action == .convert && isConverted ? "doc.text" : action.icon)
-                }
-                .buttonStyle(ActionCirclePressStyle())
-                .disabledWhenOffline(isOffline)
-                .accessibilityLabel(action == .convert && isConverted ? "View the converted claim" : action.title)
-                .accessibilityIdentifier("leadAction-\(action.rawValue)")
-            }
-            Menu {
-                ForEach(Self.more.filter { !hidden.contains($0) }) { action in
-                    Button { open(action) } label: {
-                        Label(action == .agreement ? "E-Sign" : action.title, systemImage: action.icon)
+        let items = Self.row.filter { !hidden.contains($0) }.map { action in
+            let viewClaim = action == .convert && isConverted
+            return RecordActionItem(
+                id: action.rawValue,
+                title: viewClaim ? "View Claim" : action.shortTitle,
+                menuTitle: viewClaim ? "View the converted claim" : (action == .agreement ? "E-Sign" : action.title),
+                icon: viewClaim ? "doc.text" : action.icon) { open(action) }
+        }
+        return RecordActionRow(items: items, idPrefix: "leadAction")
+    }
+}
+
+/// Change Status: every status to pick from. Picking one saves it. (Converted is set by Convert.)
+struct ChangeLeadStatusForm: View {
+    let staff: LeadStaff
+    let actions: LeadActionsViewModel
+    let saved: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var saving: String?
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(staff.statuses.filter { $0 != "Converted" || staff.status == "Converted" }, id: \.self) { status in
+                    Button {
+                        Task { await choose(status) }
+                    } label: {
+                        HStack {
+                            Text(status).foregroundStyle(Color.textPrimary)
+                            Spacer()
+                            if saving == status { ProgressView() }
+                            else if staff.status == status { Image(systemName: "checkmark").foregroundStyle(Color.leadAccent) }
+                        }
+                        .frame(minHeight: Theme.minTapTarget)
                     }
-                    .accessibilityIdentifier("leadAction-\(action.rawValue)")
+                    .disabled(saving != nil || staff.isConverted == true)
                 }
-            } label: {
-                ActionCircle(title: "More", icon: "ellipsis")
+            } header: {
+                Text("Now: \(staff.status ?? "Not set")")
             }
-            .buttonStyle(ActionCirclePressStyle())
-            .disabledWhenOffline(isOffline)
-            .accessibilityLabel("More actions")
-            .accessibilityIdentifier("leadActionMore")
+            ErrorRow(message: actions.errorMessage)
         }
-        .padding(.vertical, Theme.Spacing.m)
-        .padding(.horizontal, Theme.Spacing.s)
-        .background {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.surface)
-                .shadow(color: Color.leadAccent.opacity(0.10), radius: 14, x: 0, y: 6)
+        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+    }
+
+    private func choose(_ status: String) async {
+        guard status != staff.status else { dismiss(); return }
+        saving = status
+        var edit = LeadEdit(staff)
+        edit.status = status
+        let ok = await actions.saveEdit(edit)
+        saving = nil
+        if ok {
+            saved()
+            dismiss()
         }
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Color.border.opacity(0.6), lineWidth: 1))
     }
 }
 

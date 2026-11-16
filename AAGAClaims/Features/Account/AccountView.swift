@@ -16,6 +16,7 @@ struct AccountView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage(AppAppearance.storageKey) private var appearance = AppAppearance.system
+    @AppStorage(AppTextSize.storageKey) private var textSize = AppTextSize.standard
 
     /// Shows the look on screen now; changing it picks light or dark from then on.
     private var darkModeBinding: Binding<Bool> {
@@ -36,6 +37,11 @@ struct AccountView: View {
                     Button("Match iPhone Setting") { setAppearance(.system) }
                         .accessibilityIdentifier("matchSystemAppearance")
                 }
+                Picker("Text size", selection: $textSize) {
+                    ForEach(AppTextSize.allCases) { Text($0.label).tag($0) }
+                }
+                .pickerStyle(.menu)
+                .accessibilityIdentifier("textSizePicker")
             } footer: {
                 if appearance == .system {
                     Text("Follows your iPhone's light or dark setting until you change it here.")

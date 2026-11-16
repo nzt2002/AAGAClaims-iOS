@@ -61,8 +61,10 @@ final class ClaimsUITests: XCTestCase {
         app.buttons["Contacts"].tap()
         XCTAssertTrue(element(containing: "Morgan Ellis").waitForExistence(timeout: 5))
 
+        // Staff see only what's been collected toward the RCV.
         app.buttons["Payments"].tap()
-        XCTAssertTrue(app.staticTexts["PMT-0001"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["paymentProgress"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["PMT-0001"].exists)
 
         app.buttons["Insurance"].tap()
         XCTAssertTrue(element(containing: "State Farm").waitForExistence(timeout: 5))

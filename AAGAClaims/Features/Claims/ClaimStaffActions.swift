@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Staff actions on a claim's page: quick actions and communication.
 enum ClaimAction: String, Identifiable, CaseIterable {
-    case payments, addContact, edit, address, owner, proofOfLoss, post, email, task, event, portalUpdate
+    case payments, addContact, edit, status, address, owner, proofOfLoss, post, email, task, event, portalUpdate
     var id: String { rawValue }
 
     var title: String {
@@ -11,6 +11,7 @@ enum ClaimAction: String, Identifiable, CaseIterable {
         case .payments: "Apply Payments"
         case .addContact: "Add Contact"
         case .edit: "Edit Claim"
+        case .status: "Change Status"
         case .address: "Update Address"
         case .owner: "Change Owner"
         case .proofOfLoss: "Proof of Loss"
@@ -27,6 +28,7 @@ enum ClaimAction: String, Identifiable, CaseIterable {
         case .payments: "dollarsign.circle"
         case .addContact: "person.badge.plus"
         case .edit: "square.and.pencil"
+        case .status: "circle.dotted"
         case .address: "mappin.and.ellipse"
         case .owner: "person.crop.circle.badge.checkmark"
         case .proofOfLoss: "doc.text.magnifyingglass"
@@ -38,13 +40,14 @@ enum ClaimAction: String, Identifiable, CaseIterable {
         }
     }
 
-    /// In the More menu; the rest are on the action strip (and Edit Claim in the top bar).
-    static let more: [ClaimAction] = [.addContact, .email, .portalUpdate, .address, .owner, .proofOfLoss]
+    /// The action row, in order. Where it runs out of width, the rest go in the More menu.
+    static let row: [ClaimAction] = [.post, .event, .status, .task, .addContact, .email, .portalUpdate, .address, .owner, .proofOfLoss, .payments]
 
     /// The label under a round action button.
     var shortTitle: String {
         switch self {
         case .payments: "Payments"
+        case .status: "Status"
         case .post: "Post"
         case .email: "Email"
         case .addContact: "Contact"
@@ -55,58 +58,23 @@ enum ClaimAction: String, Identifiable, CaseIterable {
     }
 }
 
-/// The claim's action strip (staff only): Apply Payments, Add a Post, New Task, New Event and More
-/// (Add Contact, Send an Email, Write Portal Update, Update Address, Change Owner, Proof of Loss), as round icon buttons with labels on one card. Edit Claim is in the top bar.
+/// The claim's action row (staff only): Post, Event, Status, Task, Contact and so on, as icon tiles on the page. As many
+/// as fit the width show (about five on an iPhone); the rest are in More. Edit Claim is the pencil in the header.
 struct ClaimQuickActions: View {
     /// In-house e-sign (pilot users only); shown in More when set.
     var onESign: (() -> Void)? = nil
-    /// More-menu actions the server doesn't support yet (e.g. Write Portal Update).
+    /// Actions the server doesn't support yet (e.g. Write Portal Update).
     var hidden: Set<ClaimAction> = []
     let open: (ClaimAction) -> Void
-    @Environment(\.isOffline) private var isOffline
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
-    private static let strip: [ClaimAction] = [.payments, .post, .task, .event]
 
     var body: some View {
-        // Five across; two across at accessibility text sizes, so labels never break mid-word.
-        let columns = Array(repeating: GridItem(.flexible(), spacing: Theme.Spacing.xs, alignment: .top),
-                            count: dynamicTypeSize.isAccessibilitySize ? 2 : 5)
-        LazyVGrid(columns: columns, spacing: Theme.Spacing.m) {
-            ForEach(Self.strip) { action in
-                Button { open(action) } label: {
-                    ActionCircle(title: action.shortTitle, icon: action.icon)
-                }
-                .buttonStyle(ActionCirclePressStyle())
-                .disabledWhenOffline(isOffline)
-                .accessibilityLabel(action.title)
-                .accessibilityIdentifier("claimAction-\(action.rawValue)")
-            }
-            Menu {
-                ForEach(ClaimAction.more.filter { !hidden.contains($0) }) { action in
-                    Button { open(action) } label: { Label(action.title, systemImage: action.icon) }
-                        .accessibilityIdentifier("claimAction-\(action.rawValue)")
-                }
-                if let onESign {
-                    Button(action: onESign) { Label("E-Sign", systemImage: "signature") }
-                        .accessibilityIdentifier("claimAction-eSign")
-                }
-            } label: {
-                ActionCircle(title: "More", icon: "ellipsis")
-            }
-            .buttonStyle(ActionCirclePressStyle())
-            .disabledWhenOffline(isOffline)
-            .accessibilityLabel("More actions")
-            .accessibilityIdentifier("claimActionMore")
+        var items = ClaimAction.row.filter { !hidden.contains($0) }.map { action in
+            RecordActionItem(id: action.rawValue, title: action.shortTitle, menuTitle: action.title, icon: action.icon) { open(action) }
         }
-        .padding(.vertical, Theme.Spacing.m)
-        .padding(.horizontal, Theme.Spacing.s)
-        .background {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.surface)
-                .shadow(color: Color.brandPrimary.opacity(0.10), radius: 14, x: 0, y: 6)
+        if let onESign {
+            items.append(RecordActionItem(id: "eSign", title: "E-Sign", menuTitle: "E-Sign", icon: "signature", action: onESign))
         }
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Color.border.opacity(0.6), lineWidth: 1))
+        return RecordActionRow(items: items, idPrefix: "claimAction")
     }
 }
 
@@ -192,7 +160,64 @@ struct ClaimActionSheet: View {
         case .owner: ChangeOwnerForm(staff: staff, actions: actions, saved: saved)
         case .proofOfLoss: ProofOfLossForm(staff: staff, actions: actions, saved: saved)
         case .email: EmailForm(api: api, staff: staff, referenceId: referenceId, saved: saved)
+        case .status: ChangeStatusForm(staff: staff, actions: actions, saved: saved)
         case .payments, .addContact, .post, .task, .event, .portalUpdate: EmptyView()
+        }
+    }
+}
+
+/// Change Status: every stage to pick from. Picking one saves it.
+private struct ChangeStatusForm: View {
+    let staff: StaffClaim
+    let actions: ClaimActionsViewModel
+    let saved: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var saving: String?
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(staff.statuses, id: \.self) { status in
+                    Button {
+                        Task { await choose(status) }
+                    } label: {
+                        HStack {
+                            Text(status).foregroundStyle(Color.textPrimary)
+                            Spacer()
+                            if saving == status { ProgressView() }
+                            else if staff.status == status { Image(systemName: "checkmark").foregroundStyle(Color.brandPrimary) }
+                        }
+                        .frame(minHeight: Theme.minTapTarget)
+                    }
+                    .disabled(saving != nil)
+                }
+            } header: {
+                Text("Now: \(staff.status ?? "Not set")")
+            }
+            ErrorRow(message: actions.errorMessage)
+        }
+        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+    }
+
+    private func choose(_ status: String) async {
+        guard status != staff.status else { dismiss(); return }
+        saving = status
+        var edit = ClaimEdit(name: staff.name ?? "")
+        edit.status = status
+        edit.peril = staff.peril
+        edit.lossDate = staff.lossDate
+        edit.lossDescription = staff.lossDescription
+        edit.claimNumber = staff.claimNumber
+        edit.policyNumber = staff.policyNumber
+        edit.insuranceCompanyId = staff.insuranceCompanyId
+        edit.deductible = staff.deductible
+        edit.adjusterFees = staff.adjusterFees
+        edit.accountManagerId = staff.accountManagerId
+        let ok = await actions.saveEdit(edit)
+        saving = nil
+        if ok {
+            saved()
+            dismiss()
         }
     }
 }

@@ -24,6 +24,22 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.11.0", date: "Nov 16, 2026", items: [
+            Item(icon: "square.grid.3x2", title: "A new look for claims and leads",
+                 detail: "The action buttons now sit right on the page and fit your screen: about five show, and the rest are under More. The loss address is a link in the header, and the pencil at the top right edits the claim or lead.",
+                 staffOnly: true),
+            Item(icon: "circle.dotted", title: "Status button",
+                 detail: "Tap Status to pick a claim's stage or a lead's status from a list.",
+                 staffOnly: true),
+            Item(icon: "square.and.pencil", title: "Share update",
+                 detail: "A Share update button above the feed opens the post screen, and returns you to the feed when it's sent.",
+                 staffOnly: true),
+            Item(icon: "checklist", title: "Recent Activity",
+                 detail: "Activities has Task and Event buttons and a Recent Activity card: newest first, six at a time with the rest scrolling. The ⋯ menu shows or hides completed tasks.",
+                 staffOnly: true),
+            Item(icon: "textformat.size", title: "Text size",
+                 detail: "Account has a Text size setting: Default, Large or Extra large."),
+        ]),
         Release(version: "3.10.0", date: "Nov 16, 2026", items: [
             Item(icon: "arrow.up.doc", title: "Larger files",
                  detail: "For companies on the new ProClaimer platform, files up to 100 MB can now be added to a claim or lead. Big files upload directly, so they no longer have to be shrunk first."),

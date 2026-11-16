@@ -23,7 +23,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         AppAppearance.observeWindows()
         let window = UIWindow(windowScene: windowScene)
         window.overrideUserInterfaceStyle = AppAppearance.current.style
-        window.rootViewController = UIHostingController(rootView: RootView(session: self.session))
+        window.rootViewController = UIHostingController(rootView: AppTextSizeRoot { RootView(session: self.session) })
         window.makeKeyAndVisible()
         self.window = window
 

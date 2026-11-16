@@ -129,25 +129,21 @@ struct ClaimDetailView: View {
                     // iPad: the hero across the top; the work (actions, stage, tabs) on the left and
                     // reference facts (address, money, people, activity) in a rail on the right.
                     VStack(alignment: .leading, spacing: Theme.Spacing.l) {
-                        ClaimHeader(detail: detail, position: detail.lifecycle)
+                        ClaimHeader(detail: detail, position: detail.lifecycle, onEdit: isInternal ? { openAction = .edit } : nil)
                         TwoColumns {
                             quickActions
                             LifecycleCard(position: detail.lifecycle, status: detail.claimStatus)
                             SectionBar(selection: $viewModel.section, hidden: hiddenSections)
                             sectionContent(detail)
                         } rail: {
-                            LossAddressCard(address: detail.lossAddress)
-                            PaymentsCard(detail: detail, payments: viewModel.payments.value ?? [])
                             teamCard(detail)
                             staffExtras
                         }
                     }
                 } else {
                     VStack(alignment: .leading, spacing: Theme.Spacing.l) {
-                        ClaimHeader(detail: detail, position: detail.lifecycle)
-                        LossAddressCard(address: detail.lossAddress)
+                        ClaimHeader(detail: detail, position: detail.lifecycle, onEdit: isInternal ? { openAction = .edit } : nil)
                         quickActions
-                        PaymentsCard(detail: detail, payments: viewModel.payments.value ?? [])
                         LifecycleCard(position: detail.lifecycle, status: detail.claimStatus)
                         staffExtras
                         SectionBar(selection: $viewModel.section, hidden: hiddenSections)
@@ -165,17 +161,6 @@ struct ClaimDetailView: View {
                 async let feed: Void = claimFeed.load()
                 async let activity: Void = loadActivity()
                 _ = await (feed, activity)
-            }
-        }
-        .toolbar {
-            if isInternal {
-                ToolbarItem(placement: .topBarTrailing) {
-                    // A text label, as on leads.
-                    Button("Edit") { openAction = .edit }
-                        .disabledWhenOffline(isOffline)
-                        .accessibilityLabel("Edit Claim")
-                        .accessibilityIdentifier("claimAction-edit")
-                }
             }
         }
         .environment(\.emailReference, detail.referenceId ?? EmailReference.reference(forRecordId: viewModel.claimId))
@@ -267,10 +252,12 @@ struct ClaimDetailView: View {
                 PortalUpdateButton(api: api, record: viewModel.record) { await showPostedPortalUpdate() }
             }
             if isInternal && updatesFilter == .feed {
+                ShareUpdateButton { openAction = .post }
                 // Four posts at a time; the rest scroll inside the section.
                 ChatterFeedSection(model: claimFeed, emptyMessage: "No posts on this claim yet. Use Post to start one.", visibleCount: 4)
             } else if isInternal && updatesFilter == .activities {
-                RecordActivitySection(model: activity, api: api, noun: "claim")
+                RecordActivitySection(model: activity, api: api, noun: "claim",
+                                      onTask: { openAction = .task }, onEvent: { openAction = .event })
             } else {
                 SectionLoader(state: viewModel.updates, subject: "updates", retry: { await viewModel.loadUpdates() }) { updates in
                     UpdatesList(updates: updates, emptyMessage: "No updates have been published for this claim yet.", visibleCount: 3)
@@ -287,8 +274,13 @@ struct ClaimDetailView: View {
         case .cases:
             RecordCasesSection(state: viewModel.cases, noun: "claim") { await viewModel.loadCases() }
         case .payments:
-            SectionLoader(state: viewModel.payments, subject: "payments", retry: { await viewModel.loadPayments() }) { payments in
-                PaymentsList(payments: payments, totalCollected: detail.paymentCollected, totalRcv: detail.totalRcv)
+            if isInternal {
+                // Staff: how much has been collected toward the RCV, and nothing else.
+                CollectedTowardRCV(collected: detail.paymentCollected, totalRcv: detail.totalRcv)
+            } else {
+                SectionLoader(state: viewModel.payments, subject: "payments", retry: { await viewModel.loadPayments() }) { payments in
+                    PaymentsList(payments: payments, totalCollected: detail.paymentCollected, totalRcv: detail.totalRcv)
+                }
             }
         }
     }
@@ -301,6 +293,8 @@ struct ClaimDetailView: View {
 private struct ClaimHeader: View {
     let detail: ClaimDetail
     let position: ClaimLifecycle.Position
+    /// Staff: the pencil at the top right.
+    var onEdit: (() -> Void)? = nil
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -329,13 +323,11 @@ private struct ClaimHeader: View {
                     if let policy = PortalFormat.nonEmpty(detail.policyNumber) {
                         Text("Policy \(policy)")
                     }
-                    if detail.lossDate != nil {
-                        Text("Loss date \(PortalFormat.date(detail.lossDate))")
-                    }
                 }
                 .font(.subheadline)
                 .foregroundStyle(.white)
                 .fixedSize(horizontal: false, vertical: true)
+                HeaderAddressLink(address: detail.lossAddress)
             }
             AdaptiveSpacer()
             if let percent = position.percentComplete, case .stage(let index) = position {
@@ -345,109 +337,12 @@ private struct ClaimHeader: View {
         .padding(Theme.Spacing.l)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(BrandGradient.hero(colorScheme), in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
-        .accessibilityElement(children: .combine)
-    }
-}
-
-/// Payments at a glance: collected against the claim's total (RCV) as a bar, the key amounts,
-/// and the payments over time once there are two or more.
-private struct PaymentsCard: View {
-    let detail: ClaimDetail
-    let payments: [Payment]
-
-    private var collected: Double { (detail.paymentCollected as NSDecimalNumber?)?.doubleValue ?? 0 }
-    private var total: Double { (detail.totalRcv as NSDecimalNumber?)?.doubleValue ?? 0 }
-    private var deductible: Double { (detail.deductible as NSDecimalNumber?)?.doubleValue ?? 0 }
-
-    /// Running total by notice date.
-    private var timeline: [(date: Date, amount: Double)] {
-        var running = 0.0
-        return payments
-            .compactMap { payment -> (Date, Double)? in
-                guard let day = payment.dateOfNotice, let date = Calendar.current.date(from: DateComponents(year: day.year, month: day.month, day: day.day)) else { return nil }
-                return (date, (payment.netDeposit as NSDecimalNumber?)?.doubleValue ?? 0)
-            }
-            .sorted { $0.0 < $1.0 }
-            .map { running += $0.1; return (date: $0.0, amount: running) }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Payments")
-                    .font(.cardTitle)
-                    .foregroundStyle(Color.textPrimary)
-                Spacer()
-                if total > 0 {
-                    Text("\(Int((min(collected / total, 1) * 100).rounded()))% collected")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.brandPrimary)
-                        .contentTransition(.numericText())
-                }
-            }
-            if total > 0 {
-                Chart {
-                    BarMark(xStart: .value("Start", 0), xEnd: .value("Collected", min(collected, total)), y: .value("Claim", "RCV"))
-                        .foregroundStyle(Color.brandPrimary)
-                    BarMark(xStart: .value("Collected", min(collected, total)), xEnd: .value("Total", total), y: .value("Claim", "RCV"))
-                        .foregroundStyle(Color.surfaceTintedStrong)
-                }
-                .chartXAxis(.hidden)
-                .chartYAxis(.hidden)
-                .chartXScale(domain: 0...total)
-                .frame(height: 28)
-                .clipShape(Capsule())
-                .accessibilityHidden(true)
-            }
-            AdaptiveStack(horizontalAlignment: .top, spacing: Theme.Spacing.l) {
-                figure("Collected", PortalFormat.currency(detail.paymentCollected))
-                figure("Total RCV", PortalFormat.currency(detail.totalRcv), help: true)
-                if deductible > 0 {
-                    figure("Deductible", PortalFormat.currency(detail.deductible))
-                }
-            }
-            if timeline.count >= 2 {
-                Chart(timeline, id: \.date) { point in
-                    AreaMark(x: .value("Date", point.date), y: .value("Collected", point.amount))
-                        .foregroundStyle(LinearGradient(colors: [Color.brandPrimary.opacity(0.3), .clear], startPoint: .top, endPoint: .bottom))
-                        .interpolationMethod(.stepEnd)
-                    LineMark(x: .value("Date", point.date), y: .value("Collected", point.amount))
-                        .foregroundStyle(Color.brandPrimary)
-                        .interpolationMethod(.stepEnd)
-                }
-                .chartYAxis(.hidden)
-                .chartXAxis {
-                    AxisMarks(values: .automatic(desiredCount: 3)) { _ in
-                        AxisValueLabel(format: .dateTime.month(.abbreviated).day())
-                    }
-                }
-                .frame(height: 70)
-                .accessibilityLabel("Payments over time")
-                .accessibilityValue("\(timeline.count) payments, \(PortalFormat.currency(detail.paymentCollected)) in total")
+        .overlay(alignment: .topTrailing) {
+            if let onEdit {
+                HeaderEditButton(label: "Edit Claim", identifier: "claimAction-edit", action: onEdit)
+                    .padding(Theme.Spacing.xs)
             }
         }
-        .cardStyle()
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("paymentsChart")
-    }
-
-    private func figure(_ title: String, _ value: String, help: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            // Same height with or without the ⓘ button, so the amounts line up.
-            HStack(spacing: Theme.Spacing.xs) {
-                Text(title)
-                    .font(.metaLabel)
-                    .foregroundStyle(Color.textSecondary)
-                if help { RCVHelpButton() }
-            }
-            .frame(minHeight: 28, alignment: .leading)
-            Text(value)
-                .font(.headline)
-                .monospacedDigit()
-                .foregroundStyle(Color.textPrimary)
-                .contentTransition(.numericText())
-        }
-        .accessibilityElement(children: .combine)
     }
 }
 

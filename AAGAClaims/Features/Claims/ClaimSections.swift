@@ -370,3 +370,24 @@ struct PaymentProgress: View {
         .accessibilityIdentifier("paymentProgress")
     }
 }
+
+/// The Payments tab for staff: collected toward the claim's RCV, and nothing else.
+struct CollectedTowardRCV: View {
+    let collected: Decimal?
+    let totalRcv: Decimal?
+
+    var body: some View {
+        if let rcv = totalRcv, rcv > 0 {
+            PaymentProgress(collected: collected ?? 0, totalRcv: rcv)
+                .cardStyle()
+        } else {
+            HStack(spacing: Theme.Spacing.xs) {
+                Text("Collected: \(PortalFormat.currency(collected ?? 0))")
+                RCVHelpButton()
+            }
+            .foregroundStyle(Color.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .cardStyle()
+        }
+    }
+}

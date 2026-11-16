@@ -473,3 +473,25 @@ struct PendingCard: View {
         .accessibilityIdentifier("pendingPost")
     }
 }
+
+/// "Share update", the length of the feed, above the posts. It opens the post screen; once the post is sent the
+/// screen closes and the feed is as it was, with the new post at the top.
+struct ShareUpdateButton: View {
+    let action: () -> Void
+    @Environment(\.isLeadRecord) private var isLead
+    @Environment(\.isOffline) private var isOffline
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        Button(action: action) {
+            Label("Share update", systemImage: "square.and.pencil")
+                .font(.headline)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, minHeight: Theme.minTapTarget + 8)
+                .background(BrandGradient.record(isLead: isLead, colorScheme), in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        }
+        .buttonStyle(ActionCirclePressStyle())
+        .disabledWhenOffline(isOffline)
+        .accessibilityIdentifier("shareUpdate")
+    }
+}

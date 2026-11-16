@@ -81,6 +81,16 @@ struct LeadDetailView: View {
                             Task { await viewModel.load() }
                         }
                     }
+                case .status:
+                    if let staff = leadActions.staff.value {
+                        NavigationStack {
+                            ChangeLeadStatusForm(staff: staff, actions: leadActions) {
+                                Task { await viewModel.load(); await leadActions.load() }
+                            }
+                            .navigationTitle("Change Status")
+                            .navigationBarTitleDisplayMode(.inline)
+                        }
+                    }
                 default:
                     NavigationStack {
                         AddPostForm(feed: leadFeed)
@@ -142,7 +152,6 @@ struct LeadDetailView: View {
                             SectionBar(selection: $viewModel.section, hidden: hiddenSections)
                             sectionContent(detail)
                         } rail: {
-                            LossAddressCard(address: detail.lossAddress)
                             AgreementCard(agreement: detail.agreement)
                             teamCard(detail)
                             staffExtras
@@ -151,7 +160,6 @@ struct LeadDetailView: View {
                 } else {
                     VStack(alignment: .leading, spacing: Theme.Spacing.l) {
                         header(detail)
-                        LossAddressCard(address: detail.lossAddress)
                         quickActions(detail)
                         LeadLifecycleCard(position: detail.lifecycle, status: detail.prospectStatus)
                         staffExtras
@@ -171,16 +179,6 @@ struct LeadDetailView: View {
                 await leadActions.load()
                 await leadFeed.load()
                 await loadActivity()
-            }
-        }
-        .toolbar {
-            if isInternal {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Edit") { openAction = .edit }
-                        .disabled(leadActions.staff.value == nil)
-                        .accessibilityLabel("Edit Lead")
-                        .accessibilityIdentifier("leadAction-edit")
-                }
             }
         }
         .environment(\.emailReference, EmailReference.reference(forRecordId: viewModel.leadId))
@@ -247,7 +245,7 @@ struct LeadDetailView: View {
             } else if leadActions.staff.value != nil {
                 showingConvert = true
             }
-        case .post, .edit, .task, .event, .portalUpdate:
+        case .post, .edit, .status, .task, .event, .portalUpdate:
             openAction = action
         case .agreement:
             // In-house e-sign (Docs Made Easy is no longer used from the app).
@@ -293,13 +291,11 @@ struct LeadDetailView: View {
                     if let policy = PortalFormat.nonEmpty(detail.policyNumber) {
                         Text("Policy \(policy)")
                     }
-                    if detail.lossDate != nil {
-                        Text("Loss date \(PortalFormat.date(detail.lossDate))")
-                    }
                 }
                 .font(.subheadline)
                 .foregroundStyle(.white)
                 .fixedSize(horizontal: false, vertical: true)
+                HeaderAddressLink(address: detail.lossAddress)
             }
             AdaptiveSpacer()
             if let percent = detail.lifecycle.percentComplete, let stage = detail.lifecycle.stageNumber {
@@ -309,7 +305,13 @@ struct LeadDetailView: View {
         .padding(Theme.Spacing.l)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(BrandGradient.leadHero, in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
-        .accessibilityElement(children: .combine)
+        .overlay(alignment: .topTrailing) {
+            if isInternal {
+                HeaderEditButton(label: "Edit Lead", identifier: "leadAction-edit") { openAction = .edit }
+                    .disabled(leadActions.staff.value == nil)
+                    .padding(Theme.Spacing.xs)
+            }
+        }
     }
 
     /// Contacts are staff-only; Cases and Contacts wait for the server to support them.
@@ -352,10 +354,12 @@ struct LeadDetailView: View {
                 PortalUpdateButton(api: api, record: viewModel.record) { await showPostedPortalUpdate() }
             }
             if isInternal && updatesFilter == .feed {
+                ShareUpdateButton { openAction = .post }
                 // Four posts at a time; the rest scroll inside the section.
                 ChatterFeedSection(model: leadFeed, emptyMessage: "No posts on this lead yet. Use Post to start one.", visibleCount: 4)
             } else if isInternal && updatesFilter == .activities {
-                RecordActivitySection(model: activity, api: api, noun: "lead")
+                RecordActivitySection(model: activity, api: api, noun: "lead",
+                                      onTask: { openAction = .task }, onEvent: { openAction = .event })
             } else {
                 SectionLoader(state: viewModel.updates, subject: "updates", retry: { await viewModel.loadUpdates() }) { updates in
                     UpdatesList(updates: updates, emptyMessage: "No updates have been published for this lead yet.", visibleCount: 3)

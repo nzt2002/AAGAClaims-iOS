@@ -1,17 +1,32 @@
 import PortalKit
 import SwiftUI
 
-/// Staff: a claim's or lead's tasks, events and emails (Updates → Activities), three at
-/// a time. Tapping one opens its page.
+/// Staff: a claim's or lead's Activities tab. Task and Event buttons at the top add one; below, a Recent Activity card
+/// lists the open tasks and the events (and emails), the newest date first, six at a time with the rest scrolling in the
+/// card. Its ⋯ menu shows or hides the completed tasks. Tapping one opens its page.
 struct RecordActivitySection: View {
     let model: RecordActivityViewModel
     let api: PortalAPI
     /// "claim" or "lead", for the empty message and accessibility identifiers.
     let noun: String
+    var onTask: (() -> Void)? = nil
+    var onEvent: (() -> Void)? = nil
+    @State private var showCompleted = false
+    @ScaledMetric(relativeTo: .body) private var rowHeight: CGFloat = 66
     @Environment(\.serverMeta) private var serverMeta
+    @Environment(\.isLeadRecord) private var isLead
+    @Environment(\.isOffline) private var isOffline
+
+    private static let visibleRows = 6
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            if onTask != nil || onEvent != nil {
+                HStack(spacing: Theme.Spacing.s) {
+                    addButton("Task", icon: "checklist", id: "\(noun)NewTask", action: onTask)
+                    addButton("Event", icon: "calendar.badge.plus", id: "\(noun)NewEvent", action: onEvent)
+                }
+            }
             switch model.activities {
             case .idle, .loading:
                 SkeletonList(rows: 1)
@@ -25,33 +40,162 @@ struct RecordActivitySection: View {
                 }
                 .cardStyle()
             case .loaded(let items, _):
-                if items.isEmpty {
-                    Text("No tasks or events on this \(noun) yet. Use Task or Event to add one.")
-                        .foregroundStyle(Color.textSecondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .cardStyle()
-                } else {
-                    ScrollingStack(items: items, noun: "activities") { item in
-                        NavigationLink {
-                            ActivityDetailView(model: detailModel(for: item))
-                        } label: {
-                            ActivityItemRow(item: item)
-                                .cardStyle()
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityHint("Opens the \(item.activityKindName.lowercased())")
-                        .accessibilityIdentifier("\(noun)Activity-\(item.id)")
+                recentActivity(sorted(items))
+            }
+        }
+    }
+
+    private func addButton(_ title: String, icon: String, id: String, action: (() -> Void)?) -> some View {
+        Button { action?() } label: {
+            Label(title, systemImage: icon)
+                .font(.headline)
+                .foregroundStyle(Color.textPrimary)
+                .symbolRenderingMode(.hierarchical)
+                .frame(maxWidth: .infinity, minHeight: Theme.minTapTarget + 4)
+                .background(Color.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous).stroke(Color.border.opacity(0.7), lineWidth: 1))
+        }
+        .buttonStyle(ActionCirclePressStyle())
+        .tint(Color.recordAccent(isLead: isLead))
+        .disabled(action == nil || isOffline)
+        .accessibilityIdentifier(id)
+    }
+
+    /// Open tasks, and every event and email; completed tasks too when asked. Newest date first, undated last.
+    private func sorted(_ items: [AgendaItem]) -> [AgendaItem] {
+        items
+            .filter { showCompleted || !($0.kind == .task && $0.isClosed == true) }
+            .sorted { a, b in
+                switch (a.sortDate, b.sortDate) {
+                case let (x?, y?): x > y
+                case (nil, _?): false
+                case (_?, nil): true
+                case (nil, nil): false
+                }
+            }
+    }
+
+    private func recentActivity(_ items: [AgendaItem]) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("Recent Activity")
+                    .font(.headline)
+                    .foregroundStyle(Color.textPrimary)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer()
+                Menu {
+                    Button {
+                        showCompleted.toggle()
+                    } label: {
+                        Label(showCompleted ? "Hide completed tasks" : "Show completed tasks", systemImage: "checkmark.circle")
                     }
+                    .accessibilityIdentifier("\(noun)ToggleCompleted")
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(Color.textSecondary)
+                        .frame(width: Theme.minTapTarget, height: Theme.minTapTarget)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel("Activity options")
+                .accessibilityIdentifier("\(noun)ActivityMenu")
+            }
+            .padding(.leading, Theme.Spacing.l)
+            .padding(.trailing, Theme.Spacing.xs)
+            if items.isEmpty {
+                Text("Nothing open on this \(noun). Add a task or an event above and it shows here.")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.textSecondary)
+                    .padding(.horizontal, Theme.Spacing.l)
+                    .padding(.bottom, Theme.Spacing.l)
+            } else {
+                Divider()
+                ScrollView(.vertical) {
+                    LazyVStack(spacing: 0) {
+                        ForEach(items) { item in
+                            NavigationLink {
+                                ActivityDetailView(model: detailModel(for: item))
+                            } label: {
+                                row(item).frame(height: rowHeight)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityHint("Opens the \(item.activityKindName.lowercased())")
+                            .accessibilityIdentifier("\(noun)Activity-\(item.id)")
+                            if item.id != items.last?.id { Divider().padding(.leading, Theme.Spacing.l + 40 + Theme.Spacing.m) }
+                        }
+                    }
+                }
+                .frame(height: rowHeight * CGFloat(min(items.count, Self.visibleRows)))
+                .scrollIndicators(items.count > Self.visibleRows ? .visible : .hidden)
+                .scrollBounceBehavior(.basedOnSize)
+                .accessibilityIdentifier("scrollingStack")
+                if items.count > Self.visibleRows {
+                    Divider()
+                    Label("Showing \(Self.visibleRows) of \(items.count) · scroll for more", systemImage: "arrow.up.and.down")
+                        .font(.caption)
+                        .foregroundStyle(Color.textSecondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Theme.Spacing.s)
                 }
             }
         }
+        .padding(.top, Theme.Spacing.xs)
+        .background(Color.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous).stroke(Color.border.opacity(0.7), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("recentActivityCard")
+    }
+
+    private func row(_ item: AgendaItem) -> some View {
+        let done = item.isClosed == true && item.kind == .task
+        return HStack(spacing: Theme.Spacing.m) {
+            Image(systemName: done ? "checkmark" : item.activityIcon)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(done ? Color.textSecondary : Color.recordAccent(isLead: isLead))
+                .frame(width: 40, height: 40)
+                .background((done ? Color.textSecondary : Color.recordAccent(isLead: isLead)).opacity(0.12), in: Circle())
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(PortalFormat.nonEmpty(item.subject) ?? item.activityKindName)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(done ? Color.textSecondary : Color.textPrimary)
+                    .strikethrough(done)
+                    .lineLimit(1)
+                Text(detailLine(item))
+                    .font(.caption)
+                    .foregroundStyle(item.isOverdue == true ? Color.warning : Color.textSecondary)
+                    .fontWeight(item.isOverdue == true ? .semibold : .regular)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.textSecondary.opacity(0.6))
+                .accessibilityHidden(true)
+        }
+        .padding(.horizontal, Theme.Spacing.l)
+        .contentShape(Rectangle())
+    }
+
+    private func detailLine(_ item: AgendaItem) -> String {
+        let state = item.kind == .email || (item.kind == .task && item.isClosed == true) ? item.activityState.text : nil
+        return [item.activityKindName, state, item.activityWhen, item.assignedToName].compactMap { PortalFormat.nonEmpty($0) }.joined(separator: " · ")
     }
 
     private func detailModel(for item: AgendaItem) -> ActivityDetailViewModel {
         let detail = ActivityDetailViewModel(api: api, item: item, canChange: serverMeta.supports(.activityEdit))
         detail.onChange = { [model] in model.replace($0) }
         return detail
+    }
+}
+
+private extension AgendaItem {
+    /// When it is: a task's due date (noon), an event's or email's start.
+    var sortDate: Date? {
+        if let startDateTime { return startDateTime }
+        guard let dueDate else { return nil }
+        return Calendar.current.date(from: DateComponents(year: dueDate.year, month: dueDate.month, day: dueDate.day, hour: 12))
     }
 }
 

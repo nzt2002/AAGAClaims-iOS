@@ -21,7 +21,8 @@ final class ClaimActionsUITests: XCTestCase {
         app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
     }
 
-    private static let inMoreMenu: Set<String> = ["addContact", "email", "address", "owner", "proofOfLoss"]
+    /// Past the first few tiles of the action row, so they are in More on an iPhone.
+    private static let inMoreMenu: Set<String> = ["email", "portalUpdate", "address", "owner", "proofOfLoss", "payments"]
 
     /// Updates → Activities: the claim's tasks, events and emails.
     private func showActivities() {
@@ -39,7 +40,8 @@ final class ClaimActionsUITests: XCTestCase {
         }
         let button = app.buttons["claimAction-\(action)"]
         XCTAssertTrue(button.waitForExistence(timeout: 5))
-        app.scrollIntoView(button)
+        // Scrolling would close the More menu.
+        if !Self.inMoreMenu.contains(action) { app.scrollIntoView(button) }
         button.tap()
     }
 
@@ -50,20 +52,23 @@ final class ClaimActionsUITests: XCTestCase {
     }
 
     func testPageLayout() {
-        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "lossAddressCard").firstMatch.label.contains("123 Main St"), "Loss address card under the header")
+        // The loss address is a link in the header, under the claim number; the old cards are gone.
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "headerAddressLink").firstMatch.label.contains("123 Main St"), "Loss address link in the header")
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "lossAddressCard").firstMatch.exists, "No loss address card")
         XCTAssertFalse(app.buttons["claimAction-call"].exists, "Log a Call was removed")
-        for action in ["payments", "edit", "post", "task", "event"] {
+        // The action row: the first tiles, then More.
+        for action in ["post", "event", "status", "task"] {
             XCTAssertTrue(app.buttons["claimAction-\(action)"].exists, action)
         }
+        XCTAssertTrue(app.buttons["claimAction-edit"].exists, "Edit is the pencil in the header")
         let more = app.buttons["claimActionMore"]
         XCTAssertTrue(more.exists)
-        // One action strip under the header: Payments, Post, Log Call, Contact and More side by side.
-        let payments = app.buttons["claimAction-payments"]
-        XCTAssertLessThan(app.staticTexts["Claim CLM-1234"].frame.maxY, payments.frame.minY)
-        XCTAssertEqual(payments.frame.midY, more.frame.midY, accuracy: 2)
+        let post = app.buttons["claimAction-post"]
+        XCTAssertLessThan(app.staticTexts["Claim CLM-1234"].frame.maxY, post.frame.minY)
+        XCTAssertEqual(post.frame.midY, more.frame.midY, accuracy: 2)
         XCTAssertFalse(app.buttons["claimAction-email"].exists, "The rest are in More")
         more.tap()
-        for action in ["addContact", "email", "address", "owner", "proofOfLoss"] {
+        for action in ["email", "address", "owner", "proofOfLoss", "payments"] {
             XCTAssertTrue(app.buttons["claimAction-\(action)"].waitForExistence(timeout: 5), action)
         }
         // Choosing an item opens its sheet (and closes the menu).
@@ -80,15 +85,45 @@ final class ClaimActionsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Restoration"].waitForExistence(timeout: 5))
         toggle.tap()
 
-        // Updates default to the Feed for staff.
+        // Updates default to the Feed for staff, with a Share update button above it.
         let filter = app.segmentedControls["updatesFilter"]
         app.scrollIntoView(filter)
         XCTAssertTrue(filter.buttons["Feed"].isSelected)
+        XCTAssertTrue(app.buttons["shareUpdate"].exists)
         XCTAssertTrue(element(containing: "Carrier called back").exists)
 
         let contactUs = app.staticTexts["Contact Us"]
         app.scrollIntoView(contactUs)
         XCTAssertTrue(contactUs.exists)
+    }
+
+    func testStatusButtonChangesTheStatus() {
+        let status = app.buttons["claimAction-status"]
+        XCTAssertTrue(status.waitForExistence(timeout: 5))
+        status.tap()
+        XCTAssertTrue(app.staticTexts["Now: Inspection"].waitForExistence(timeout: 5) || element(containing: "Now:").waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Restoration"].exists)
+        app.buttons["Restoration"].tap()
+        XCTAssertFalse(app.buttons["Restoration"].waitForExistence(timeout: 3), "The list closed once the status was saved")
+    }
+
+    func testShareUpdateOpensThePostScreen() {
+        let share = app.buttons["shareUpdate"]
+        app.scrollIntoView(share)
+        share.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["postText"].waitForExistence(timeout: 5))
+    }
+
+    func testActivitiesHasTaskAndEventButtonsAndARecentActivityCard() {
+        showActivities()
+        XCTAssertTrue(app.buttons["claimNewTask"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["claimNewEvent"].exists)
+        let card = app.descendants(matching: .any)["recentActivityCard"].firstMatch
+        XCTAssertTrue(card.exists)
+        let menu = app.descendants(matching: .any)["claimActivityMenu"].firstMatch
+        app.scrollIntoView(menu)
+        menu.tap()
+        XCTAssertTrue(app.buttons["claimToggleCompleted"].waitForExistence(timeout: 5))
     }
 
     func testAddPostAppearsInClaimFeed() {
@@ -178,9 +213,9 @@ final class ClaimActionsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["copy-Id"].exists)
     }
 
-    func testEditIsATextButtonInTheTopBar() {
-        // The visible title is "Edit" (VoiceOver says "Edit Claim").
-        let edit = app.navigationBars.buttons["claimAction-edit"]
+    func testEditIsAPencilInTheHeader() {
+        // The pencil at the top right of the header (VoiceOver says "Edit Claim").
+        let edit = app.buttons["claimAction-edit"]
         XCTAssertTrue(edit.exists)
         XCTAssertEqual(edit.label, "Edit Claim")
     }
@@ -253,7 +288,12 @@ final class ClaimActionsUITests: XCTestCase {
 
     func testActivitiesOpenTaskRecord() {
         showActivities()
-        // Open items first, then done ones; three at a time.
+        // Completed tasks are hidden until the ⋯ menu shows them.
+        XCTAssertFalse(app.buttons["claimActivity-00Thist1AAA1"].exists)
+        let menu = app.descendants(matching: .any)["claimActivityMenu"].firstMatch
+        app.scrollIntoView(menu)
+        menu.tap()
+        app.buttons["claimToggleCompleted"].tap()
         let done = app.buttons["claimActivity-00Thist1AAA1"]
         XCTAssertTrue(done.waitForExistence(timeout: 10))
         app.scrollIntoView(done)
