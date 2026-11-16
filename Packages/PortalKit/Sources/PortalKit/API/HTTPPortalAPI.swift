@@ -52,14 +52,43 @@ public protocol PortalTransport: Sendable {
     func send(_ request: TransportRequest) async throws -> TransportResponse
 }
 
+/// Sends a large file straight to storage, to the one-time link the platform hands out (no sign-in header: the link is the permission).
+public protocol DirectUploader: Sendable {
+    func upload(to url: URL, mimeType: String, data: Data) async throws
+}
+
+/// The same request the web app's storage client makes: a PUT with a multipart body of `cacheControl` and the file.
+public struct URLSessionDirectUploader: DirectUploader {
+    public init() {}
+
+    public func upload(to url: URL, mimeType: String, data: Data) async throws {
+        let boundary = "AAGA-\(UUID().uuidString)"
+        var body = Data()
+        func append(_ string: String) { body.append(Data(string.utf8)) }
+        append("--\(boundary)\r\nContent-Disposition: form-data; name=\"cacheControl\"\r\n\r\n3600\r\n")
+        append("--\(boundary)\r\nContent-Disposition: form-data; name=\"\"; filename=\"blob\"\r\nContent-Type: \(mimeType)\r\n\r\n")
+        body.append(data)
+        append("\r\n--\(boundary)--\r\n")
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        let (_, response) = try await URLSession.shared.upload(for: request, from: body)
+        guard let status = (response as? HTTPURLResponse)?.statusCode, (200..<300).contains(status) else {
+            throw PortalAPIError.rejected("The file couldn't be uploaded. Try again.")
+        }
+    }
+}
+
 /// `PortalAPI` over the Apex REST endpoints in spec §5.
 public struct HTTPPortalAPI: PortalAPI {
     public static let basePath = "/services/apexrest/portal/v1"
 
     private let transport: PortalTransport
+    private let directUploader: DirectUploader
 
-    public init(transport: PortalTransport) {
+    public init(transport: PortalTransport, directUploader: DirectUploader = URLSessionDirectUploader()) {
         self.transport = transport
+        self.directUploader = directUploader
     }
 
     public func claims() async throws -> [ClaimSummary] {
@@ -383,7 +412,7 @@ public struct HTTPPortalAPI: PortalAPI {
     /// A ContentVersion created with the standard REST API (multipart, up to 25 MB here), then
     /// linked to the claim or lead by the portal API, which checks access.
     private func uploadLargeFile(_ upload: FileUpload, to record: RecordRef) async throws -> PortalFile {
-        struct Config: Decodable { let networkId: String?; let maxBytes: Int }
+        struct Config: Decodable { let networkId: String?; let maxBytes: Int; let direct: Bool? }
         let config: Config
         do {
             config = try await get("/files/upload-config")
@@ -393,6 +422,7 @@ public struct HTTPPortalAPI: PortalAPI {
         guard upload.data.count <= config.maxBytes else {
             throw PortalAPIError.rejected("Files can be up to \(config.maxBytes / 1_048_576) MB.")
         }
+        if config.direct == true { return try await uploadDirect(upload, to: record) }
         var entity: [String: String] = ["Title": upload.title, "PathOnClient": upload.fileName]
         if let networkId = config.networkId { entity["NetworkId"] = networkId }
         let boundary = "AAGA-\(UUID().uuidString)"
@@ -412,6 +442,18 @@ public struct HTTPPortalAPI: PortalAPI {
         ))
         let created: Created = try decode(response.body)
         return try await post("/\(record.collectionPath)/\(escaped(record.id))/files/link", body: ["contentVersionId": created.id])
+    }
+
+    /// The platform's way: ask for a one-time link, send the file straight to storage, then say it is there (the server checks).
+    private func uploadDirect(_ upload: FileUpload, to record: RecordRef) async throws -> PortalFile {
+        struct Start: Encodable { let fileName: String; let size: Int }
+        struct Started: Decodable { let path: String; let uploadUrl: String }
+        struct Finish: Encodable { let path: String; let fileName: String; let title: String; let mimeType: String }
+        let base = "/\(record.collectionPath)/\(escaped(record.id))/files"
+        let started: Started = try await post("\(base)/start", body: Start(fileName: upload.fileName, size: upload.data.count))
+        guard let url = URL(string: started.uploadUrl) else { throw PortalAPIError.rejected("The file couldn't be uploaded. Try again.") }
+        try await directUploader.upload(to: url, mimeType: upload.mimeType, data: upload.data)
+        return try await post("\(base)/finish", body: Finish(path: started.path, fileName: upload.fileName, title: upload.title, mimeType: upload.mimeType))
     }
 
     public func requestAccountDeletion(reason: String?) async throws -> AccountDeletionRequest {

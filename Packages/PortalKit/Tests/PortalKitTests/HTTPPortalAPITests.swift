@@ -128,6 +128,40 @@ struct HTTPPortalAPITests {
         #expect(String(decoding: link, as: UTF8.self).contains("068000000000001AAA"))
     }
 
+    @Test("Large files on the platform: link, straight to storage, then finish")
+    func largeUploadDirect() async throws {
+        let transport = ScriptedTransport([
+            ("/files/upload-config", 200, #"{"direct":true,"maxBytes":104857600}"#),
+            ("/files/start", 200, #"{"path":"firm/claim/abc/Scan.pdf","uploadUrl":"https://files.example.test/upload?token=t","maxBytes":104857600}"#),
+            ("/files/finish", 201, #"{"contentDocumentId":"069000000000001AAA","title":"Scan","fileType":"PDF","contentSize":5000000}"#),
+        ])
+        let uploader = RecordingUploader()
+        let api = HTTPPortalAPI(transport: transport, directUploader: uploader)
+        let upload = FileUpload(fileName: "Scan.pdf", title: "Scan", mimeType: "application/pdf", data: Data(count: 5_000_000))
+        let file = try await api.uploadFile(upload, to: .claim("a23000000000001AAA"))
+        #expect(file.contentDocumentId == "069000000000001AAA")
+
+        let requests = await transport.requests
+        #expect(requests.map(\.path) == ["/files/upload-config", "/claims/a23000000000001AAA/files/start", "/claims/a23000000000001AAA/files/finish"])
+        #expect(requests.allSatisfy { !$0.isAbsolutePath })
+        let start = String(decoding: try #require(requests[1].body), as: UTF8.self)
+        #expect(start.contains(#""size":5000000"#) && start.contains("Scan.pdf"))
+        let finishBody = try #require(requests[2].body)
+        let finish = try #require(try JSONSerialization.jsonObject(with: finishBody) as? [String: String])
+        #expect(finish["path"] == "firm/claim/abc/Scan.pdf" && finish["mimeType"] == "application/pdf" && finish["title"] == "Scan")
+        let sent = await uploader.sent
+        #expect(sent.count == 1 && sent[0].url.absoluteString == "https://files.example.test/upload?token=t" && sent[0].bytes == 5_000_000)
+    }
+
+    @Test("Large files on the platform: over the limit")
+    func largeUploadDirectTooBig() async throws {
+        let api = HTTPPortalAPI(transport: ScriptedTransport([("/files/upload-config", 200, #"{"direct":true,"maxBytes":4000000}"#)]), directUploader: RecordingUploader())
+        let big = FileUpload(fileName: "Video.pdf", title: "Video", mimeType: "application/pdf", data: Data(count: 5_000_000))
+        await #expect(throws: PortalAPIError.rejected("Files can be up to 3 MB.")) {
+            _ = try await api.uploadFile(big, to: .claim("a23000000000001AAA"))
+        }
+    }
+
     @Test("Large files: too big for the server, or a server without large files")
     func largeUploadRefused() async throws {
         let big = FileUpload(fileName: "Video.pdf", title: "Video", mimeType: "application/pdf", data: Data(count: 5_000_000))
@@ -180,4 +214,12 @@ struct HTTPPortalAPITests {
         let body = await transport.requests.first?.body.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: String] }
         #expect(body == ["token": "ab12cd", "environment": "sandbox"])
     }
+}
+
+
+/// Stands in for storage: remembers what it was asked to send.
+actor RecordingUploader: DirectUploader {
+    struct Sent { let url: URL; let bytes: Int }
+    private(set) var sent: [Sent] = []
+    func upload(to url: URL, mimeType: String, data: Data) async throws { sent.append(Sent(url: url, bytes: data.count)) }
 }

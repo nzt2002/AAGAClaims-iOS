@@ -24,6 +24,10 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.10.0", date: "Nov 16, 2026", items: [
+            Item(icon: "arrow.up.doc", title: "Larger files",
+                 detail: "For companies on the new ProClaimer platform, files up to 100 MB can now be added to a claim or lead. Big files upload directly, so they no longer have to be shrunk first."),
+        ]),
         Release(version: "3.9.2", date: "Nov 13, 2026", items: [
             Item(icon: "lifepreserver", title: "Support requests open from links and notifications",
                  detail: "Requests for assistance moved to a new kind of support request. Tapping a reply notification or a support link in an email now opens the request in the app.",
