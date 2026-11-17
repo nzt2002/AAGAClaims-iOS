@@ -169,6 +169,8 @@ public struct ServerMeta: Codable, Hashable, Sendable {
         case recordContacts
         /// Staff pause and resume recording on an in-app call (`POST /voice/recording`).
         case voiceRecording
+        /// Folders on a record's Files tab (`GET /{record}/folders`) and staff organising files.
+        case fileFolders
     }
 }
 

@@ -8,10 +8,14 @@ import VisionKit
 /// Upload sources (spec §6.10) for a record's Files: picks go to the upload queue.
 struct UploadMenu: View {
     let record: RecordRef
+    /// Staff: the open folder, so uploads land in it.
+    var folderId: String? = nil
     @Environment(UploadQueue.self) private var queue
 
     var body: some View {
-        FileSourceMenu(maxCount: 10, onPicked: { queue.enqueue($0, to: record) }) {
+        FileSourceMenu(maxCount: 10, onPicked: { uploads in
+            queue.enqueue(uploads.map { var u = $0; u.folderId = folderId; return u }, to: record)
+        }) {
             Label("Upload", systemImage: "arrow.up.doc")
                 .font(.subheadline.weight(.semibold))
                 .frame(minHeight: Theme.minTapTarget)

@@ -51,11 +51,11 @@ final class ClaimsUITests: XCTestCase {
         // Staff (the demo user) see the Claim Feed first; published updates are one tap away.
         let filter = app.segmentedControls["updatesFilter"]
         app.scrollIntoView(filter)
-        // Write Portal Update lives on the Portal Updates tab, not the Claim Feed.
+        // Write Portal Update was taken off the tabs (it is still in More).
         XCTAssertFalse(app.buttons["writePortalUpdate"].exists)
         filter.buttons["Portal Updates"].tap()
         XCTAssertTrue(element(containing: "Carrier review update").waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["writePortalUpdate"].exists)
+        XCTAssertFalse(app.buttons["writePortalUpdate"].exists)
 
         // Staff: Contacts comes right after Details.
         app.buttons["Contacts"].tap()

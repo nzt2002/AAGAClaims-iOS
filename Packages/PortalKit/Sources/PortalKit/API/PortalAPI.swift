@@ -22,6 +22,14 @@ public protocol PortalAPI: Sendable {
     /// Staff: publishes the reviewed update to the portal and the app, and optionally emails it.
     func postPortalUpdate(to record: RecordRef, _ update: PortalUpdatePost) async throws -> PortalUpdatePosted
     func files(for record: RecordRef) async throws -> [PortalFile]
+    /// Folders of a record (servers with `fileFolders`; others have none).
+    func folders(for record: RecordRef) async throws -> [PortalFolder]
+    /// Staff: a new folder, at the top level when `parentId` is nil.
+    func createFolder(named name: String, parentId: String?, in record: RecordRef) async throws -> PortalFolder
+    /// Staff: rename, show to the policyholder, move or delete a folder.
+    func changeFolder(_ id: String, _ change: FolderChange, in record: RecordRef) async throws
+    /// Staff: move, show, hide, remove or restore several files at once. `folderId` is for `.move` (nil: top level).
+    func organizeFiles(_ ids: [String], _ op: FileOrganizeOp, folderId: String?, in record: RecordRef) async throws
     func addComment(to record: RecordRef, text: String) async throws
 
     // Activity
@@ -44,6 +52,12 @@ public protocol PortalAPI: Sendable {
     // Home agenda and tasks
     /// `GET /agenda`: the user's open tasks and upcoming events, plus upcoming events on their records.
     func agenda() async throws -> Agenda
+    /// `GET /agenda/completed`: the user's latest finished tasks. Fetched only when Home's "show completed" is on.
+    func completedTasks() async throws -> [AgendaItem]
+    /// `GET /signatures/waiting`: documents waiting on a signature (staff).
+    func waitingSignatures() async throws -> WaitingSignatures
+    /// `GET /cases?open=1&limit=`: a few open support requests for Home.
+    func openCases(limit: Int) async throws -> [SupportCase]
     /// `GET /activity-subjects`: Task and Event subject suggestions. Staff and adjusters only.
     func activitySubjects() async throws -> ActivitySubjects
     /// `GET /task-assignees`: people a task can be assigned to. Staff and adjusters only.
@@ -175,12 +189,15 @@ public struct FileUpload: Hashable, Sendable {
     public let title: String
     public let mimeType: String
     public let data: Data
+    /// Staff: the folder to file it in (nil: the top level).
+    public var folderId: String?
 
-    public init(fileName: String, title: String, mimeType: String, data: Data) {
+    public init(fileName: String, title: String, mimeType: String, data: Data, folderId: String? = nil) {
         self.fileName = fileName
         self.title = title
         self.mimeType = mimeType
         self.data = data
+        self.folderId = folderId
     }
 }
 
@@ -296,4 +313,21 @@ public enum PortalLimits {
     public static let commentLength = 5_000
     public static let assistanceLength = 5_000
     public static let caseReplyLength = 2_000
+}
+
+/// Servers without folders: nothing to list, nothing to change.
+public extension PortalAPI {
+    func folders(for record: RecordRef) async throws -> [PortalFolder] { [] }
+    func createFolder(named name: String, parentId: String?, in record: RecordRef) async throws -> PortalFolder { throw PortalAPIError.notFound }
+    func changeFolder(_ id: String, _ change: FolderChange, in record: RecordRef) async throws { throw PortalAPIError.notFound }
+    func organizeFiles(_ ids: [String], _ op: FileOrganizeOp, folderId: String?, in record: RecordRef) async throws { throw PortalAPIError.notFound }
+}
+
+public extension PortalAPI {
+    /// Servers without the Home endpoints: no completed tasks, and open cases cut from the full list.
+    func completedTasks() async throws -> [AgendaItem] { [] }
+    func waitingSignatures() async throws -> WaitingSignatures { .none }
+    func openCases(limit: Int) async throws -> [SupportCase] {
+        Array(try await cases().filter { !$0.isClosed }.prefix(limit))
+    }
 }

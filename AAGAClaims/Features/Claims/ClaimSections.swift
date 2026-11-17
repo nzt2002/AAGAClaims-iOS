@@ -124,23 +124,34 @@ struct FilesList: View {
     let files: [PortalFile]
     var loadingFileId: String?
     var onOpen: ((PortalFile) -> Void)?
+    /// Staff selecting several files: the chosen ids (nil when not selecting). Tapping a row then toggles it.
+    var selected: Set<String>? = nil
+    var onToggle: ((PortalFile) -> Void)? = nil
+    /// Long-press menu for one file (staff, with folders).
+    var menu: ((PortalFile) -> AnyView)? = nil
+    /// Shown when the list is empty.
+    var emptyText = "No files have been added yet."
+    /// Staff see which files the policyholder can see.
+    var showsVisibility = false
 
     var body: some View {
         if files.isEmpty {
-            Text("No files have been added yet.")
+            Text(emptyText)
                 .foregroundStyle(Color.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .cardStyle()
         } else {
             VStack(spacing: 0) {
                 ForEach(files) { file in
                     Button {
-                        onOpen?(file)
+                        if selected != nil { onToggle?(file) } else { onOpen?(file) }
                     } label: {
                         row(file)
                     }
                     .buttonStyle(.plain)
                     .disabled(onOpen == nil || loadingFileId != nil)
-                    .accessibilityHint("Opens the file")
+                    .contextMenu { if selected == nil, let menu { menu(file) } }
+                    .accessibilityHint(selected == nil ? "Opens the file" : "Selects the file")
                     .accessibilityIdentifier("file-\(file.contentDocumentId)")
                     if file.id != files.last?.id {
                         Divider()
@@ -153,6 +164,12 @@ struct FilesList: View {
 
     private func row(_ file: PortalFile) -> some View {
         HStack(alignment: .top, spacing: Theme.Spacing.m) {
+            if let selected {
+                Image(systemName: selected.contains(file.id) ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundStyle(selected.contains(file.id) ? Color.brandPrimary : Color.textSecondary)
+                    .accessibilityHidden(true)
+            }
             Image(systemName: Self.icon(for: file.fileType))
                 .font(.title2)
                 .foregroundStyle(Color.brandPrimary)
@@ -171,6 +188,12 @@ struct FilesList: View {
                 }
             }
             Spacer(minLength: 0)
+            if showsVisibility {
+                Image(systemName: file.portalVisible == true ? "eye" : "eye.slash")
+                    .font(.caption)
+                    .foregroundStyle(file.portalVisible == true ? Color.success : Color.textSecondary)
+                    .accessibilityLabel(file.portalVisible == true ? "The policyholder sees this" : "Staff only")
+            }
             if loadingFileId == file.id {
                 ProgressView()
             }

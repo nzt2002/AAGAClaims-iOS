@@ -134,8 +134,7 @@ struct StageTrackCard: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
             AdaptiveStack(horizontalAlignment: .firstTextBaseline, verticalAlignment: .leading, spacing: Theme.Spacing.s) {
                 if let current {
-                    (Text(stages[current]).font(.subheadline.weight(.semibold)).foregroundStyle(Color.textPrimary)
-                     + Text(" · Stage \(current + 1) of \(stages.count)").font(.subheadline).foregroundStyle(Color.textSecondary))
+                    Text(stages[current]).font(.subheadline.weight(.semibold)).foregroundStyle(Color.textPrimary)
                 } else {
                     Text(PortalFormat.nonEmpty(fallbackLabel) ?? "Status not set")
                         .font(.subheadline.weight(.semibold))

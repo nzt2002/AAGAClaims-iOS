@@ -31,7 +31,9 @@ struct HomeView: View {
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
-                                    upcoming
+                                    recentActivityCard
+                                    openSupport
+                                    waitingSignatures
                                     recentClaims
                                 }
                                 .frame(width: WideLayout.railWidth + 20)
@@ -44,7 +46,9 @@ struct HomeView: View {
                             hero
                             quickActions
                             NeedsAttentionSection(viewModel: viewModel, router: router)
-                            upcoming
+                            recentActivityCard
+                            openSupport
+                            waitingSignatures
                             recentClaims
                             recentActivity
                         }
@@ -76,7 +80,7 @@ struct HomeView: View {
                     .font(.heroTitle)
                     .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
-                Text("We're here to help with your claim")
+                Text(user.isInternal ? "Here's what needs you today" : "We're here to help with your claim")
                     .font(.subheadline)
                     .foregroundStyle(.white)
             }
@@ -177,16 +181,18 @@ struct HomeView: View {
         .accessibilityIdentifier(id)
     }
 
-    // MARK: - Upcoming
+    // MARK: - Recent activity card: tasks and events
 
+    /// Your open tasks and upcoming events in a card that scrolls (about three rows show), with a ⋯ menu to show or hide
+    /// finished tasks.
     @ViewBuilder
-    private var upcoming: some View {
+    private var recentActivityCard: some View {
         switch viewModel.agenda {
         case .idle, .loading:
             EmptyView()
         case .failed:
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-                SectionHeader("Upcoming")
+                SectionHeader("Recent activity")
                 HStack {
                     Text("Unable to load your tasks and events.")
                         .foregroundStyle(Color.textSecondary)
@@ -197,28 +203,151 @@ struct HomeView: View {
                 .cardStyle()
             }
         case .loaded(let agenda, _):
-            // Homeowners usually have nothing scheduled; only show an empty section to people who manage tasks.
-            if !viewModel.upcoming.isEmpty || agenda.canCreateTasks {
+            // Homeowners usually have nothing scheduled; only show an empty card to people who manage tasks.
+            let items = viewModel.recentActivityItems
+            if !items.isEmpty || agenda.canCreateTasks {
                 VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-                    SectionHeader("Upcoming")
-                    if viewModel.upcoming.isEmpty {
+                    SectionHeader("Recent activity") {
+                        if viewModel.isInternalUser {
+                            Menu {
+                                Button(viewModel.showCompleted ? "Hide Completed Tasks" : "Show Completed Tasks",
+                                       systemImage: viewModel.showCompleted ? "eye.slash" : "checkmark.circle") {
+                                    viewModel.showCompleted.toggle()
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis.circle")
+                                    .font(.title3)
+                                    .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
+                                    .contentShape(Rectangle())
+                            }
+                            .accessibilityLabel("Recent activity options")
+                            .accessibilityIdentifier("recentActivityMenu")
+                        }
+                    }
+                    if items.isEmpty {
                         Text("Nothing scheduled. You're all caught up.")
                             .foregroundStyle(Color.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .cardStyle()
                     } else {
-                        VStack(spacing: 0) {
-                            ForEach(viewModel.upcoming) { item in
-                                AgendaRow(item: item) { record in
-                                    router.open(record, name: item.relatedRecordName)
-                                }
-                                if item.id != viewModel.upcoming.last?.id {
-                                    Divider()
+                        // About three rows tall; the rest scroll inside the card.
+                        ScrollView {
+                            LazyVStack(spacing: 0) {
+                                ForEach(items) { item in
+                                    AgendaRow(item: item) { record in
+                                        router.open(record, name: item.relatedRecordName)
+                                    }
+                                    if item.id != items.last?.id { Divider() }
                                 }
                             }
+                            // Room for the scroll bar, so it doesn't sit on the row chevrons.
+                            .padding(.trailing, Theme.Spacing.s)
                         }
+                        .frame(maxHeight: 250)
                         .cardStyle()
                     }
                 }
+            }
+        }
+    }
+
+    // MARK: - Open support requests
+
+    @ViewBuilder
+    private var openSupport: some View {
+        if case .loaded(let cases, _) = viewModel.openCases, !cases.isEmpty {
+            VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                SectionHeader("Open support requests") {
+                    Button { router.openSupport(caseId: nil) } label: {
+                        Text("See all")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
+                            .contentShape(Rectangle())
+                    }
+                    .accessibilityLabel("See all support requests")
+                }
+                VStack(spacing: 0) {
+                    ForEach(cases) { item in
+                        Button { router.openSupport(caseId: item.caseId) } label: {
+                            HStack(spacing: Theme.Spacing.m) {
+                                IconBadge(systemName: "lifepreserver", size: 32)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.subject ?? "Support request")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(Color.textPrimary)
+                                        .multilineTextAlignment(.leading)
+                                    Text([item.caseNumber, item.relatedRecordName].compactMap { PortalFormat.nonEmpty($0) }.joined(separator: " · "))
+                                        .font(.caption)
+                                        .foregroundStyle(Color.textSecondary)
+                                }
+                                Spacer(minLength: Theme.Spacing.s)
+                                if let status = PortalFormat.nonEmpty(item.status) {
+                                    StatusPill(text: status, tone: .neutral)
+                                }
+                                Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.textSecondary)
+                            }
+                            .padding(.vertical, Theme.Spacing.s)
+                            .frame(minHeight: Theme.minTapTarget)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("openCase-\(item.caseId)")
+                        if item.id != cases.last?.id { Divider() }
+                    }
+                }
+                .cardStyle()
+            }
+        }
+    }
+
+    // MARK: - Waiting for signature
+
+    @ViewBuilder
+    private var waitingSignatures: some View {
+        if case .loaded(let waiting, _) = viewModel.signatures, !waiting.items.isEmpty {
+            VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                SectionHeader("Waiting for signature")
+                VStack(spacing: 0) {
+                    ForEach(waiting.items) { item in
+                        Button {
+                            if let record = item.recordRef { router.open(record, name: item.relatedRecordName) }
+                        } label: {
+                            HStack(spacing: Theme.Spacing.m) {
+                                IconBadge(systemName: "signature", size: 32)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.subject)
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(Color.textPrimary)
+                                        .multilineTextAlignment(.leading)
+                                    Text((item.clients.joined(separator: ", ") + (item.relatedRecordName.map { " · " + $0 } ?? "")).trimmingCharacters(in: [" ", "·"]))
+                                        .font(.caption)
+                                        .foregroundStyle(Color.textSecondary)
+                                        .lineLimit(1)
+                                }
+                                Spacer(minLength: Theme.Spacing.s)
+                                Text(item.daysWaiting == 0 ? "Today" : "\(item.daysWaiting)d")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(item.daysWaiting >= 7 ? Color.warning : Color.textSecondary)
+                                Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.textSecondary)
+                            }
+                            .padding(.vertical, Theme.Spacing.s)
+                            .frame(minHeight: Theme.minTapTarget)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(item.recordRef == nil)
+                        .accessibilityIdentifier("waitingSignature-\(item.id)")
+                        if item.id != waiting.items.last?.id { Divider() }
+                    }
+                    if waiting.total > waiting.items.count {
+                        Text("and \(waiting.total - waiting.items.count) more")
+                            .font(.caption)
+                            .foregroundStyle(Color.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, Theme.Spacing.xs)
+                    }
+                }
+                .cardStyle()
             }
         }
     }
@@ -282,7 +411,7 @@ struct HomeView: View {
 
     private var recentActivity: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-            SectionHeader("Recent activity")
+            SectionHeader("Latest updates")
             if viewModel.isInternalUser {
                 activityFilter
             }
@@ -359,14 +488,15 @@ struct AgendaRow: View {
     private var row: some View {
             HStack(alignment: .top, spacing: Theme.Spacing.m) {
                 IconBadge(
-                    systemName: item.kind == .event ? "calendar" : "checklist",
-                    tint: item.isOverdue == true ? .warning : .brandPrimary,
+                    systemName: item.kind == .event ? "calendar" : (item.isClosed == true ? "checkmark.circle.fill" : "checklist"),
+                    tint: item.isOverdue == true ? .warning : (item.isClosed == true && item.kind == .task ? .success : .brandPrimary),
                     size: 32
                 )
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.subject ?? (item.kind == .event ? "Event" : "Task"))
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(item.kind == .task && item.isClosed == true ? Color.textSecondary : Color.textPrimary)
+                        .strikethrough(item.kind == .task && item.isClosed == true)
                         .multilineTextAlignment(.leading)
                     Text(Self.whenText(item))
                         .font(.caption)

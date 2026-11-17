@@ -81,14 +81,17 @@ final class ClaimActionsUITests: XCTestCase {
         app.scrollIntoView(track)
         XCTAssertTrue(track.label.contains("Inspection"), track.label)
 
-        // Updates default to the Feed for staff, with a Share update button above it.
+        // Updates default to the Feed for staff. The Share update button was taken off the tab.
         let filter = app.segmentedControls["updatesFilter"]
         app.scrollIntoView(filter)
         XCTAssertTrue(filter.buttons["Feed"].isSelected)
-        XCTAssertTrue(app.buttons["shareUpdate"].exists)
+        XCTAssertFalse(app.buttons["shareUpdate"].exists)
         XCTAssertTrue(element(containing: "Carrier called back").exists)
 
+        // The Contact Us card shows on the Contacts tab only.
         let contactUs = app.staticTexts["Contact Us"]
+        XCTAssertFalse(contactUs.exists)
+        app.buttons["Contacts"].tap()
         app.scrollIntoView(contactUs)
         XCTAssertTrue(contactUs.exists)
     }
@@ -101,13 +104,6 @@ final class ClaimActionsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Restoration"].exists)
         app.buttons["Restoration"].tap()
         XCTAssertFalse(app.buttons["Restoration"].waitForExistence(timeout: 3), "The list closed once the status was saved")
-    }
-
-    func testShareUpdateOpensThePostScreen() {
-        let share = app.buttons["shareUpdate"]
-        app.scrollIntoView(share)
-        share.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["postText"].waitForExistence(timeout: 5))
     }
 
     func testActivitiesHasTaskAndEventButtonsAndARecentActivityCard() {

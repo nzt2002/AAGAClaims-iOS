@@ -10,7 +10,7 @@ enum LeadAction: String, Identifiable {
         switch self {
         case .convert: "Convert to Account"
         case .post: "Add a Post"
-        case .agreement: "Generate Agreement Preview E-Sign"
+        case .agreement: "Documents"
         case .edit: "Edit Lead"
         case .status: "Change Status"
         case .task: "New Task"
@@ -23,7 +23,7 @@ enum LeadAction: String, Identifiable {
         switch self {
         case .convert: "Convert"
         case .post: "Post"
-        case .agreement: "E-Sign"
+        case .agreement: "Documents"
         case .edit: "Edit"
         case .status: "Status"
         case .task: "Task"
@@ -36,7 +36,7 @@ enum LeadAction: String, Identifiable {
         switch self {
         case .convert: "arrow.triangle.turn.up.right.circle"
         case .post: "text.bubble"
-        case .agreement: "signature"
+        case .agreement: "doc.text"
         case .edit: "square.and.pencil"
         case .status: "circle.dotted"
         case .task: "checklist"
@@ -58,13 +58,14 @@ struct LeadQuickActions: View {
 
     var body: some View {
         // Converted: no new event or status; "Open the claim" leads the row.
-        let order = isConverted ? [LeadAction.convert, .post, .task, .agreement, .portalUpdate] : Self.row
+        // Documents is for open leads only, as on the website.
+        let order = isConverted ? [LeadAction.convert, .post, .task, .portalUpdate] : Self.row
         let items = order.filter { !hidden.contains($0) }.map { action in
             let viewClaim = action == .convert && isConverted
             return RecordActionItem(
                 id: action.rawValue,
                 title: viewClaim ? "View Claim" : action.shortTitle,
-                menuTitle: viewClaim ? "View the converted claim" : (action == .agreement ? "E-Sign" : action.title),
+                menuTitle: viewClaim ? "View the converted claim" : action.title,
                 icon: viewClaim ? "doc.text" : action.icon) { open(action) }
         }
         return RecordActionRow(items: items, idPrefix: "leadAction")

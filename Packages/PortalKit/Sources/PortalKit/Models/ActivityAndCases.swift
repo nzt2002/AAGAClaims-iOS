@@ -121,3 +121,29 @@ public enum RecordRef: Hashable, Sendable {
         }
     }
 }
+
+/// `GET /signatures/waiting`: documents sent for signature that the policyholder or client hasn't signed yet (staff).
+public struct WaitingSignatures: Codable, Hashable, Sendable {
+    public let total: Int
+    public let items: [WaitingSignature]
+
+    public static let none = WaitingSignatures(total: 0, items: [])
+}
+
+public struct WaitingSignature: Codable, Hashable, Identifiable, Sendable {
+    public let id: String
+    public let subject: String
+    public let daysWaiting: Int
+    public let relatedRecordId: String?
+    public let relatedRecordName: String?
+    public let relatedRecordType: RelatedRecordType?
+    public let clients: [String]
+
+    public var recordRef: RecordRef? {
+        switch (relatedRecordType, relatedRecordId) {
+        case (.claim?, let id?): .claim(id)
+        case (.prospect?, let id?): .lead(id)
+        default: nil
+        }
+    }
+}

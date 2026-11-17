@@ -222,7 +222,15 @@ struct LeadDetailView: View {
         await loadActivity()
     }
 
+    /// The Contact Us card shows on the Contacts tab only. A homeowner has no Contacts tab, so for them it stays on the page.
+    @ViewBuilder
     private func teamCard(_ detail: LeadDetail) -> some View {
+        if viewModel.section == .contacts || hiddenSections.contains(.contacts) {
+            teamCardBody(detail)
+        }
+    }
+
+    private func teamCardBody(_ detail: LeadDetail) -> some View {
         TeamCard(
             adjuster: .init(name: detail.adjusterName, phone: detail.adjusterPhone, email: detail.adjusterEmail),
             deskAdjuster: .init(name: detail.deskAdjusterName, phone: nil, email: detail.deskAdjusterEmail),
@@ -374,12 +382,7 @@ struct LeadDetailView: View {
                 .pickerStyle(.segmented)
                 .accessibilityIdentifier("leadUpdatesFilter")
             }
-            if isInternal && updatesFilter == .portalUpdates && serverMeta.supports(.portalUpdate) {
-                // Staff: write the customer-facing update, on the Portal Updates tab it lands in.
-                PortalUpdateButton(api: api, record: viewModel.record) { await showPostedPortalUpdate() }
-            }
             if isInternal && updatesFilter == .feed {
-                ShareUpdateButton { openAction = .post }
                 // Four posts at a time; the rest scroll inside the section.
                 ChatterFeedSection(model: leadFeed, emptyMessage: "No posts on this lead yet. Use Post to start one.", visibleCount: 4)
             } else if isInternal && updatesFilter == .activities {

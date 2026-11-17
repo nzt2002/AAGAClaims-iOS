@@ -65,6 +65,10 @@ public struct Payment: Codable, Hashable, Identifiable, Sendable {
     public let netDeposit: Decimal?
     public let insuredPayment: Decimal?
     public let totalRcv: Decimal?
+    /// Sent by the platform server: the check number, the deductible applied and the AA fee on this payment.
+    public var checkNumber: String? = nil
+    public var deductible: Decimal? = nil
+    public var aaFee: Decimal? = nil
 
     public var id: String { paymentsId }
 }
@@ -90,6 +94,9 @@ public struct PortalFile: Codable, Hashable, Identifiable, Sendable {
     public let contentSize: Int?
     public let createdDate: Date?
     public let createdByName: String?
+    /// The folder it is in (nil: the top level), and whether the policyholder sees it. Sent by servers with `fileFolders`.
+    public var folderId: String? = nil
+    public var portalVisible: Bool? = nil
 
     public var id: String { contentDocumentId }
 }

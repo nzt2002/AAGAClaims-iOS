@@ -103,10 +103,10 @@ final class AccessibilityAuditUITests: XCTestCase {
                             // width at accessibility sizes (checked in screenshots, 2026-10-13).
                             "Apply Payments", "More", "More actions", "Add a Post", "Add Contact",
                             // Lead action strip, same style.
-                            "Convert to Account", "Generate Agreement Preview E-Sign", "View the converted claim"]
+                            "Convert to Account", "Documents", "View the converted claim"]
             // Round action buttons report their short visible labels (checked at accessibility sizes:
             // two across, labels wrap without breaking words).
-            let roundButtons = ["Payments", "Post", "Contact", "Task", "Event", "More", "Convert", "E-Sign", "View Claim"]
+            let roundButtons = ["Payments", "Post", "Contact", "Task", "Event", "More", "Convert", "Documents", "View Claim"]
             return verified.contains { label.hasPrefix($0) }
                 || roundButtons.contains { label.trimmingCharacters(in: .whitespacesAndNewlines) == $0 }
         default:

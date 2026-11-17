@@ -33,6 +33,21 @@ public final class HomeViewModel {
     public private(set) var agenda: LoadState<Agenda> = .idle
     /// Staff's Chatter posts. Loaded separately; empty for portal users.
     public private(set) var feed: LoadState<[FeedPost]> = .idle
+    /// A few open support requests for Home. Loaded separately, so a failure leaves only this card out.
+    public private(set) var openCases: LoadState<[SupportCase]> = .idle
+    /// Staff: documents waiting on a signature. Loaded separately.
+    public private(set) var signatures: LoadState<WaitingSignatures> = .idle
+    /// Finished tasks, fetched only once "Show completed tasks" is on.
+    public private(set) var completedTasks: [AgendaItem] = []
+    /// The Recent activity card's ⋯ menu. Remembered on this device.
+    public var showCompleted: Bool = UserDefaults.standard.bool(forKey: "home.showCompletedTasks") {
+        didSet {
+            UserDefaults.standard.set(showCompleted, forKey: "home.showCompletedTasks")
+            Task { await loadCompleted() }
+        }
+    }
+    /// How many open support requests Home lists.
+    public static let supportLimit = 3
 
     /// One entry in Recent activity: a published update, or (for staff) a Chatter post.
     public enum ActivityEntry: Identifiable, Hashable, Sendable {
@@ -78,7 +93,31 @@ public final class HomeViewModel {
         async let agenda: Void = loadAgenda()
         // Portal users have no Chatter feed.
         async let feed: Void = isInternalUser ? loadFeed() : ()
-        _ = await (content, agenda, feed)
+        async let cases: Void = loadOpenCases()
+        async let signatures: Void = isInternalUser ? loadSignatures() : ()
+        async let completed: Void = loadCompleted()
+        _ = await (content, agenda, feed, cases, signatures, completed)
+    }
+
+    public func loadSignatures() async {
+        let api = self.api
+        await PortalKit.load(self, \.signatures) { try await api.waitingSignatures() }
+    }
+
+    public func loadOpenCases() async {
+        let api = self.api
+        await PortalKit.load(self, \.openCases) { try await api.openCases(limit: Self.supportLimit) }
+    }
+
+    /// Only does anything while "Show completed tasks" is on.
+    public func loadCompleted() async {
+        guard showCompleted, isInternalUser else { completedTasks = []; return }
+        completedTasks = (try? await api.completedTasks()) ?? []
+    }
+
+    /// The Recent activity card: open tasks and upcoming events (soonest first), then finished tasks when shown.
+    public var recentActivityItems: [AgendaItem] {
+        (agenda.value?.items ?? []) + (showCompleted ? completedTasks : [])
     }
 
     private func loadContent() async {

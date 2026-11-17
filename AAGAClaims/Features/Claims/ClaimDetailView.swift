@@ -227,7 +227,15 @@ struct ClaimDetailView: View {
         await loadActivity()
     }
 
+    /// The Contact Us card shows on the Contacts tab only. A homeowner has no Contacts tab, so for them it stays on the page.
+    @ViewBuilder
     private func teamCard(_ detail: ClaimDetail) -> some View {
+        if viewModel.section == .contacts || hiddenSections.contains(.contacts) {
+            teamCardBody(detail)
+        }
+    }
+
+    private func teamCardBody(_ detail: ClaimDetail) -> some View {
         TeamCard(
             adjuster: .init(name: detail.adjusterName, phone: detail.adjusterPhone, email: detail.adjusterEmail),
             deskAdjuster: .init(name: detail.deskAdjusterName, phone: nil, email: detail.deskAdjusterEmail),
@@ -273,12 +281,7 @@ struct ClaimDetailView: View {
                 .pickerStyle(.segmented)
                 .accessibilityIdentifier("updatesFilter")
             }
-            if isInternal && updatesFilter == .portalUpdates && serverMeta.supports(.portalUpdate) {
-                // Staff: write the customer-facing update, on the Portal Updates tab it lands in.
-                PortalUpdateButton(api: api, record: viewModel.record) { await showPostedPortalUpdate() }
-            }
             if isInternal && updatesFilter == .feed {
-                ShareUpdateButton { openAction = .post }
                 // Four posts at a time; the rest scroll inside the section.
                 ChatterFeedSection(model: claimFeed, emptyMessage: "No posts on this claim yet. Use Post to start one.", visibleCount: 4)
             } else if isInternal && updatesFilter == .activities {
@@ -300,13 +303,10 @@ struct ClaimDetailView: View {
         case .cases:
             RecordCasesSection(state: viewModel.cases, noun: "claim") { await viewModel.loadCases() }
         case .payments:
-            if isInternal {
-                // Staff: how much has been collected toward the RCV, and nothing else.
-                CollectedTowardRCV(collected: detail.paymentCollected, totalRcv: detail.totalRcv)
-            } else {
-                SectionLoader(state: viewModel.payments, subject: "payments", retry: { await viewModel.loadPayments() }) { payments in
-                    PaymentsList(payments: payments, totalCollected: detail.paymentCollected, totalRcv: detail.totalRcv)
-                }
+            // As on the mobile website: collected toward the Total RCV, where the money goes, and the checks over time.
+            SectionLoader(state: viewModel.payments, subject: "payments", retry: { await viewModel.loadPayments() }) { payments in
+                PaymentsAtAGlance(summary: PaymentsSummary(payments: payments, totalRcv: detail.totalRcv, collected: detail.paymentCollected),
+                                  onRecord: isInternal ? { openAction = .payments } : nil)
             }
         }
     }
@@ -478,7 +478,7 @@ private struct LifecycleCard: View {
     }
 }
 
-/// The % ring with "Stage N of M" centered under it, for the claim and lead heroes.
+/// The % ring, for the claim and lead heroes.
 struct HeroProgress: View {
     let percent: Int
     let stage: Int
@@ -487,11 +487,6 @@ struct HeroProgress: View {
     var body: some View {
         VStack(alignment: .center, spacing: Theme.Spacing.xs) {
             ProgressRing(percent: percent, onBrand: true)
-            Text("Stage \(stage) of \(of)")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.center)
-                .fixedSize()
         }
         // A fixed column, so the ring and caption share one center line.
         .frame(minWidth: 84)

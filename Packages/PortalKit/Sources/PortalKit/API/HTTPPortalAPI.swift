@@ -132,6 +132,34 @@ public struct HTTPPortalAPI: PortalAPI {
         try await get("/\(record.collectionPath)/\(escaped(record.id))/files")
     }
 
+    public func folders(for record: RecordRef) async throws -> [PortalFolder] {
+        try await get("/\(record.collectionPath)/\(escaped(record.id))/folders")
+    }
+
+    public func createFolder(named name: String, parentId: String?, in record: RecordRef) async throws -> PortalFolder {
+        struct Body: Encodable { let name: String; let parentId: String? }
+        return try await post("/\(record.collectionPath)/\(escaped(record.id))/folders", body: Body(name: name, parentId: parentId))
+    }
+
+    public func changeFolder(_ id: String, _ change: FolderChange, in record: RecordRef) async throws {
+        struct Body: Encodable { let action: String; var name: String?; var portalVisible: Bool?; var parentId: String? }
+        let body: Body
+        switch change {
+        case .rename(let name): body = Body(action: "rename", name: name)
+        case .setPortalVisible(let visible): body = Body(action: "visibility", portalVisible: visible)
+        case .move(let parentId): body = Body(action: "move", parentId: parentId)
+        case .delete: body = Body(action: "delete")
+        }
+        struct Done: Decodable { let ok: Bool? }
+        let _: Done = try await post("/\(record.collectionPath)/\(escaped(record.id))/folders/\(escaped(id))", body: body)
+    }
+
+    public func organizeFiles(_ ids: [String], _ op: FileOrganizeOp, folderId: String?, in record: RecordRef) async throws {
+        struct Body: Encodable { let op: String; let fileIds: [String]; let folderId: String? }
+        struct Done: Decodable { let ok: Bool? }
+        let _: Done = try await post("/\(record.collectionPath)/\(escaped(record.id))/files/organize", body: Body(op: op.rawValue, fileIds: ids, folderId: folderId))
+    }
+
     public func portalUpdateDraft(for record: RecordRef) async throws -> PortalUpdateDraft {
         try await get("/\(record.collectionPath)/\(escaped(record.id))/portal-update")
     }
@@ -183,6 +211,18 @@ public struct HTTPPortalAPI: PortalAPI {
 
     public func agenda() async throws -> Agenda {
         try await get("/agenda")
+    }
+
+    public func waitingSignatures() async throws -> WaitingSignatures {
+        try await get("/signatures/waiting")
+    }
+
+    public func completedTasks() async throws -> [AgendaItem] {
+        try await get("/agenda/completed")
+    }
+
+    public func openCases(limit: Int) async throws -> [SupportCase] {
+        try await get("/cases", query: [URLQueryItem(name: "open", value: "1"), URLQueryItem(name: "limit", value: String(limit))])
     }
 
     public func activitySubjects() async throws -> ActivitySubjects {
@@ -402,7 +442,7 @@ public struct HTTPPortalAPI: PortalAPI {
             queryItems: [
                 URLQueryItem(name: "fileName", value: upload.fileName),
                 URLQueryItem(name: "title", value: upload.title)
-            ],
+            ] + (upload.folderId.map { [URLQueryItem(name: "folderId", value: $0)] } ?? []),
             body: upload.data,
             contentType: upload.mimeType
         ))
@@ -448,12 +488,12 @@ public struct HTTPPortalAPI: PortalAPI {
     private func uploadDirect(_ upload: FileUpload, to record: RecordRef) async throws -> PortalFile {
         struct Start: Encodable { let fileName: String; let size: Int }
         struct Started: Decodable { let path: String; let uploadUrl: String }
-        struct Finish: Encodable { let path: String; let fileName: String; let title: String; let mimeType: String }
+        struct Finish: Encodable { let path: String; let fileName: String; let title: String; let mimeType: String; let folderId: String? }
         let base = "/\(record.collectionPath)/\(escaped(record.id))/files"
         let started: Started = try await post("\(base)/start", body: Start(fileName: upload.fileName, size: upload.data.count))
         guard let url = URL(string: started.uploadUrl) else { throw PortalAPIError.rejected("The file couldn't be uploaded. Try again.") }
         try await directUploader.upload(to: url, mimeType: upload.mimeType, data: upload.data)
-        return try await post("\(base)/finish", body: Finish(path: started.path, fileName: upload.fileName, title: upload.title, mimeType: upload.mimeType))
+        return try await post("\(base)/finish", body: Finish(path: started.path, fileName: upload.fileName, title: upload.title, mimeType: upload.mimeType, folderId: upload.folderId))
     }
 
     public func requestAccountDeletion(reason: String?) async throws -> AccountDeletionRequest {

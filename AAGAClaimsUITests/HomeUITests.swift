@@ -85,8 +85,8 @@ final class HomeUITests: XCTestCase {
         let overdue = app.buttons["attention-overdueTasks"]
         XCTAssertTrue(overdue.exists)
         XCTAssertTrue(overdue.label.contains("overdue"), overdue.label)
-        // Above Upcoming.
-        XCTAssertLessThan(overdue.frame.minY, element(containing: "Upcoming").frame.minY)
+        // Above the Recent activity card of tasks and events.
+        XCTAssertLessThan(overdue.frame.minY, element(containing: "Recent activity").frame.minY)
         let complete = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'attentionComplete-'")).firstMatch
         if complete.exists {
             app.scrollIntoView(complete)

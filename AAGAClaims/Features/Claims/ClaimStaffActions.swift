@@ -61,7 +61,7 @@ enum ClaimAction: String, Identifiable, CaseIterable {
 /// The claim's action row (staff only): Post, Event, Status, Task, Contact and so on, as icon tiles on the page. As many
 /// as fit the width show (about five on an iPhone); the rest are in More. Edit Claim is the pencil in the header.
 struct ClaimQuickActions: View {
-    /// In-house e-sign (pilot users only); shown in More when set.
+    /// Documents (pick a template, preview it, send it for signature), the same button the website has. It sits after Task.
     var onESign: (() -> Void)? = nil
     /// Actions the server doesn't support yet (e.g. Write Portal Update).
     var hidden: Set<ClaimAction> = []
@@ -72,7 +72,8 @@ struct ClaimQuickActions: View {
             RecordActionItem(id: action.rawValue, title: action.shortTitle, menuTitle: action.title, icon: action.icon) { open(action) }
         }
         if let onESign {
-            items.append(RecordActionItem(id: "eSign", title: "E-Sign", menuTitle: "E-Sign", icon: "signature", action: onESign))
+            let documents = RecordActionItem(id: "eSign", title: "Documents", menuTitle: "Documents", icon: "doc.text", action: onESign)
+            if let task = items.firstIndex(where: { $0.id == ClaimAction.task.rawValue }) { items.insert(documents, at: task + 1) } else { items.append(documents) }
         }
         return RecordActionRow(items: items, idPrefix: "claimAction")
     }

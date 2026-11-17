@@ -77,6 +77,8 @@ public actor MockPortalAPI: PortalAPI {
     }
 
     private var data: Fixtures
+    /// Demo folders per record, empty until staff make some.
+    private var folderStore: [String: [PortalFolder]] = [:]
     private let latency: Duration
     /// When set, every call throws this error. Used for error-state previews and tests.
     private var failure: PortalAPIError?
@@ -226,6 +228,53 @@ public actor MockPortalAPI: PortalAPI {
         try await simulate()
         try requireRecord(record)
         return data.files[record.id] ?? []
+    }
+
+    public func folders(for record: RecordRef) async throws -> [PortalFolder] {
+        try await simulate()
+        try requireRecord(record)
+        return folderStore[record.id] ?? []
+    }
+
+    public func createFolder(named name: String, parentId: String?, in record: RecordRef) async throws -> PortalFolder {
+        try await simulate()
+        try requireRecord(record)
+        let folder = PortalFolder(id: makeId(prefix: "fld"), name: name, parentId: parentId)
+        folderStore[record.id, default: []].append(folder)
+        return folder
+    }
+
+    public func changeFolder(_ id: String, _ change: FolderChange, in record: RecordRef) async throws {
+        try await simulate()
+        try requireRecord(record)
+        var all = folderStore[record.id] ?? []
+        guard let index = all.firstIndex(where: { $0.id == id }) else { throw PortalAPIError.notFound }
+        let f = all[index]
+        switch change {
+        case .rename(let name): all[index] = PortalFolder(id: f.id, name: name, parentId: f.parentId, portalVisible: f.portalVisible)
+        case .setPortalVisible(let v): all[index] = PortalFolder(id: f.id, name: f.name, parentId: f.parentId, portalVisible: v)
+        case .move(let parent): all[index] = PortalFolder(id: f.id, name: f.name, parentId: parent, portalVisible: f.portalVisible)
+        case .delete:
+            // Its files and subfolders move up a level.
+            all.remove(at: index)
+            for i in all.indices where all[i].parentId == id { all[i] = PortalFolder(id: all[i].id, name: all[i].name, parentId: f.parentId, portalVisible: all[i].portalVisible) }
+            data.files[record.id] = (data.files[record.id] ?? []).map { var file = $0; if file.folderId == id { file.folderId = f.parentId }; return file }
+        }
+        folderStore[record.id] = all
+    }
+
+    public func organizeFiles(_ ids: [String], _ op: FileOrganizeOp, folderId: String?, in record: RecordRef) async throws {
+        try await simulate()
+        try requireRecord(record)
+        let chosen = Set(ids)
+        var files = data.files[record.id] ?? []
+        switch op {
+        case .move: for i in files.indices where chosen.contains(files[i].id) { files[i].folderId = folderId }
+        case .show, .hide: for i in files.indices where chosen.contains(files[i].id) { files[i].portalVisible = (op == .show) }
+        case .remove: files.removeAll { chosen.contains($0.id) }
+        case .restore: break
+        }
+        data.files[record.id] = files
     }
 
     public func addComment(to record: RecordRef, text: String) async throws {
@@ -589,7 +638,9 @@ public actor MockPortalAPI: PortalAPI {
             fileType: FileUploadRules.fileExtension(of: upload.fileName).uppercased(),
             contentSize: upload.data.count,
             createdDate: Date(),
-            createdByName: "You"
+            createdByName: "You",
+            folderId: upload.folderId,
+            portalVisible: false
         )
         data.files[record.id, default: []].insert(file, at: 0)
         fileContents[file.contentDocumentId] = upload.data

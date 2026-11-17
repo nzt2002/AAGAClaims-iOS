@@ -117,8 +117,25 @@ public actor CachingPortalAPI: PortalAPI {
     public func files(for record: RecordRef) async throws -> [PortalFile] {
         try await read("\(record.collectionPath)/\(record.id)/files") { try await $0.files(for: record) }
     }
+    public func folders(for record: RecordRef) async throws -> [PortalFolder] {
+        try await read("\(record.collectionPath)/\(record.id)/folders") { try await $0.folders(for: record) }
+    }
+    public func createFolder(named name: String, parentId: String?, in record: RecordRef) async throws -> PortalFolder {
+        try requireOnline()
+        return try await guarded { try await $0.createFolder(named: name, parentId: parentId, in: record) }
+    }
+    public func changeFolder(_ id: String, _ change: FolderChange, in record: RecordRef) async throws {
+        try requireOnline()
+        try await guarded { try await $0.changeFolder(id, change, in: record) }
+    }
+    public func organizeFiles(_ ids: [String], _ op: FileOrganizeOp, folderId: String?, in record: RecordRef) async throws {
+        try await ensureOnlineThen { try await $0.organizeFiles(ids, op, folderId: folderId, in: record) }
+    }
     public func activity() async throws -> [ActivityItem] { try await read("activity") { try await $0.activity() } }
     public func agenda() async throws -> Agenda { try await read("agenda") { try await $0.agenda() } }
+    public func waitingSignatures() async throws -> WaitingSignatures { try await read("signatures/waiting") { try await $0.waitingSignatures() } }
+    public func completedTasks() async throws -> [AgendaItem] { try await read("agenda/completed") { try await $0.completedTasks() } }
+    public func openCases(limit: Int) async throws -> [SupportCase] { try await read("cases/open/\(limit)") { try await $0.openCases(limit: limit) } }
 
     public func activitySubjects() async throws -> ActivitySubjects {
         try requireOnline()
@@ -489,6 +506,11 @@ public actor CachingPortalAPI: PortalAPI {
     public func signatureRequests(for record: RecordRef) async throws -> [SignatureRequestSummary] {
         try requireOnline()
         return try await guarded { try await $0.signatureRequests(for: record) }
+    }
+
+    private func ensureOnlineThen(_ call: @Sendable (PortalAPI) async throws -> Void) async throws {
+        try requireOnline()
+        try await guarded(call)
     }
 
     private func guarded<T: Sendable>(_ call: @Sendable (PortalAPI) async throws -> T) async throws -> T {
