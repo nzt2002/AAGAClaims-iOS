@@ -54,6 +54,14 @@ public protocol PortalAPI: Sendable {
     func agenda() async throws -> Agenda
     /// `GET /agenda/completed`: the user's latest finished tasks. Fetched only when Home's "show completed" is on.
     func completedTasks() async throws -> [AgendaItem]
+    /// Your own settings (`/settings/me`): name, phone and email alerts. Servers with `appSettings`.
+    func mySettings() async throws -> MySettings
+    func saveMySettings(fullName: String, phone: String) async throws
+    func saveEmailAlerts(_ on: [String: Bool]) async throws
+    func changePassword(current: String, new: String) async throws
+    /// The company's everyday settings (`/settings/company`), staff only.
+    func companySettings() async throws -> CompanySettings
+    func saveCompanySetting(_ change: CompanySettingChange) async throws
     /// `GET /signatures/waiting`: documents waiting on a signature (staff).
     func waitingSignatures() async throws -> WaitingSignatures
     /// `GET /cases?open=1&limit=`: a few open support requests for Home.
@@ -327,6 +335,12 @@ public extension PortalAPI {
     /// Servers without the Home endpoints: no completed tasks, and open cases cut from the full list.
     func completedTasks() async throws -> [AgendaItem] { [] }
     func waitingSignatures() async throws -> WaitingSignatures { .none }
+    func mySettings() async throws -> MySettings { throw PortalAPIError.notFound }
+    func saveMySettings(fullName: String, phone: String) async throws { throw PortalAPIError.notFound }
+    func saveEmailAlerts(_ on: [String: Bool]) async throws { throw PortalAPIError.notFound }
+    func changePassword(current: String, new: String) async throws { throw PortalAPIError.notFound }
+    func companySettings() async throws -> CompanySettings { throw PortalAPIError.notFound }
+    func saveCompanySetting(_ change: CompanySettingChange) async throws { throw PortalAPIError.notFound }
     func openCases(limit: Int) async throws -> [SupportCase] {
         Array(try await cases().filter { !$0.isClosed }.prefix(limit))
     }

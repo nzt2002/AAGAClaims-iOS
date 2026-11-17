@@ -213,6 +213,49 @@ public struct HTTPPortalAPI: PortalAPI {
         try await get("/agenda")
     }
 
+    public func mySettings() async throws -> MySettings { try await get("/settings/me") }
+
+    public func saveMySettings(fullName: String, phone: String) async throws {
+        struct Body: Encodable { let fullName: String; let phone: String }
+        struct Done: Decodable { let ok: Bool? }
+        let _: Done = try await post("/settings/me", body: Body(fullName: fullName, phone: phone))
+    }
+
+    public func saveEmailAlerts(_ on: [String: Bool]) async throws {
+        struct Body: Encodable { let prefs: [String: Bool] }
+        struct Done: Decodable { let ok: Bool? }
+        let _: Done = try await post("/settings/me/alerts", body: Body(prefs: on))
+    }
+
+    public func changePassword(current: String, new: String) async throws {
+        struct Body: Encodable { let currentPassword: String; let password: String }
+        struct Done: Decodable { let ok: Bool? }
+        let _: Done = try await post("/settings/me/password", body: Body(currentPassword: current, password: new))
+    }
+
+    public func companySettings() async throws -> CompanySettings { try await get("/settings/company") }
+
+    public func saveCompanySetting(_ change: CompanySettingChange) async throws {
+        struct Body: Encodable {
+            let action: String
+            var markText: String?, brandColor: String?
+            var claims: String?, leads: String?
+            var enabled: Bool?, ownerId: String?, keepGroup: Bool?
+            var staff: Bool?, portal: Bool?
+            var event: String?
+        }
+        var body: Body
+        switch change {
+        case .brand(let mark, let color): body = Body(action: "brand", markText: mark, brandColor: color)
+        case .visibility(let claims, let leads): body = Body(action: "visibility", claims: claims, leads: leads)
+        case .webLeads(let enabled, let owner, let keep): body = Body(action: "webLeads", enabled: enabled, ownerId: owner, keepGroup: keep)
+        case .uploadRules(let staff, let portal): body = Body(action: "uploadRules", staff: staff, portal: portal)
+        case .message(let event, let enabled): body = Body(action: "message", enabled: enabled, event: event)
+        }
+        struct Done: Decodable { let ok: Bool? }
+        let _: Done = try await post("/settings/company", body: body)
+    }
+
     public func waitingSignatures() async throws -> WaitingSignatures {
         try await get("/signatures/waiting")
     }

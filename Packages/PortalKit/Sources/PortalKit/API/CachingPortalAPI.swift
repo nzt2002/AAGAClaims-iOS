@@ -133,6 +133,14 @@ public actor CachingPortalAPI: PortalAPI {
     }
     public func activity() async throws -> [ActivityItem] { try await read("activity") { try await $0.activity() } }
     public func agenda() async throws -> Agenda { try await read("agenda") { try await $0.agenda() } }
+    // Settings are read fresh and written online only
+    public func mySettings() async throws -> MySettings { try requireOnline(); return try await guarded { try await $0.mySettings() } }
+    public func saveMySettings(fullName: String, phone: String) async throws { try requireOnline(); try await guarded { try await $0.saveMySettings(fullName: fullName, phone: phone) } }
+    public func saveEmailAlerts(_ on: [String: Bool]) async throws { try requireOnline(); try await guarded { try await $0.saveEmailAlerts(on) } }
+    public func changePassword(current: String, new: String) async throws { try requireOnline(); try await guarded { try await $0.changePassword(current: current, new: new) } }
+    public func companySettings() async throws -> CompanySettings { try requireOnline(); return try await guarded { try await $0.companySettings() } }
+    public func saveCompanySetting(_ change: CompanySettingChange) async throws { try requireOnline(); try await guarded { try await $0.saveCompanySetting(change) } }
+
     public func waitingSignatures() async throws -> WaitingSignatures { try await read("signatures/waiting") { try await $0.waitingSignatures() } }
     public func completedTasks() async throws -> [AgendaItem] { try await read("agenda/completed") { try await $0.completedTasks() } }
     public func openCases(limit: Int) async throws -> [SupportCase] { try await read("cases/open/\(limit)") { try await $0.openCases(limit: limit) } }

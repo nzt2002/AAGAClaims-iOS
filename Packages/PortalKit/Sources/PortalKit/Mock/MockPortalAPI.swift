@@ -79,6 +79,22 @@ public actor MockPortalAPI: PortalAPI {
     private var data: Fixtures
     /// Demo folders per record, empty until staff make some.
     private var folderStore: [String: [PortalFolder]] = [:]
+    /// Demo settings, kept for the session.
+    private var mySettingsStore = MySettings(fullName: "Alex Smith", email: "alex@example.com", phone: "(404) 555-0100", canEditProfile: true, emailAlerts: [
+        EmailAlert(kind: "mention", label: "Someone @mentions you", hint: "In a post or comment on a claim or lead", on: true),
+        EmailAlert(kind: "task", label: "A task is given to you", hint: "When someone assigns you a task", on: true),
+        EmailAlert(kind: "file_upload", label: "Policyholder uploads a file", hint: "To a claim you're on", on: false),
+    ])
+    private var companyStore = CompanySettings(
+        name: "Demo Adjusters", markText: "DA", brandColor: "#0B5CAB", claimVisibility: "all", leadVisibility: "all",
+        webLeads: .init(enabled: true, ownerId: nil, ownerIsGroup: false), uploadRules: .init(staffFolderRequired: true, portalFolderRequired: true),
+        messages: [
+            .init(event: "portal_update", label: "An update on their claim", audience: "homeowner", when: "When your team publishes news on a claim", enabled: true),
+            .init(event: "payment", label: "A payment", audience: "homeowner", when: "When a payment is recorded on their claim", enabled: true),
+            .init(event: "task", label: "A task is given to them", audience: "team", when: "When someone assigns them a task", enabled: true),
+        ],
+        people: [.init(id: "m1", name: "Alex Smith"), .init(id: "m2", name: "Jane Doe")],
+        can: .init(brand: true, visibility: true, webLeads: true, uploadRules: true, messages: true))
     private let latency: Duration
     /// When set, every call throws this error. Used for error-state previews and tests.
     private var failure: PortalAPIError?
@@ -275,6 +291,40 @@ public actor MockPortalAPI: PortalAPI {
         case .restore: break
         }
         data.files[record.id] = files
+    }
+
+    public func mySettings() async throws -> MySettings { try await simulate(); return mySettingsStore }
+
+    public func saveMySettings(fullName: String, phone: String) async throws {
+        try await simulate()
+        mySettingsStore.fullName = fullName
+        mySettingsStore.phone = phone
+    }
+
+    public func saveEmailAlerts(_ on: [String: Bool]) async throws {
+        try await simulate()
+        for i in mySettingsStore.emailAlerts.indices { if let v = on[mySettingsStore.emailAlerts[i].kind] { mySettingsStore.emailAlerts[i].on = v } }
+    }
+
+    public func changePassword(current: String, new: String) async throws {
+        try await simulate()
+        if new.count < 8 { throw PortalAPIError.rejected("Use at least 8 characters.") }
+    }
+
+    public func companySettings() async throws -> CompanySettings { try await simulate(); return companyStore }
+
+    public func saveCompanySetting(_ change: CompanySettingChange) async throws {
+        try await simulate()
+        switch change {
+        case .brand(let mark, let color): companyStore.markText = mark.isEmpty ? nil : mark; companyStore.brandColor = color.isEmpty ? nil : color
+        case .visibility(let claims, let leads):
+            if let claims { companyStore.claimVisibility = claims }
+            if let leads { companyStore.leadVisibility = leads }
+        case .webLeads(let enabled, let owner, _): companyStore.webLeads = .init(enabled: enabled, ownerId: owner, ownerIsGroup: false)
+        case .uploadRules(let staff, let portal): companyStore.uploadRules = .init(staffFolderRequired: staff, portalFolderRequired: portal)
+        case .message(let event, let enabled):
+            if let i = companyStore.messages.firstIndex(where: { $0.event == event }) { companyStore.messages[i].enabled = enabled }
+        }
     }
 
     public func addComment(to record: RecordRef, text: String) async throws {

@@ -193,9 +193,10 @@ final class ClaimActionsUITests: XCTestCase {
 
     func testIdFieldAndEmailQuotesIt() {
         open("email")
-        let body = app.textViews["emailBody"].exists ? app.textViews["emailBody"] : app.textFields["emailBody"]
-        XCTAssertTrue(body.waitForExistence(timeout: 5))
-        XCTAssertTrue((body.value as? String ?? "").contains("[ref_ (a23000000000001AAA)]"), String(describing: body.value))
+        // The email ID is added below the message, as a footer, so replies are filed on the claim.
+        let footer = app.staticTexts["emailFooter"]
+        XCTAssertTrue(footer.waitForExistence(timeout: 5))
+        XCTAssertTrue(footer.label.contains("[ref_ (a23000000000001AAA)]"), footer.label)
         app.buttons["actionCancel"].tap()
 
         let details = app.buttons["Details"]

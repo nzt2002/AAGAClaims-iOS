@@ -53,6 +53,19 @@ struct AccountView: View {
                 LabeledContent("Email", value: user.email)
             }
 
+            if serverMeta.supports(.appSettings) {
+                Section {
+                    NavigationLink("Your Settings") { YourSettingsView(api: session.api) }
+                        .accessibilityIdentifier("yourSettingsLink")
+                    if user.isInternal {
+                        NavigationLink("Company Settings") { CompanySettingsView(api: session.api) }
+                            .accessibilityIdentifier("companySettingsLink")
+                    }
+                } footer: {
+                    Text(user.isInternal ? "The everyday ones. The rest are on the website." : "Your alerts and password.")
+                }
+            }
+
             Section {
                 Toggle("Notifications", isOn: notificationsBinding)
                     .accessibilityIdentifier("notificationsToggle")

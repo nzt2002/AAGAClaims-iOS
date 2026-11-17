@@ -171,6 +171,8 @@ public struct ServerMeta: Codable, Hashable, Sendable {
         case voiceRecording
         /// Folders on a record's Files tab (`GET /{record}/folders`) and staff organising files.
         case fileFolders
+        /// Settings screens (`/settings/me`, `/settings/company`).
+        case appSettings
     }
 }
 
