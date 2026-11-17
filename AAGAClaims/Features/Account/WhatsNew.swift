@@ -24,6 +24,13 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.13.0", date: "Nov 16, 2026", items: [
+            Item(icon: "gearshape", title: "Settings",
+                 detail: "Account now has Your Settings: your name and phone, which alerts also come by email, and your password."),
+            Item(icon: "building.2", title: "Company settings",
+                 detail: "Owners and managers can change the everyday company settings here: brand colour and badge, who sees which claims and leads, the website form, uploads, and which messages are sent. The rest are on the website.",
+                 staffOnly: true),
+        ]),
         Release(version: "3.12.0", date: "Nov 16, 2026", items: [
             Item(icon: "house", title: "A new Home",
                  detail: "Recent activity lists your tasks and events in a card you can scroll, with a ⋯ menu to show or hide completed tasks. Below it: open support requests, documents waiting for a signature, and your three latest claims."),
