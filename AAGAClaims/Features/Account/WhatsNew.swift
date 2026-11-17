@@ -24,6 +24,10 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.13.1", date: "Nov 16, 2026", items: [
+            Item(icon: "textformat", title: "Plainer wording",
+                 detail: "Messages in the app no longer name other software. Nothing else changed."),
+        ]),
         Release(version: "3.13.0", date: "Nov 16, 2026", items: [
             Item(icon: "gearshape", title: "Settings",
                  detail: "Account now has Your Settings: your name and phone, which alerts also come by email, and your password."),
@@ -304,7 +308,7 @@ enum WhatsNew {
         ]),
         Release(version: "0.4.2", date: "Oct 19, 2026", items: [
             Item(icon: "person.badge.key", title: "Sign in right in the app",
-                 detail: "Enter your username and password on the app's own sign-in screen. No more web page. Staff sign in with \"Staff? Sign in with Salesforce\"."),
+                 detail: "Enter your username and password on the app's own sign-in screen. No more web page. Staff sign in with \"Staff? Sign in with your work account\"."),
         ]),
         Release(version: "0.4.1", date: "Oct 19, 2026", items: [
             Item(icon: "sparkles", title: "A fresh welcome",
@@ -332,7 +336,7 @@ enum WhatsNew {
             Item(icon: "ipad.landscape", title: "iPad",
                  detail: "ProClaimer runs on iPad, with your list and the claim or lead side by side."),
             Item(icon: "checkmark.circle.fill", title: "Work on tasks from their page",
-                 detail: "Mark a task complete, edit it, or reassign it, without going to Salesforce. Events can be edited and reassigned too.",
+                 detail: "Mark a task complete, edit it, or reassign it, without leaving the app. Events can be edited and reassigned too.",
                  staffOnly: true),
             Item(icon: "clock.arrow.circlepath", title: "Recent activity on leads, with emails",
                  detail: "Leads now have Recent activity, and emails sent and received on a claim or lead appear there, with their own page.",
@@ -392,7 +396,7 @@ enum WhatsNew {
             Item(icon: "mappin.and.ellipse", title: "Address lookup",
                  detail: "Addresses fill in as you type on New Lead and New Claim."),
             Item(icon: "doc.badge.plus", title: "New Claim",
-                 detail: "Create a claim from Home, with the same duplicate checks as Salesforce.",
+                 detail: "Create a claim from Home, with duplicate checks.",
                  staffOnly: true),
         ]),
         Release(version: "0.1.0", date: "Oct 13, 2026", items: [

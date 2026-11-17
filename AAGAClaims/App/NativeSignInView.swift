@@ -5,7 +5,7 @@ import UIKit
 
 /// The app's own sign-in screen (Mobile SDK native login over Salesforce's Headless Identity API),
 /// so portal users never see a web page. The SDK shows it whenever sign-in is needed. Staff, whose
-/// accounts can't use headless login, tap "Staff? Sign in with Salesforce" for the web sign-in.
+/// accounts can't use headless login, tap "Staff? Sign in with your work account" for the web sign-in.
 struct NativeSignInView: View {
     @State private var username = ""
     @State private var password = ""

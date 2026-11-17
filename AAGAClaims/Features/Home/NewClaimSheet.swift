@@ -708,7 +708,7 @@ private struct DuplicateContactStep: View {
     var body: some View {
         Form {
             Section {
-                Text("Salesforce found a matching contact already on file. Use the existing contact, or create the claim without a contact.")
+                Text("A matching contact is already on file. Use the existing contact, or create the claim without a contact.")
             }
             Section("Existing contacts") {
                 ForEach(viewModel.duplicateContacts) { contact in

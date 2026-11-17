@@ -652,9 +652,9 @@ private struct ProofOfLossForm: View {
                 .accessibilityIdentifier("polGenerate")
             } footer: {
                 Text(salesforcePage == nil
-                     ? "Document generation opens in Salesforce, which isn't available in demo mode."
+                     ? "Document generation isn't available in demo mode."
                      : staff.proofOfLoss.isComplete
-                        ? "Opens Salesforce's document generator, already signed in."
+                        ? "Opens the document generator, already signed in."
                         : "Save all 13 fields first.")
             }
         }
@@ -944,7 +944,7 @@ private struct AddContactForm: View {
     private var duplicate: some View {
         Group {
             Section {
-                Text("Salesforce found a matching contact already on file. Add the existing contact, or don't add one.")
+                Text("A matching contact is already on file. Add the existing contact, or don't add one.")
             }
             Section("Existing contacts") {
                 ForEach(model.duplicates) { contact in
@@ -1098,7 +1098,7 @@ private struct EmailForm: View {
                             .font(.footnote.monospaced())
                             .accessibilityIdentifier("emailFooter")
                     }
-                    Text("Sent through Salesforce and saved to the claim's activity. The email ID is added at the bottom.")
+                    Text("Sent through ProClaimer and saved to the claim's activity. The email ID is added at the bottom.")
                 }
             }
             ErrorRow(message: model.errorMessage)

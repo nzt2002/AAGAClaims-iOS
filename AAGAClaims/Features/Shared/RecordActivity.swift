@@ -407,7 +407,7 @@ struct ActivityDetailView: View {
                     } label: {
                         Image(systemName: "safari")
                     }
-                    .accessibilityLabel("Open in Salesforce")
+                    .accessibilityLabel("Open on the web")
                     .accessibilityIdentifier("activityOpenInSalesforce")
                 }
             }
@@ -503,7 +503,7 @@ struct ActivityDetailView: View {
             FieldRow(label: "Cc", value: item.ccAddress, systemImage: "person.2")
             FieldRow(label: item.isIncoming == true ? "Received" : "Sent",
                      value: item.startDateTime?.formatted(date: .abbreviated, time: .shortened), systemImage: "clock")
-            FieldRow(label: "Attachments", value: item.hasAttachment == true ? "Yes. Open the email in Salesforce to see them." : nil,
+            FieldRow(label: "Attachments", value: item.hasAttachment == true ? "Yes. Open the email on the web to see them." : nil,
                      systemImage: "paperclip")
             FieldRow(label: "Related to", value: relatedTo, systemImage: "doc.text")
         }

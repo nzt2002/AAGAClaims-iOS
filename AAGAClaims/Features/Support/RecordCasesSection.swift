@@ -53,7 +53,7 @@ struct RecordCasesSection: View {
             }
             .buttonStyle(.plain)
             .disabled(salesforcePage == nil)
-            .accessibilityHint("Opens the case in Salesforce")
+            .accessibilityHint("Opens the case")
             .accessibilityIdentifier("recordCase-\(supportCase.caseId)")
         } else {
             NavigationLink(value: CaseRoute(id: supportCase.caseId)) {
