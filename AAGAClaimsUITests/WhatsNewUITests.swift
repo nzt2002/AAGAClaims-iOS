@@ -15,8 +15,8 @@ final class WhatsNewUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["What's New"].exists || app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS \"What's New\"")).firstMatch.exists)
         let items = app.descendants(matching: .any).matching(identifier: "whatsNewItem")
         // The current version's notes; staff see the staff items too.
-        XCTAssertEqual(items.count, 8)
-        XCTAssertTrue(items.element(boundBy: 0).label.contains("A Cases tab"), items.element(boundBy: 0).label)
+        XCTAssertEqual(items.count, 1)
+        XCTAssertTrue(items.element(boundBy: 0).label.contains("Claims and leads match the website"), items.element(boundBy: 0).label)
         continueButton.tap()
         XCTAssertFalse(continueButton.waitForExistence(timeout: 2))
 
@@ -35,7 +35,7 @@ final class WhatsNewUITests: XCTestCase {
         notes.tap()
         XCTAssertTrue(app.descendants(matching: .any)["currentVersionBadge"].firstMatch.waitForExistence(timeout: 5))
         let older = app.descendants(matching: .any)["release-0.2.3"].firstMatch
-        app.scrollIntoView(older)
+        for _ in 0..<4 where !older.exists { app.scrollIntoView(older) }  // each release adds length
         XCTAssertTrue(older.exists, "Older versions are kept")
     }
 
@@ -47,6 +47,7 @@ final class WhatsNewUITests: XCTestCase {
         app.dismissSystemAlerts()
         app.buttons["accountButton"].firstMatch.tap()
         let delete = app.buttons["deleteAccount"]
+        app.scrollIntoView(delete)  // the list is lazy: scroll down first
         XCTAssertTrue(delete.waitForExistence(timeout: 10))
         app.scrollIntoView(delete)
         delete.tap()
@@ -73,6 +74,7 @@ final class WhatsNewUITests: XCTestCase {
             if alert.waitForExistence(timeout: 5) { alert.buttons["Allow"].tap() }
         }
         let payments = app.switches["notificationKind-payments"].firstMatch
+        app.scrollIntoView(payments)
         if !payments.waitForExistence(timeout: 10) {
             let shot = XCTAttachment(screenshot: app.screenshot()); shot.lifetime = .keepAlways; add(shot)
             try? app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: "/tmp/claude-501/acct.png"))

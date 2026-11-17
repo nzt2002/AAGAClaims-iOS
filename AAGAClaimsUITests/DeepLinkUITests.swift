@@ -18,7 +18,7 @@ final class DeepLinkUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.staticTexts["Welcome back, Alex!"].waitForExistence(timeout: 10))
         app.open(URL(string: "aagaclaims://claim/a23000000000002AAA")!)
-        XCTAssertTrue(element(containing: "Claim CLM-2210").waitForExistence(timeout: 10))
+        XCTAssertTrue(element(containing: "CLM-2210").waitForExistence(timeout: 10))
         XCTAssertTrue(app.tabBars.buttons["Home"].isSelected, "Opens on top of the current screen")
     }
 

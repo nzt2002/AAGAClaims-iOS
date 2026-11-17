@@ -488,7 +488,8 @@ struct ShareUpdateButton: View {
                 .font(.headline)
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity, minHeight: Theme.minTapTarget + 8)
-                .background(BrandGradient.record(isLead: isLead, colorScheme), in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+                .background(Color.recordAccent(isLead: isLead), in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+                .shadow(color: Color.black.opacity(0.08), radius: 6, y: 2)
         }
         .buttonStyle(ActionCirclePressStyle())
         .disabledWhenOffline(isOffline)

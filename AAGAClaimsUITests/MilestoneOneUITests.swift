@@ -45,6 +45,7 @@ final class MilestoneOneUITests: XCTestCase {
 
     func testSignOutReturnsToSplash() {
         app.buttons["accountButton"].firstMatch.tap()
+        app.scrollIntoView(app.buttons["signOut"])
         app.buttons["signOut"].tap()
         app.sheets.buttons["Sign out"].firstMatch.tap()
         XCTAssertTrue(app.buttons["continueDemo"].waitForExistence(timeout: 5))

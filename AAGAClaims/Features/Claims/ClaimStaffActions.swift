@@ -41,7 +41,7 @@ enum ClaimAction: String, Identifiable, CaseIterable {
     }
 
     /// The action row, in order. Where it runs out of width, the rest go in the More menu.
-    static let row: [ClaimAction] = [.post, .event, .status, .task, .addContact, .email, .portalUpdate, .address, .owner, .proofOfLoss, .payments]
+    static let row: [ClaimAction] = [.event, .post, .status, .addContact, .task, .proofOfLoss, .portalUpdate, .email, .owner, .address, .payments]
 
     /// The label under a round action button.
     var shortTitle: String {

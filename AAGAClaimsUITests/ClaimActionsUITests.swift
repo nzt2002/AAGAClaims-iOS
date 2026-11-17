@@ -14,7 +14,7 @@ final class ClaimActionsUITests: XCTestCase {
         let card = app.buttons["claimCard-a23000000000001AAA"]
         XCTAssertTrue(card.waitForExistence(timeout: 20))
         card.tap()
-        XCTAssertTrue(app.staticTexts["Claim CLM-1234"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["CLM-1234"].waitForExistence(timeout: 5))
     }
 
     private func element(containing text: String) -> XCUIElement {
@@ -64,7 +64,7 @@ final class ClaimActionsUITests: XCTestCase {
         let more = app.buttons["claimActionMore"]
         XCTAssertTrue(more.exists)
         let post = app.buttons["claimAction-post"]
-        XCTAssertLessThan(app.staticTexts["Claim CLM-1234"].frame.maxY, post.frame.minY)
+        XCTAssertLessThan(app.staticTexts["CLM-1234"].frame.maxY, post.frame.minY)
         XCTAssertEqual(post.frame.midY, more.frame.midY, accuracy: 2)
         XCTAssertFalse(app.buttons["claimAction-email"].exists, "The rest are in More")
         more.tap()
@@ -76,14 +76,10 @@ final class ClaimActionsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["actionCancel"].waitForExistence(timeout: 5))
         app.buttons["actionCancel"].tap()
 
-        // Progress is collapsed; the status stays visible and prominent.
-        let toggle = app.buttons["claimProgressToggle"]
-        app.scrollIntoView(toggle)
-        XCTAssertTrue(toggle.label.contains("Inspection"), toggle.label)
-        XCTAssertFalse(app.staticTexts["Restoration"].exists)
-        toggle.tap()
-        XCTAssertTrue(app.staticTexts["Restoration"].waitForExistence(timeout: 5))
-        toggle.tap()
+        // The stage track only shows where the claim is (the Status button changes it).
+        let track = app.descendants(matching: .any)["stageTrack"].firstMatch
+        app.scrollIntoView(track)
+        XCTAssertTrue(track.label.contains("Inspection"), track.label)
 
         // Updates default to the Feed for staff, with a Share update button above it.
         let filter = app.segmentedControls["updatesFilter"]
@@ -273,11 +269,6 @@ final class ClaimActionsUITests: XCTestCase {
     }
 
     func testStageGuideAndPaymentProgress() {
-        let guide = app.descendants(matching: .any)["stageGuide"].firstMatch
-        app.scrollIntoView(guide)
-        XCTAssertTrue(guide.exists)
-        XCTAssertTrue(element(containing: "What's next").exists)
-
         let payments = app.buttons["Payments"]
         app.scrollIntoView(payments)
         payments.tap()
@@ -307,7 +298,7 @@ final class ClaimActionsUITests: XCTestCase {
         XCTAssertTrue(element(containing: "Assigned to").exists)
         XCTAssertTrue(element(containing: "full policy").exists)
         app.navigationBars.buttons.firstMatch.tap()
-        XCTAssertTrue(app.staticTexts["Claim CLM-1234"].waitForExistence(timeout: 5), "Back on the claim")
+        XCTAssertTrue(app.staticTexts["CLM-1234"].waitForExistence(timeout: 5), "Back on the claim")
     }
 
     func testNewTaskShowsInActivities() {

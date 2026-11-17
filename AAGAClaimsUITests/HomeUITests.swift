@@ -115,6 +115,7 @@ final class HomeUITests: XCTestCase {
     /// Account opens from the profile button and closes with Done.
     func testProfileButtonOpensAccount() {
         app.buttons["accountButton"].firstMatch.tap()
+        app.scrollIntoView(app.buttons["signOut"])
         XCTAssertTrue(app.buttons["signOut"].waitForExistence(timeout: 5))
         app.buttons["accountDone"].tap()
         XCTAssertTrue(app.staticTexts["Welcome back, Alex!"].waitForExistence(timeout: 5))
@@ -126,7 +127,7 @@ final class HomeUITests: XCTestCase {
         XCTAssertTrue(post.label.contains("Carrier called back"))
         app.scrollIntoView(post)
         post.tap()
-        XCTAssertTrue(element(containing: "Claim CLM-1234").waitForExistence(timeout: 5))
+        XCTAssertTrue(element(containing: "CLM-1234").waitForExistence(timeout: 5))
     }
 
     func testNewEventAppearsInUpcoming() {
@@ -146,7 +147,7 @@ final class HomeUITests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 5))
         app.scrollIntoView(row)
         row.tap()
-        XCTAssertTrue(element(containing: "Claim CLM-1234").waitForExistence(timeout: 5))
+        XCTAssertTrue(element(containing: "CLM-1234").waitForExistence(timeout: 5))
         // Opened on top of Home, so Back returns there.
         XCTAssertTrue(app.tabBars.buttons["Home"].isSelected)
         app.navigationBars.buttons.firstMatch.tap()
@@ -158,7 +159,7 @@ final class HomeUITests: XCTestCase {
         let card = app.buttons["claimCard-a23000000000001AAA"]
         XCTAssertTrue(card.waitForExistence(timeout: 10))
         card.tap()
-        XCTAssertTrue(element(containing: "Claim CLM-1234").waitForExistence(timeout: 5))
+        XCTAssertTrue(element(containing: "CLM-1234").waitForExistence(timeout: 5))
 
         app.tabBars.buttons["Home"].tap()
         app.buttons["homeSearch"].tap()
@@ -168,13 +169,13 @@ final class HomeUITests: XCTestCase {
         let result = app.buttons["searchResult-a23000000000002AAA"]
         XCTAssertTrue(result.waitForExistence(timeout: 5))
         result.tap()
-        XCTAssertTrue(element(containing: "Claim CLM-2210").waitForExistence(timeout: 5), "The chosen claim opens")
-        XCTAssertFalse(element(containing: "Claim CLM-1234").exists)
+        XCTAssertTrue(element(containing: "CLM-2210").waitForExistence(timeout: 5), "The chosen claim opens")
+        XCTAssertFalse(element(containing: "CLM-1234").exists)
 
         app.navigationBars.buttons.firstMatch.tap()
         XCTAssertTrue(app.staticTexts["Welcome back, Alex!"].waitForExistence(timeout: 5), "Back returns to Home")
         app.tabBars.buttons["Claims"].tap()
-        XCTAssertTrue(element(containing: "Claim CLM-1234").waitForExistence(timeout: 5), "The Claims tab is where it was")
+        XCTAssertTrue(element(containing: "CLM-1234").waitForExistence(timeout: 5), "The Claims tab is where it was")
     }
 
     func testUpcomingEventOpensItsClaim() {
@@ -183,7 +184,7 @@ final class HomeUITests: XCTestCase {
         XCTAssertTrue(event.label.contains("Roof inspection"))
         app.scrollIntoView(event)
         event.tap()
-        XCTAssertTrue(element(containing: "Claim CLM-1234").waitForExistence(timeout: 5))
+        XCTAssertTrue(element(containing: "CLM-1234").waitForExistence(timeout: 5))
     }
 
     func testRecentActivityFilterAndHeaders() {
@@ -317,7 +318,7 @@ final class HomeUITests: XCTestCase {
         XCTAssertTrue(element(containing: "Inspection is booked for October 9.").waitForExistence(timeout: 5))
 
         app.buttons["openUpdateRecord"].tap()
-        XCTAssertTrue(element(containing: "Claim CLM-1234").waitForExistence(timeout: 5))
+        XCTAssertTrue(element(containing: "CLM-1234").waitForExistence(timeout: 5))
         XCTAssertTrue(app.tabBars.buttons["Home"].isSelected)
 
         // Opening the update marked it read.

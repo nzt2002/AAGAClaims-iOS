@@ -54,10 +54,12 @@ struct LeadQuickActions: View {
     var hidden: Set<LeadAction> = []
     let open: (LeadAction) -> Void
 
-    static let row: [LeadAction] = [.convert, .post, .event, .status, .task, .portalUpdate, .agreement]
+    static let row: [LeadAction] = [.event, .post, .status, .convert, .task, .agreement, .portalUpdate]
 
     var body: some View {
-        let items = Self.row.filter { !hidden.contains($0) }.map { action in
+        // Converted: no new event or status; "Open the claim" leads the row.
+        let order = isConverted ? [LeadAction.convert, .post, .task, .agreement, .portalUpdate] : Self.row
+        let items = order.filter { !hidden.contains($0) }.map { action in
             let viewClaim = action == .convert && isConverted
             return RecordActionItem(
                 id: action.rawValue,

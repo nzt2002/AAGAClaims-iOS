@@ -14,7 +14,7 @@ public final class LeadDetailViewModel {
         case insurance = "Insurance"
         case files = "Files"
         /// Last; only on servers with `recordCases`.
-        case cases = "Cases"
+        case cases = "Support"
     }
 
     /// One step of the agreement tracker: Sent → Signed.

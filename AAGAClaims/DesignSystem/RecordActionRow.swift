@@ -31,7 +31,7 @@ struct RecordActionRow: View {
         HStack(alignment: .top, spacing: 0) {
             ForEach(shown) { item in
                 Button(action: item.action) {
-                    ActionCircle(title: item.title, icon: item.icon)
+                    FlatActionTile(title: item.title, icon: item.icon)
                 }
                 .buttonStyle(ActionCirclePressStyle())
                 .disabledWhenOffline(isOffline)
@@ -46,7 +46,7 @@ struct RecordActionRow: View {
                             .accessibilityIdentifier("\(idPrefix)-\(item.id)")
                     }
                 } label: {
-                    ActionCircle(title: "More", icon: "ellipsis")
+                    FlatActionTile(title: "More", icon: "ellipsis")
                 }
                 .buttonStyle(ActionCirclePressStyle())
                 .disabledWhenOffline(isOffline)
@@ -58,5 +58,34 @@ struct RecordActionRow: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+    }
+}
+
+/// An action as the website's phone layout draws it: the icon in the record's colour over a small label, flat on the
+/// page with no circle, card or border.
+struct FlatActionTile: View {
+    let title: String
+    let icon: String
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.isLeadRecord) private var isLead
+    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 24
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: size, weight: .medium))
+                .foregroundStyle(Color.recordAccent(isLead: isLead))
+                .frame(height: size + 8)
+                .accessibilityHidden(true)
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.textPrimary.opacity(0.85))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .opacity(isEnabled ? 1 : 0.4)
+        .frame(maxWidth: .infinity, minHeight: Theme.minTapTarget + 12)
+        .contentShape(Rectangle())
     }
 }

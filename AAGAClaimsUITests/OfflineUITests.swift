@@ -16,7 +16,7 @@ final class OfflineUITests: XCTestCase {
         XCTAssertTrue(card.waitForExistence(timeout: 10))
         XCTAssertFalse(online.descendants(matching: .any)["offlineBanner"].exists)
         card.tap()
-        XCTAssertTrue(element(online, containing: "Claim CLM-1234").waitForExistence(timeout: 5))
+        XCTAssertTrue(element(online, containing: "CLM-1234").waitForExistence(timeout: 5))
         online.terminate()
 
         // 2. Offline: the same screens come from the cache.
@@ -29,7 +29,7 @@ final class OfflineUITests: XCTestCase {
         XCTAssertTrue(element(offline, containing: "You're offline. Showing data from").exists)
 
         cachedCard.tap()
-        XCTAssertTrue(element(offline, containing: "Claim CLM-1234").waitForExistence(timeout: 5))
+        XCTAssertTrue(element(offline, containing: "CLM-1234").waitForExistence(timeout: 5))
         XCTAssertFalse(offline.buttons["addComment"].exists, "Claims have no Add Comment")
         XCTAssertFalse(offline.buttons["requestAssistance"].isEnabled)
         XCTAssertTrue(element(offline, containing: "Available when you're back online.").exists)
@@ -41,6 +41,7 @@ final class OfflineUITests: XCTestCase {
         offline.launch()
         // Sign out clears the cache, so start from nothing.
         offline.buttons["accountButton"].firstMatch.tap()
+        offline.scrollIntoView(offline.buttons["signOut"])
         offline.buttons["signOut"].tap()
         offline.sheets.buttons["Sign out"].firstMatch.tap()
         offline.buttons["continueDemo"].tap()

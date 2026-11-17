@@ -15,7 +15,7 @@ public final class ClaimDetailViewModel {
         case files = "Files"
         case payments = "Payments"
         /// Last; only on servers with `recordCases`.
-        case cases = "Cases"
+        case cases = "Support"
     }
 
     public let claimId: String

@@ -58,12 +58,10 @@ final class LeadsUITests: XCTestCase {
         XCTAssertTrue(address.waitForExistence(timeout: 5))
         XCTAssertTrue(address.label.contains("Peachtree"), address.label)
 
-        // Progress is collapsed; the status stays visible.
-        let toggle = app.buttons["leadProgressToggle"]
-        app.scrollIntoView(toggle)
-        XCTAssertFalse(app.staticTexts["Qualified"].exists)
-        toggle.tap()
-        XCTAssertTrue(app.staticTexts["Qualified"].waitForExistence(timeout: 5))
+        // The stage track only shows where the lead is.
+        let track = app.descendants(matching: .any)["stageTrack"].firstMatch
+        app.scrollIntoView(track)
+        XCTAssertTrue(track.exists)
 
         // Referred By is a tab, right after Details.
         let details = app.buttons["Details"], referred = app.buttons["Referred By"]

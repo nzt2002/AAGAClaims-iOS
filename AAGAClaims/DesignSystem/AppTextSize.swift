@@ -40,10 +40,10 @@ extension DynamicTypeSize {
 /// environment still holds the iPhone's setting.
 struct AppTextSizeRoot<Content: View>: View {
     @AppStorage(AppTextSize.storageKey) private var size = AppTextSize.standard
-    @Environment(\.dynamicTypeSize) private var system
     @ViewBuilder let content: Content
 
     var body: some View {
-        content.dynamicTypeSize(system.stepped(by: size.steps))
+        // Reads the iPhone's current setting each time it changes, then adds the person's steps.
+        content.transformEnvironment(\.dynamicTypeSize) { $0 = $0.stepped(by: size.steps) }
     }
 }

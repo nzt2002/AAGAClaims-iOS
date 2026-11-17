@@ -129,10 +129,10 @@ struct ClaimDetailView: View {
                     // iPad: the hero across the top; the work (actions, stage, tabs) on the left and
                     // reference facts (address, money, people, activity) in a rail on the right.
                     VStack(alignment: .leading, spacing: Theme.Spacing.l) {
-                        ClaimHeader(detail: detail, position: detail.lifecycle, onEdit: isInternal ? { openAction = .edit } : nil)
+                        header(detail)
                         TwoColumns {
                             quickActions
-                            LifecycleCard(position: detail.lifecycle, status: detail.claimStatus)
+                            progress(detail)
                             SectionBar(selection: $viewModel.section, hidden: hiddenSections)
                             sectionContent(detail)
                         } rail: {
@@ -142,9 +142,9 @@ struct ClaimDetailView: View {
                     }
                 } else {
                     VStack(alignment: .leading, spacing: Theme.Spacing.l) {
-                        ClaimHeader(detail: detail, position: detail.lifecycle, onEdit: isInternal ? { openAction = .edit } : nil)
+                        header(detail)
                         quickActions
-                        LifecycleCard(position: detail.lifecycle, status: detail.claimStatus)
+                        progress(detail)
                         staffExtras
                         SectionBar(selection: $viewModel.section, hidden: hiddenSections)
                         sectionContent(detail)
@@ -169,6 +169,32 @@ struct ClaimDetailView: View {
         .recordActions(record: viewModel.record, recordName: recordName, api: api, placement: .toolbarIcon)
         .documentGeneration(record: viewModel.record, recordName: recordName, api: api,
                             isPresented: $showingESign, isAvailable: $eSignAvailable)
+    }
+
+    /// Staff get the website's header card; homeowners keep the progress ring.
+    @ViewBuilder
+    private func header(_ detail: ClaimDetail) -> some View {
+        if isInternal {
+            RecordCardHeader(
+                isLead: false, chip: detail.claimStatus, name: detail.claimName ?? "Claim",
+                facts: [("Claim no.", detail.claimNumber), ("Policy no.", detail.policyNumber)]
+                    .compactMap { label, value in PortalFormat.nonEmpty(value).map { (label: label, value: $0) } },
+                address: detail.lossAddress,
+                onEdit: { openAction = .edit }, editLabel: "Edit Claim", editIdentifier: "claimAction-edit")
+        } else {
+            ClaimHeader(detail: detail, position: detail.lifecycle)
+        }
+    }
+
+    /// Staff: the stage track, which only shows where the claim is. Homeowners: the progress card with what's happening.
+    @ViewBuilder
+    private func progress(_ detail: ClaimDetail) -> some View {
+        if isInternal {
+            StageTrackCard(stages: ClaimLifecycle.stages, current: { if case .stage(let i) = detail.lifecycle { i } else { nil } }(),
+                           fallbackLabel: detail.claimStatus, isLead: false)
+        } else {
+            LifecycleCard(position: detail.lifecycle, status: detail.claimStatus)
+        }
     }
 
     @ViewBuilder

@@ -16,7 +16,7 @@ final class ClaimsUITests: XCTestCase {
         let card = app.buttons["claimCard-a23000000000001AAA"]
         XCTAssertTrue(card.waitForExistence(timeout: 10))
         card.tap()
-        XCTAssertTrue(app.staticTexts["Claim CLM-1234"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["CLM-1234"].waitForExistence(timeout: 5))
     }
 
     private func element(containing text: String) -> XCUIElement {
@@ -47,7 +47,7 @@ final class ClaimsUITests: XCTestCase {
     /// Spec §3 testing: login → claim detail.
     func testClaimDetailShowsLifecycleAndSections() {
         openRoofClaim()
-        XCTAssertTrue(element(containing: "29 percent complete").exists)
+        XCTAssertTrue(app.descendants(matching: .any)["stageTrack"].firstMatch.exists)
         // Staff (the demo user) see the Claim Feed first; published updates are one tap away.
         let filter = app.segmentedControls["updatesFilter"]
         app.scrollIntoView(filter)
@@ -78,7 +78,7 @@ final class ClaimsUITests: XCTestCase {
         XCTAssertFalse(app.buttons["addComment"].exists, "Add Comment was removed from claims")
         let ask = app.buttons["requestAssistance"]
         XCTAssertTrue(ask.exists)
-        XCTAssertLessThan(ask.frame.maxY, app.staticTexts["Claim CLM-1234"].frame.minY, "Ask Question is a top-bar icon")
+        XCTAssertLessThan(ask.frame.maxY, app.staticTexts["CLM-1234"].frame.minY, "Ask Question is a top-bar icon")
         XCTAssertTrue(app.buttons["claimAction-edit"].exists, "Edit Claim is a top-bar icon for staff")
     }
 

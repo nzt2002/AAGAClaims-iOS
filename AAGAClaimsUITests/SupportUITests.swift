@@ -36,7 +36,7 @@ final class SupportUITests: XCTestCase {
     func testRelatedRecordOpensClaim() {
         openRoofCase()
         app.buttons["caseRelatedRecord"].tap()
-        XCTAssertTrue(app.staticTexts["Claim CLM-1234"].waitForExistence(timeout: 5)
+        XCTAssertTrue(app.staticTexts["CLM-1234"].waitForExistence(timeout: 5)
             || element(containing: "Claim CLM-1234").waitForExistence(timeout: 5))
     }
 

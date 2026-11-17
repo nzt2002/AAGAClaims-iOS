@@ -24,6 +24,11 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.11.1", date: "Nov 16, 2026", items: [
+            Item(icon: "rectangle.and.text.magnifyingglass", title: "Claims and leads match the website",
+                 detail: "The header is now a light card with the status, claim and policy numbers, the address link and a pencil to edit. The stage track shows where the record is, the buttons are flat on the page, and Cases is called Support.",
+                 staffOnly: true),
+        ]),
         Release(version: "3.11.0", date: "Nov 16, 2026", items: [
             Item(icon: "square.grid.3x2", title: "A new look for claims and leads",
                  detail: "The action buttons now sit right on the page and fit your screen: about five show, and the rest are under More. The loss address is a link in the header, and the pencil at the top right edits the claim or lead.",

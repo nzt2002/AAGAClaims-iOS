@@ -148,7 +148,7 @@ struct LeadDetailView: View {
                         header(detail)
                         TwoColumns {
                             quickActions(detail)
-                            LeadLifecycleCard(position: detail.lifecycle, status: detail.prospectStatus)
+                            progress(detail)
                             SectionBar(selection: $viewModel.section, hidden: hiddenSections)
                             sectionContent(detail)
                         } rail: {
@@ -161,7 +161,7 @@ struct LeadDetailView: View {
                     VStack(alignment: .leading, spacing: Theme.Spacing.l) {
                         header(detail)
                         quickActions(detail)
-                        LeadLifecycleCard(position: detail.lifecycle, status: detail.prospectStatus)
+                        progress(detail)
                         staffExtras
                         AgreementCard(agreement: detail.agreement)
                         SectionBar(selection: $viewModel.section, hidden: hiddenSections)
@@ -263,9 +263,34 @@ struct LeadDetailView: View {
         openRecord(.claim(claim.id), name: claim.name)
     }
 
+    @ViewBuilder
+    private func header(_ detail: LeadDetail) -> some View {
+        if isInternal {
+            RecordCardHeader(
+                isLead: true, chip: PortalFormat.nonEmpty(detail.prospectStatus).map { "Lead · \($0)" }, name: detail.prospectName ?? "Lead",
+                facts: detail.createdDate.map { [(label: "Added", value: $0.formatted(date: .abbreviated, time: .omitted))] } ?? [],
+                address: detail.lossAddress,
+                onEdit: leadActions.staff.value == nil ? nil : { openAction = .edit }, editLabel: "Edit Lead", editIdentifier: "leadAction-edit")
+        } else {
+            greenHeader(detail)
+        }
+    }
+
+    /// Staff: the stage track, which only shows where the lead is.
+    @ViewBuilder
+    private func progress(_ detail: LeadDetail) -> some View {
+        if isInternal {
+            let position = detail.lifecycle
+            StageTrackCard(stages: position.stages, current: { if case .stage(let i, _) = position { i } else { nil } }(),
+                           fallbackLabel: detail.prospectStatus, isLead: true)
+        } else {
+            LeadLifecycleCard(position: detail.lifecycle, status: detail.prospectStatus)
+        }
+    }
+
     /// The lead's hero: status, name and numbers on the green lead gradient. The address is its own
     /// card below, so it can be tapped to open Maps.
-    private func header(_ detail: LeadDetail) -> some View {
+    private func greenHeader(_ detail: LeadDetail) -> some View {
         // As on claims: the % ring and stage centered on the right; under the text at large sizes.
         AdaptiveStack(horizontalAlignment: .center, verticalAlignment: .leading, spacing: Theme.Spacing.l) {
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
