@@ -45,7 +45,7 @@
 	<key>PlatformSupabaseURL</key>
 	<string>https://lwiitqqquykwylqlmwni.supabase.co</string>
 	<key>PortalBackend</key>
-	<string>salesforce</string>
+	<string>$(PORTAL_BACKEND)</string>
 	<key>PortalDataSource</key>
 	<string>live</string>
 	<key>SFDCOAuthLoginHost</key>

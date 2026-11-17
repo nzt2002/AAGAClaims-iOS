@@ -4,6 +4,8 @@
 #
 #   Tools/release.sh            validate the server, deploy it (asks first), bump the build, upload to TestFlight
 #   Tools/release.sh --app-only skip the server (nothing changed there)
+#   Tools/release.sh --platform a build that signs in to the ProClaimer platform (PortalBackend=platform) instead of
+#                               Salesforce, added to the "Platform Preview" group only. Implies --app-only.
 #
 # Needs: the sf CLI signed in to the "prod" org, and the Salesforce project at ../Portal-customerClaims
 # (override with PORTAL_DIR). Uploads use the App Store Connect API key in
@@ -48,7 +50,9 @@ for s in $SOURCES; do source_args+=(--source-dir "$s"); done
 test_args=()
 for t in $TESTS; do test_args+=(--tests "$t"); done
 
-if [[ ${1:-} != --app-only ]]; then
+PLATFORM=0
+[[ ${1:-} == --platform ]] && PLATFORM=1
+if [[ ${1:-} != --app-only && $PLATFORM == 0 ]]; then
   echo "▶ Validating the server against $ORG…"
   (cd "$PORTAL_DIR" && sf project deploy validate -o "$ORG" $source_args --test-level RunSpecifiedTests $test_args --wait 40)
   read "answer?Deploy the server to $ORG now? [y/N] "
@@ -79,7 +83,7 @@ OUT=$(mktemp -d)
 export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.bareRepository GIT_CONFIG_VALUE_0=all
 xcodebuild archive -project AAGAClaims.xcodeproj -scheme AAGAClaims -configuration Release \
   -destination 'generic/platform=iOS' -archivePath "$OUT/AAGAClaims.xcarchive" \
-  -clonedSourcePackagesDirPath .build/spm -allowProvisioningUpdates $auth_args DEVELOPMENT_TEAM=62Z8PRAHTS -quiet
+  -clonedSourcePackagesDirPath .build/spm -allowProvisioningUpdates $auth_args DEVELOPMENT_TEAM=62Z8PRAHTS $([[ $PLATFORM == 1 ]] && echo PORTAL_BACKEND=platform) -quiet
 xcodebuild -exportArchive -archivePath "$OUT/AAGAClaims.xcarchive" -exportOptionsPlist Tools/ExportOptions.plist \
   -exportPath "$OUT/export" -allowProvisioningUpdates $auth_args -quiet
 rm -rf "$OUT"
@@ -90,7 +94,7 @@ echo "✔ $version ($next) uploaded. TestFlight shows it in about 5–15 minutes
 # Groups don't get new builds by themselves: wait for Apple to finish, then add this one to them.
 echo "▶ Adding build $next to the TestFlight groups (waits for Apple to process it)…"
 if [[ -f $ASC_ENV ]]; then
-  python3 Tools/assign-build.py $next || echo "  ⚠️  Not added. Run: Tools/assign-build.py $next"
+  ASC_BETA_GROUPS=$([[ $PLATFORM == 1 ]] && echo 'Platform Preview' || echo "${ASC_BETA_GROUPS:-}") python3 Tools/assign-build.py $next || echo "  ⚠️  Not added. Run: Tools/assign-build.py $next"
 else
   echo "  No App Store Connect key, so add the build to a group in App Store Connect."
 fi

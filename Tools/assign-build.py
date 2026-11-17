@@ -52,7 +52,8 @@ def main():
     number = sys.argv[1]
     env = load_env(os.path.expanduser("~/.appstoreconnect/aaga-claims.env"))
     tok = token(env["ASC_KEY_ID"], env["ASC_ISSUER_ID"])
-    wanted = [g.strip() for g in env.get("ASC_BETA_GROUPS", "Platform Preview,testers").split(",") if g.strip()]
+    names = os.environ.get("ASC_BETA_GROUPS") or env.get("ASC_BETA_GROUPS", "Platform Preview,testers")
+    wanted = [g.strip() for g in names.split(",") if g.strip()]
 
     _, apps = call(tok, f"/v1/apps?filter[bundleId]={BUNDLE}")
     app = apps["data"][0]["id"]
