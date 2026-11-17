@@ -24,6 +24,20 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.12.0", date: "Nov 16, 2026", items: [
+            Item(icon: "house", title: "A new Home",
+                 detail: "Recent activity lists your tasks and events in a card you can scroll, with a ⋯ menu to show or hide completed tasks. Below it: open support requests, documents waiting for a signature, and your three latest claims."),
+            Item(icon: "folder", title: "Folders in Files",
+                 detail: "Open folders on a claim or lead, add files straight into one, and make, rename, move, delete or share folders. Select several files to move, show, hide or remove them together.",
+                 staffOnly: true),
+            Item(icon: "doc.text", title: "Documents button",
+                 detail: "Documents is now on every claim and lead, next to Task, where E-Sign used to be. Pick a template, preview it and send it for signature.",
+                 staffOnly: true),
+            Item(icon: "chart.bar", title: "Payments, like the website",
+                 detail: "See how much of the Total RCV is collected, where the money goes (AA fee, insured payment, deductible), the checks over time, and a table of every payment."),
+            Item(icon: "sparkles", title: "Tidier claims and leads",
+                 detail: "The Contact Us card now shows on the Contacts tab only, and the stage count and the Share update and Write Portal Update buttons are off the tabs. Write Portal Update is still in More."),
+        ]),
         Release(version: "3.11.1", date: "Nov 16, 2026", items: [
             Item(icon: "rectangle.and.text.magnifyingglass", title: "Claims and leads match the website",
                  detail: "The header is now a light card with the status, claim and policy numbers, the address link and a pencil to edit. The stage track shows where the record is, the buttons are flat on the page, and Cases is called Support.",
