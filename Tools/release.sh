@@ -86,3 +86,11 @@ rm -rf "$OUT"
 
 git commit -qam "Build $next for TestFlight"
 echo "✔ $version ($next) uploaded. TestFlight shows it in about 5–15 minutes."
+
+# Groups don't get new builds by themselves: wait for Apple to finish, then add this one to them.
+echo "▶ Adding build $next to the TestFlight groups (waits for Apple to process it)…"
+if [[ -f $ASC_ENV ]]; then
+  python3 Tools/assign-build.py $next || echo "  ⚠️  Not added. Run: Tools/assign-build.py $next"
+else
+  echo "  No App Store Connect key, so add the build to a group in App Store Connect."
+fi
