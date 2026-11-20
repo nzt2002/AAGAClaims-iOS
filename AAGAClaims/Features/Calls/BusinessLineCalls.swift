@@ -33,7 +33,7 @@ private struct BusinessLineCallsModifier: ViewModifier {
                         calls.start(to: number(url), recordId: recordId, name: recordName)
                     }
                     .disabled(calls.hasActiveCall)
-                    Button("Call from my iPhone") { openURL(url) }
+                    Button("Call from my iPhone") { openURL(ContactURL.nativeTel(url)) }
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
@@ -47,8 +47,7 @@ private struct BusinessLineCallsModifier: ViewModifier {
 
     private var title: String {
         guard let url = pending else { return "Call" }
-        let full = number(url)
-        let parts = full.components(separatedBy: " x")
+        let parts = number(url).components(separatedBy: " x")
         let shown = CallManager.display(parts[0]) ?? parts[0]
         return "Call \(parts.count > 1 ? shown + " x" + parts[1] : shown)"
     }
@@ -61,13 +60,13 @@ private struct BusinessLineCallsModifier: ViewModifier {
     }
 
     private func number(_ url: URL) -> String {
-        // "tel:8005551234,123": the part after the comma is an extension the server sends after connecting.
+        // "tel:8005551234,1,,40182": everything after the first comma is the dial script, played in the call once connected.
         let value = String(url.absoluteString.dropFirst("tel:".count)).removingPercentEncoding ?? ""
-        let parts = value.split(separator: ",", maxSplits: 1).map(String.init)
+        let parts = value.split(separator: ",", maxSplits: 1, omittingEmptySubsequences: false).map(String.init)
         let raw = (parts.first ?? "").filter { $0.isNumber || $0 == "+" }
-        let ext = parts.count > 1 ? parts[1].filter(\.isNumber) : ""
+        let script = parts.count > 1 ? parts[1].filter { $0.isNumber || ",#*w".contains($0) || $0.isLetter } : ""
         let base = raw.hasPrefix("+") ? raw
             : raw.count == 10 ? "+1" + raw : (raw.count == 11 && raw.hasPrefix("1") ? "+" + raw : raw)
-        return ext.isEmpty ? base : base + " x" + ext
+        return script.isEmpty ? base : base + " x" + script
     }
 }

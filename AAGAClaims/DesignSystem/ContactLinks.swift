@@ -9,24 +9,36 @@ enum ContactURL {
         return URL(string: "tel:" + telValue(number))
     }
 
-    /// The number as a tel: value, keeping an extension ("800-555-1234 x123" → "8005551234,123"):
-    /// the iPhone dialer waits at the comma, and in-app calls send the digits once connected.
+    /// The number as a tel: value, keeping the dial script that follows an extension marker
+    /// ("800-555-1234 x1,,40182" → "8005551234,1,,40182"). Commas wait on the iPhone dialer, and
+    /// in-app calls play the whole script into the call once connected.
     static func telValue(_ number: String) -> String {
-        let (base, ext) = splitExtension(number)
+        let (base, script) = splitExtension(number)
         let digits = base.filter { $0.isNumber || $0 == "+" }
-        guard let ext, !digits.isEmpty else { return digits }
-        return digits + "," + ext
+        guard let script, !digits.isEmpty else { return digits }
+        let encoded = script.addingPercentEncoding(withAllowedCharacters: .alphanumerics.union(CharacterSet(charactersIn: ",*"))) ?? ""
+        return digits + "," + encoded
     }
 
-    /// Splits "(800) 555-1234 ext. 123" into the number and its extension. Only when the part
-    /// before the marker has at least 10 digits, so short codes are left alone.
-    static func splitExtension(_ raw: String) -> (number: String, extension: String?) {
-        let pattern = #"^(.*?)\s*(?:extension|ext\.?|x|#|,|;)\s*(\d{1,8})\s*$"#
+    /// The same number for the iPhone's own dialer: only keys and waits, since it can't say "continue".
+    static func nativeTel(_ url: URL) -> URL {
+        let value = String(url.absoluteString.dropFirst("tel:".count)).removingPercentEncoding ?? ""
+        let keys = value.replacingOccurrences(of: "continue", with: "").filter { $0.isNumber || "+,#*".contains($0) }
+        return URL(string: "tel:" + (keys.addingPercentEncoding(withAllowedCharacters: .alphanumerics.union(CharacterSet(charactersIn: "+,*"))) ?? keys)) ?? url
+    }
+
+    /// Splits "(800) 555-1234 x continue, 40182" into the number and its dial script (digits, # *,
+    /// commas for 2 second waits, and the spoken word "continue"). Only when the part before the
+    /// marker has at least 10 digits, so short codes are left alone.
+    static func splitExtension(_ raw: String) -> (number: String, script: String?) {
+        let pattern = #"^(.*?)\s*(?:extension|ext\.?|x|#|,|;)\s*((?:continue|[0-9#*,w\s])+)$"#
         guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
               let m = regex.firstMatch(in: raw, range: NSRange(raw.startIndex..., in: raw)),
-              let baseRange = Range(m.range(at: 1), in: raw), let extRange = Range(m.range(at: 2), in: raw),
+              let baseRange = Range(m.range(at: 1), in: raw), let scriptRange = Range(m.range(at: 2), in: raw),
               raw[baseRange].filter(\.isNumber).count >= 10 else { return (raw, nil) }
-        return (String(raw[baseRange]), String(raw[extRange]))
+        let script = String(raw[scriptRange]).lowercased().filter { !$0.isWhitespace }
+        guard script.count <= 40, script.contains(where: \.isNumber) || script.contains("continue") else { return (raw, nil) }
+        return (String(raw[baseRange]), script)
     }
 
     /// With a `reference` (the claim or lead's email ID), the draft ends with it, so replies

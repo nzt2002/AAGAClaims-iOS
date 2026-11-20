@@ -24,6 +24,10 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.15.1", date: "Nov 20, 2026", items: [
+            Item(icon: "phone.badge.waveform", title: "Phone menus",
+                 detail: "A saved number can now include steps for phone menus. Add them after an x: x1,,40182 presses 1, waits a few seconds (each comma is two seconds), then presses 40182. Add the word continue to say it into the call, like x continue,,40182."),
+        ]),
         Release(version: "3.15.0", date: "Nov 20, 2026", items: [
             Item(icon: "flag", title: "Change a task's priority",
                  detail: "Open a task and tap its Priority to change it. It saves straight away."),
