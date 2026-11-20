@@ -161,6 +161,8 @@ public struct ServerMeta: Codable, Hashable, Sendable {
         case assistant
         /// `POST /assistant/conversations`: closed Alex chats are saved in Salesforce.
         case assistantHistory
+        /// `POST /assistant/chat`: staff chat with Alex on the ProClaimer platform (sent only to staff at a company with Alex).
+        case assistantChat
         /// Staff draft and post a claim or lead's "Recent Portal Update" (`/{record}/portal-update`).
         case portalUpdate
         /// In-app calling on the business line (`GET /voice/token`, `inAppCalling` in `/meta`).

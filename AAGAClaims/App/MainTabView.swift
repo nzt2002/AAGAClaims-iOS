@@ -43,7 +43,7 @@ struct MainTabView: View {
             })
             .environment(\.currentUserName, user.fullName)
             .environment(\.serverMeta, serverMeta)
-            .environment(\.alexRecordContext, assistantAgentId != nil ? alexContext : nil)
+            .environment(\.alexRecordContext, hasAlex ? alexContext : nil)
             .businessLineCallScreen()
     }
 
@@ -156,7 +156,7 @@ struct MainTabView: View {
             }
             // The separate glass button at the end of the tab bar (iOS 26): Ask Alex for staff who
             // have him (it opens his chat; search moves to the top bar), otherwise Search.
-            if assistantAgentId != nil {
+            if hasAlex {
                 Tab("Ask Alex", image: "AskAlexIcon", value: .search, role: .search) {
                     Color.appBackground
                 }
@@ -321,6 +321,10 @@ struct MainTabView: View {
                          files: session.api) {
                 showingAskAlex = false
             }
+        } else if platformAlex {
+            AlexChatSheet(api: session.api, viewing: alexContext.current(in: router.selection)) {
+                showingAskAlex = false
+            }
         }
     }
 
@@ -337,11 +341,19 @@ struct MainTabView: View {
         return serverMeta.assistantAgentId
     }
 
+    /// Alex on the ProClaimer platform: staff at a company that has him (the server announces `assistantChat` only to them).
+    private var platformAlex: Bool {
+        user.isInternal && !session.isDemo && serverMeta.supports(.assistantChat)
+    }
+
+    /// Either Alex, Salesforce's or the platform's.
+    private var hasAlex: Bool { assistantAgentId != nil || platformAlex }
+
     /// The tab bar's selection. With Alex, his tab opens his chat over the current tab instead of
     /// switching to it.
     private var tabSelection: Binding<AppTab> {
         Binding(get: { router.selection }, set: { tab in
-            if tab == .search && assistantAgentId != nil {
+            if tab == .search && hasAlex {
                 showingAskAlex = true
             } else {
                 router.selection = tab
@@ -354,7 +366,7 @@ struct MainTabView: View {
     @ToolbarContentBuilder
     private func topBarButtons() -> some ToolbarContent {
         ToolbarItemGroup(placement: .topBarTrailing) {
-            if assistantAgentId != nil {
+            if hasAlex {
                 Button {
                     router.showingSearch = true
                 } label: {

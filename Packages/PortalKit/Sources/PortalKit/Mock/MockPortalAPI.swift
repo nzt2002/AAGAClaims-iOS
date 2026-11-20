@@ -1226,6 +1226,11 @@ public actor MockPortalAPI: PortalAPI {
         return preferences
     }
 
+    public func assistantChat(messages: [AssistantChatTurn], recordId: String?) async throws -> String {
+        try await simulate()
+        return "This is a sample reply. In the real app, Alex looks up your claims and tasks."
+    }
+
     @discardableResult
     public func saveAssistantConversation(_ conversation: AssistantConversation) async throws -> String {
         try await simulate()

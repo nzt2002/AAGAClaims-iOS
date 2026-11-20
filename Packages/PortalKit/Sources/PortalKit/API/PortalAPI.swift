@@ -138,6 +138,9 @@ public protocol PortalAPI: Sendable {
     /// Saved Alex chats on a claim or lead (`recordId`), or the user's own (`recordId` nil), newest first.
     func assistantConversations(recordId: String?) async throws -> [AssistantChatSummary]
     func assistantConversation(id: String) async throws -> AssistantChatDetail
+    /// Staff at a company with Alex (feature `assistantChat`): sends the chat so far (the last turn is the user's) and
+    /// returns Alex's reply (`POST /assistant/chat`). `recordId` is the claim on screen, if any.
+    func assistantChat(messages: [AssistantChatTurn], recordId: String?) async throws -> String
     /// "Did Alex help?" on one of the user's own chats.
     func rateAssistantConversation(id: String, helpful: Bool, reason: AssistantFeedbackReason?) async throws -> AssistantChatSummary
     func postToClaim(claimId: String, text: String, mentions: [Mention], fileIds: [String]) async throws -> ChatterPost

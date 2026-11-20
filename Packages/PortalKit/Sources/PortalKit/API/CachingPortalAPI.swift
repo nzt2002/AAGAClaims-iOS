@@ -333,6 +333,11 @@ public actor CachingPortalAPI: PortalAPI {
         return try await guarded { try await $0.saveNotificationPreferences(preferences) }
     }
 
+    public func assistantChat(messages: [AssistantChatTurn], recordId: String?) async throws -> String {
+        try requireOnline()
+        return try await guarded { try await $0.assistantChat(messages: messages, recordId: recordId) }
+    }
+
     @discardableResult
     public func saveAssistantConversation(_ conversation: AssistantConversation) async throws -> String {
         try requireOnline()

@@ -24,6 +24,11 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.14.0", date: "Nov 20, 2026", items: [
+            Item(icon: "sparkles", title: "Ask Alex",
+                 detail: "If your company has Alex, tap Ask Alex to find a claim, see where it stands, or check what's on your plate today. Alex only reads for now: it can't send or change anything, and it can make mistakes, so check amounts, dates and names.",
+                 staffOnly: true),
+        ]),
         Release(version: "3.13.1", date: "Nov 16, 2026", items: [
             Item(icon: "textformat", title: "Plainer wording",
                  detail: "Messages in the app no longer name other software. Nothing else changed."),

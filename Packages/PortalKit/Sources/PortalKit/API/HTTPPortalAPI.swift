@@ -573,6 +573,11 @@ public struct HTTPPortalAPI: PortalAPI {
         return saved.recordId
     }
 
+    public func assistantChat(messages: [AssistantChatTurn], recordId: String?) async throws -> String {
+        let reply: AssistantChatReply = try await post("/assistant/chat", body: AssistantChatRequest(messages: messages, recordId: recordId))
+        return reply.reply
+    }
+
     public func assistantConversations(recordId: String?) async throws -> [AssistantChatSummary] {
         let query = recordId.map { [URLQueryItem(name: "recordId", value: $0)] } ?? [URLQueryItem(name: "mine", value: "true")]
         return try await get("/assistant/conversations", query: query)
