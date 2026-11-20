@@ -492,12 +492,13 @@ public actor MockPortalAPI: PortalAPI {
             throw PortalAPIError.invalidRequest
         }
         let id = makeId(prefix: "00T")
-        let item = AgendaItem(
+        var item = AgendaItem(
             id: id, kind: .task, subject: task.subject, dueDate: task.dueDate, startDateTime: nil,
             endDateTime: nil, isAllDay: nil, location: nil, status: "Not Started", isOverdue: false,
             assignedToName: assignee.name, relatedRecordId: record.id,
             relatedRecordName: recordName(record), relatedRecordType: recordType(record)
         )
+        item.priority = "Normal" // as the server sets it
         data.agenda = Agenda(items: data.agenda.items + [item], canCreateTasks: true)
         return id
     }

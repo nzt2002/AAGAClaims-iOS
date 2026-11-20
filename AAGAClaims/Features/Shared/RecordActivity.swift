@@ -483,7 +483,11 @@ struct ActivityDetailView: View {
             case .task:
                 FieldRow(label: "Due date", value: item.dueDate.map { PortalFormat.date($0) } ?? "No due date", systemImage: "calendar")
                 FieldRow(label: "Status", value: item.status, systemImage: "checkmark.circle")
-                FieldRow(label: "Priority", value: item.priority, systemImage: "flag")
+                if model.canEdit, let priorities = model.options?.taskPriorities, !priorities.isEmpty {
+                    priorityMenu(priorities)
+                } else {
+                    FieldRow(label: "Priority", value: item.priority, systemImage: "flag")
+                }
             case .event, .email:
                 FieldRow(label: "When", value: AgendaRow.whenText(item), systemImage: "clock")
                 FieldRow(label: "Location", value: item.location, systemImage: "mappin.and.ellipse")
@@ -492,6 +496,51 @@ struct ActivityDetailView: View {
             FieldRow(label: "Related to", value: relatedTo, systemImage: "doc.text")
         }
         .cardStyle()
+    }
+
+    /// The Priority row as a menu: picking a value saves it straight away.
+    private func priorityMenu(_ priorities: [String]) -> some View {
+        Menu {
+            ForEach(priorities, id: \.self) { priority in
+                Button {
+                    var edit = ActivityEdit()
+                    edit.priority = priority
+                    Task { await model.save(edit) }
+                } label: {
+                    if priority == item.priority {
+                        Label(priority, systemImage: "checkmark")
+                    } else {
+                        Text(priority)
+                    }
+                }
+            }
+        } label: {
+            HStack(alignment: .top, spacing: Theme.Spacing.m) {
+                Image(systemName: "flag")
+                    .foregroundStyle(Color.textSecondary)
+                    .frame(width: 22)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Priority")
+                        .font(.caption)
+                        .foregroundStyle(Color.textSecondary)
+                    Text(PortalFormat.nonEmpty(item.priority) ?? "Not set")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.recordAccent(isLead: isLead))
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption)
+                    .foregroundStyle(Color.textSecondary)
+                    .accessibilityHidden(true)
+            }
+            .frame(minHeight: Theme.minTapTarget)
+            .contentShape(Rectangle())
+        }
+        .disabled(model.isSaving)
+        .disabledWhenOffline(isOffline)
+        .accessibilityLabel("Priority, \(PortalFormat.nonEmpty(item.priority) ?? "not set")")
+        .accessibilityHint("Changes the task's priority")
+        .accessibilityIdentifier("activityPriority")
     }
 
     private var emailDetails: some View {

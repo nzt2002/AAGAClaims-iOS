@@ -232,6 +232,15 @@ final class ClaimActionsUITests: XCTestCase {
         app.buttons["Jane Doe"].firstMatch.tap()
         XCTAssertTrue(element(containing: "Jane Doe").waitForExistence(timeout: 5))
 
+        // Change the priority from the page itself.
+        let priority = app.buttons["activityPriority"]
+        XCTAssertTrue(priority.waitForExistence(timeout: 5))
+        XCTAssertTrue(priority.label.contains("Normal"))
+        priority.tap()
+        app.buttons["High"].firstMatch.tap()
+        XCTAssertTrue(NSPredicate(format: "label CONTAINS 'High'").evaluate(with: app.buttons["activityPriority"]) ||
+                      element(containing: "High").waitForExistence(timeout: 5))
+
         // Edit the subject.
         app.buttons["activityEdit"].tap()
         let field = app.textFields["editActivitySubject"].exists ? app.textFields["editActivitySubject"] : app.textViews["editActivitySubject"]

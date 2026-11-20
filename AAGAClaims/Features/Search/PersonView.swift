@@ -107,7 +107,7 @@ struct PersonView: View {
     }
 
     private func telURL(_ number: String) -> String {
-        "tel:" + number.filter { $0.isNumber || $0 == "+" }
+        "tel:" + ContactURL.telValue(number)
     }
 
 }

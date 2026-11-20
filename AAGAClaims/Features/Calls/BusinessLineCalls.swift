@@ -47,7 +47,10 @@ private struct BusinessLineCallsModifier: ViewModifier {
 
     private var title: String {
         guard let url = pending else { return "Call" }
-        return "Call \(CallManager.display(number(url)) ?? number(url))"
+        let full = number(url)
+        let parts = full.components(separatedBy: " x")
+        let shown = CallManager.display(parts[0]) ?? parts[0]
+        return "Call \(parts.count > 1 ? shown + " x" + parts[1] : shown)"
     }
 
     private var businessLineLabel: String {
@@ -58,8 +61,13 @@ private struct BusinessLineCallsModifier: ViewModifier {
     }
 
     private func number(_ url: URL) -> String {
-        let raw = url.absoluteString.dropFirst("tel:".count).filter { $0.isNumber || $0 == "+" }
-        if raw.hasPrefix("+") { return String(raw) }
-        return raw.count == 10 ? "+1" + raw : (raw.count == 11 && raw.hasPrefix("1") ? "+" + raw : String(raw))
+        // "tel:8005551234,123": the part after the comma is an extension the server sends after connecting.
+        let value = String(url.absoluteString.dropFirst("tel:".count)).removingPercentEncoding ?? ""
+        let parts = value.split(separator: ",", maxSplits: 1).map(String.init)
+        let raw = (parts.first ?? "").filter { $0.isNumber || $0 == "+" }
+        let ext = parts.count > 1 ? parts[1].filter(\.isNumber) : ""
+        let base = raw.hasPrefix("+") ? raw
+            : raw.count == 10 ? "+1" + raw : (raw.count == 11 && raw.hasPrefix("1") ? "+" + raw : raw)
+        return ext.isEmpty ? base : base + " x" + ext
     }
 }

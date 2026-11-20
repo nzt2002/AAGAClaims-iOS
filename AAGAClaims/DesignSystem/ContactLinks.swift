@@ -6,8 +6,27 @@ import SwiftUI
 enum ContactURL {
     static func phone(_ number: String?) -> URL? {
         guard let number = PortalFormat.nonEmpty(number) else { return nil }
-        let digits = number.filter { $0.isNumber || $0 == "+" }
-        return digits.isEmpty ? nil : URL(string: "tel:\(digits)")
+        return URL(string: "tel:" + telValue(number))
+    }
+
+    /// The number as a tel: value, keeping an extension ("800-555-1234 x123" → "8005551234,123"):
+    /// the iPhone dialer waits at the comma, and in-app calls send the digits once connected.
+    static func telValue(_ number: String) -> String {
+        let (base, ext) = splitExtension(number)
+        let digits = base.filter { $0.isNumber || $0 == "+" }
+        guard let ext, !digits.isEmpty else { return digits }
+        return digits + "," + ext
+    }
+
+    /// Splits "(800) 555-1234 ext. 123" into the number and its extension. Only when the part
+    /// before the marker has at least 10 digits, so short codes are left alone.
+    static func splitExtension(_ raw: String) -> (number: String, extension: String?) {
+        let pattern = #"^(.*?)\s*(?:extension|ext\.?|x|#|,|;)\s*(\d{1,8})\s*$"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+              let m = regex.firstMatch(in: raw, range: NSRange(raw.startIndex..., in: raw)),
+              let baseRange = Range(m.range(at: 1), in: raw), let extRange = Range(m.range(at: 2), in: raw),
+              raw[baseRange].filter(\.isNumber).count >= 10 else { return (raw, nil) }
+        return (String(raw[baseRange]), String(raw[extRange]))
     }
 
     /// With a `reference` (the claim or lead's email ID), the draft ends with it, so replies
