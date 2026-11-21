@@ -160,7 +160,7 @@ struct PlatformSignInView: View {
             }
             .buttonStyle(.borderedProminent)
             .buttonBorderShape(.roundedRectangle(radius: 14))
-            .tint(.brandPrimary)
+            .tint(.brandTheme)
             .disabled(!canSubmit)
             .id("platformSignInButton")
             .accessibilityIdentifier("platformSignIn")
@@ -175,7 +175,7 @@ struct PlatformSignInView: View {
                 }
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.roundedRectangle(radius: 14))
-                .tint(.brandPrimary)
+                .tint(.brandTheme)
                 .disabled(isSigningIn)
                 .accessibilityIdentifier("faceIDSignIn")
             }
@@ -217,11 +217,11 @@ struct PlatformSignInView: View {
                         Text(option.name).font(.subheadline.weight(.semibold)).foregroundStyle(Color.textPrimary)
                         Spacer(minLength: 0)
                         Image(systemName: company?.subdomain == option.subdomain ? "checkmark.circle.fill" : "circle").iconShadow()
-                            .foregroundStyle(company?.subdomain == option.subdomain ? Color.brandPrimary : Color.textSecondary)
+                            .foregroundStyle(company?.subdomain == option.subdomain ? Color.brandTheme : Color.textSecondary)
                     }
                     .padding(Theme.Spacing.s)
                     .background(company?.subdomain == option.subdomain ? Color.surfaceTinted : Color.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(company?.subdomain == option.subdomain ? Color.brandPrimary : Color.border, lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(company?.subdomain == option.subdomain ? Color.brandTheme : Color.border, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(company?.subdomain == option.subdomain ? [.isSelected] : [])
@@ -240,7 +240,7 @@ struct PlatformSignInView: View {
                     .font(.caption.bold())
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Self.color(company.brandColor) ?? Color.brandPrimary)
+                    .background(Self.color(company.brandColor) ?? Color.brandTheme)
             }
             .frame(width: 32, height: 32)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))

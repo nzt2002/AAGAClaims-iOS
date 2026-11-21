@@ -167,12 +167,12 @@ struct FilesList: View {
             if let selected {
                 Image(systemName: selected.contains(file.id) ? "checkmark.circle.fill" : "circle").iconShadow()
                     .font(.title3)
-                    .foregroundStyle(selected.contains(file.id) ? Color.brandPrimary : Color.textSecondary)
+                    .foregroundStyle(selected.contains(file.id) ? Color.brandTheme : Color.textSecondary)
                     .accessibilityHidden(true)
             }
             Image(systemName: Self.icon(for: file.fileType)).iconShadow()
                 .font(.title2)
-                .foregroundStyle(Color.brandPrimary)
+                .foregroundStyle(Color.brandTheme)
                 .frame(width: 32)
             VStack(alignment: .leading, spacing: 2) {
                 Text(file.title ?? "Untitled file")
@@ -376,10 +376,10 @@ struct PaymentProgress: View {
                 AdaptiveSpacer()
                 Text("\(Int((fraction * 100).rounded()))% collected")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(fraction >= 1 ? Color.success : Color.brandPrimary)
+                    .foregroundStyle(fraction >= 1 ? Color.success : Color.brandTheme)
             }
             ProgressView(value: fraction)
-                .tint(fraction >= 1 ? Color.success : Color.brandPrimary)
+                .tint(fraction >= 1 ? Color.success : Color.brandTheme)
                 .accessibilityHidden(true)
             HStack(spacing: Theme.Spacing.xs) {
                 Text(remaining > 0 ? "\(PortalFormat.currency(remaining)) still to collect" : "Fully collected")

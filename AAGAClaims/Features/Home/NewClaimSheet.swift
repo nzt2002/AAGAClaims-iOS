@@ -197,7 +197,7 @@ private struct MatchRow: View {
             }
             Spacer(minLength: 0)
             Image(systemName: selected ? "checkmark.circle.fill" : "chevron.right").iconShadow()
-                .foregroundStyle(selected ? Color.brandPrimary : Color.textSecondary)
+                .foregroundStyle(selected ? Color.brandTheme : Color.textSecondary)
         }
         .frame(minHeight: Theme.minTapTarget)
         .contentShape(Rectangle())
@@ -315,7 +315,7 @@ private struct AccountMatchesStep: View {
                     Text("This person may already have an account. To avoid a duplicate, choose the account to use for this claim.")
                 } icon: {
                     Image(systemName: "person.2.badge.gearshape").iconShadow()
-                        .foregroundStyle(Color.brandPrimary)
+                        .foregroundStyle(Color.brandTheme)
                 }
             }
             Section("Possible matching accounts") {

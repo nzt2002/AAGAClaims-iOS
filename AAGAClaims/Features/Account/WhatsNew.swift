@@ -509,7 +509,7 @@ struct WhatsNewSheet: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .buttonBorderShape(.capsule)
-                .tint(.brandPrimary)
+                .tint(.brandTheme)
                 .padding(.horizontal, Theme.Spacing.xl)
                 .padding(.bottom, Theme.Spacing.m)
                 .accessibilityIdentifier("whatsNewContinue")
@@ -554,7 +554,7 @@ struct ReleaseNotesView: View {
                                     .foregroundStyle(Color.surface)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 2)
-                                    .background(Color.brandPrimary, in: Capsule())
+                                    .background(Color.brandTheme, in: Capsule())
                                     .accessibilityIdentifier("currentVersionBadge")
                             }
                             Spacer()

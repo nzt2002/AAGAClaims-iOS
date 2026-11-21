@@ -162,7 +162,7 @@ struct LockScreen: View {
             Spacer()
             Image(systemName: "lock.fill").iconShadow()
                 .font(.system(size: 48))
-                .foregroundStyle(Color.brandPrimary)
+                .foregroundStyle(Color.brandTheme)
                 .accessibilityHidden(true)
             Text("ProClaimer is locked")
                 .font(.title2.bold())
@@ -197,7 +197,7 @@ struct PrivacyShield: View {
             Color.appBackground
             Image(systemName: "house.and.flag.fill").iconShadow()
                 .font(.system(size: 56))
-                .foregroundStyle(Color.brandPrimary)
+                .foregroundStyle(Color.brandTheme)
         }
         .ignoresSafeArea()
         .accessibilityHidden(true)

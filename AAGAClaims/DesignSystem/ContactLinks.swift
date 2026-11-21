@@ -213,7 +213,7 @@ struct RichText: View {
         Text(HTMLText.attributed(html))
             .font(.subheadline)
             .foregroundStyle(Color.textPrimary)
-            .tint(.brandPrimary)
+            .tint(.brandTheme)
             .frame(maxWidth: .infinity, alignment: .leading)
             .textSelection(.enabled)
     }

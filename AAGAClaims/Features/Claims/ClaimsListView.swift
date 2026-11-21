@@ -12,6 +12,9 @@ struct ClaimsListView: View {
     var selectedId: String?
     /// iPad split view: tapping a card shows it in the detail column instead of pushing it.
     var select: ((ClaimSummary) -> Void)?
+    /// Staff: opens New Claim from the list's "+" and from the empty state.
+    var onNew: (() -> Void)?
+    @Environment(\.isOffline) private var isOffline
 
     var body: some View {
         LoadingContainer(state: viewModel.state, subject: "claims", retry: reload) { _ in
@@ -19,8 +22,11 @@ struct ClaimsListView: View {
                 if viewModel.claims.isEmpty {
                     EmptyRecordsView(
                         title: "No claims yet",
-                        message: "When we open a claim for you, it will appear here.",
-                        openSupport: openSupport
+                        message: onNew == nil ? "When we open a claim for you, it will appear here."
+                            : "Start with a claim for a homeowner. It shows up here as soon as it is saved.",
+                        openSupport: openSupport,
+                        actionTitle: onNew == nil ? nil : "Add your first claim",
+                        action: onNew
                     )
                 } else {
                     VStack(alignment: .leading, spacing: Theme.Spacing.m) {
@@ -34,7 +40,7 @@ struct ClaimsListView: View {
                                     if let select {
                                         Button { select(claim) } label: {
                                             ClaimCard(claim: claim)
-                                                .selectedCard(claim.recordId == selectedId, accent: .brandPrimary)
+                                                .selectedCard(claim.recordId == selectedId, accent: .brandTheme)
                                         }
                                     } else {
                                         NavigationLink(value: claim) {
@@ -43,6 +49,7 @@ struct ClaimsListView: View {
                                     }
                                 }
                                 .buttonStyle(.plain)
+                                .recordRowMenu(address: claim.lossAddress, number: claim.claimNumber)
                                 .accessibilityIdentifier("claimCard-\(claim.recordId)")
                             }
                         }
@@ -59,6 +66,17 @@ struct ClaimsListView: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 SortMenu(order: $viewModel.sortOrder)
+            }
+            if let onNew {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: onNew) {
+                        Image(systemName: "plus").iconShadow()
+                            .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
+                    }
+                    .accessibilityLabel("New claim")
+                    .disabledWhenOffline(isOffline)
+                    .accessibilityIdentifier("newClaim")
+                }
             }
         }
         .navigationDestination(for: ClaimSummary.self) { claim in
@@ -170,7 +188,7 @@ struct ClaimCard: View {
             }
             .accessibilityElement(children: .combine)
 
-            Text("Updated \(PortalFormat.date(claim.lastModifiedDate))")
+            Text("Updated \(PortalFormat.ago(claim.lastModifiedDate))")
                 .font(.caption)
                 .foregroundStyle(Color.textSecondary)
         }
@@ -185,6 +203,9 @@ struct EmptyRecordsView: View {
     let title: String
     let message: String
     let openSupport: () -> Void
+    /// A first step to offer (staff): "Add your first claim".
+    var actionTitle: String?
+    var action: (() -> Void)?
 
     var body: some View {
         ContentUnavailableView {
@@ -192,6 +213,12 @@ struct EmptyRecordsView: View {
         } description: {
             Text(message)
         } actions: {
+            if let actionTitle, let action {
+                Button(actionTitle, action: action)
+                    .buttonStyle(.borderedProminent)
+                    .frame(minHeight: Theme.minTapTarget)
+                    .accessibilityIdentifier("emptyStateAction")
+            }
             Button("Contact support", action: openSupport)
                 .frame(minHeight: Theme.minTapTarget)
         }

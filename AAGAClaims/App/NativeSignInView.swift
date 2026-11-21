@@ -149,7 +149,7 @@ struct NativeSignInView: View {
             }
             .buttonStyle(.borderedProminent)
             .buttonBorderShape(.roundedRectangle(radius: 14))
-            .tint(.brandPrimary)
+            .tint(.brandTheme)
             .disabled(!canSubmit)
             .id("signInButton")
             .accessibilityIdentifier("nativeSignIn")
@@ -164,7 +164,7 @@ struct NativeSignInView: View {
                 }
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.roundedRectangle(radius: 14))
-                .tint(.brandPrimary)
+                .tint(.brandTheme)
                 .disabled(isSigningIn)
                 .accessibilityIdentifier("faceIDSignIn")
             }

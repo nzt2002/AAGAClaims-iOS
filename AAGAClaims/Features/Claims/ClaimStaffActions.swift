@@ -186,7 +186,7 @@ private struct ChangeStatusForm: View {
                             Text(status).foregroundStyle(Color.textPrimary)
                             Spacer()
                             if saving == status { ProgressView() }
-                            else if staff.status == status { Image(systemName: "checkmark").iconShadow().foregroundStyle(Color.brandPrimary) }
+                            else if staff.status == status { Image(systemName: "checkmark").iconShadow().foregroundStyle(Color.brandTheme) }
                         }
                         .frame(minHeight: Theme.minTapTarget)
                     }
@@ -518,7 +518,7 @@ private struct ChangeOwnerForm: View {
                             Text(user.name).foregroundStyle(Color.textPrimary)
                             Spacer()
                             if selection == user.userId {
-                                Image(systemName: "checkmark").iconShadow().foregroundStyle(Color.brandPrimary)
+                                Image(systemName: "checkmark").iconShadow().foregroundStyle(Color.brandTheme)
                             }
                         }
                         .frame(minHeight: Theme.minTapTarget)
@@ -896,7 +896,7 @@ private struct AddContactForm: View {
                             HStack {
                                 Text(account.name ?? "Account").foregroundStyle(Color.textPrimary)
                                 Spacer()
-                                if model.selectedPartner?.id == account.id { Image(systemName: "checkmark").iconShadow().foregroundStyle(Color.brandPrimary) }
+                                if model.selectedPartner?.id == account.id { Image(systemName: "checkmark").iconShadow().foregroundStyle(Color.brandTheme) }
                             }
                             .frame(minHeight: Theme.minTapTarget)
                             .contentShape(Rectangle())
@@ -926,7 +926,7 @@ private struct AddContactForm: View {
                                 HStack {
                                     Text(account.name ?? "Account").foregroundStyle(Color.textPrimary)
                                     Spacer()
-                                    if model.selectedPartner?.id == account.id { Image(systemName: "checkmark").iconShadow().foregroundStyle(Color.brandPrimary) }
+                                    if model.selectedPartner?.id == account.id { Image(systemName: "checkmark").iconShadow().foregroundStyle(Color.brandTheme) }
                                 }
                                 .frame(minHeight: Theme.minTapTarget)
                                 .contentShape(Rectangle())
@@ -967,7 +967,7 @@ private struct AddContactForm: View {
                 }
             }
             Spacer()
-            if selected { Image(systemName: "checkmark").iconShadow().foregroundStyle(Color.brandPrimary) }
+            if selected { Image(systemName: "checkmark").iconShadow().foregroundStyle(Color.brandTheme) }
         }
         .frame(minHeight: Theme.minTapTarget)
         .contentShape(Rectangle())

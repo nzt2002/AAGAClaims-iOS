@@ -36,6 +36,8 @@ struct MainTabView: View {
 
     var body: some View {
         tabs
+            .tint(Color.brandTheme)
+            .onChange(of: user.company, initial: true) { _, company in CompanyBrand.shared.apply(company) }
             .environment(\.isInternalUser, user.isInternal)
             .environment(\.salesforceInstanceURL, user.instanceURL)
             .environment(\.salesforcePage, user.instanceURL.map { instance in
@@ -53,7 +55,8 @@ struct MainTabView: View {
         ClaimsListView(viewModel: router.claims, api: session.api, openSupport: { router.openSupport(caseId: nil) },
                        showsMine: user.isInternal,
                        selectedId: isSplit ? router.selectedClaim?.id : nil,
-                       select: isSplit ? { claim in router.select(ClaimRoute(id: claim.recordId, name: claim.recordName)) } : nil)
+                       select: isSplit ? { claim in router.select(ClaimRoute(id: claim.recordId, name: claim.recordName)) } : nil,
+                       onNew: user.isInternal ? { router.showingNewClaim = true } : nil)
             .onAppear { router.claims.currentUserName = user.fullName }
             .statusBanners(session)
             .toolbar { topBarButtons() }
@@ -97,7 +100,7 @@ struct MainTabView: View {
                                                     api: session.api)
                                         .id(claim.id)
                                 } else {
-                                    RecordPlaceholder(noun: "claim", systemImage: "doc.text", accent: .brandPrimary)
+                                    RecordPlaceholder(noun: "claim", systemImage: "doc.text", accent: .brandTheme)
                                 }
                             }
                             .modifier(RecordDestinations(router: router, api: session.api))
@@ -480,7 +483,7 @@ struct ProfileAvatar: View {
             .font(.system(size: size * 0.42, weight: .semibold, design: .rounded))
             .foregroundStyle(Color.surface)
             .frame(width: size, height: size)
-            .background(Color.brandPrimary, in: Circle())
+            .background(Color.brandTheme, in: Circle())
             .accessibilityHidden(true)
     }
 }

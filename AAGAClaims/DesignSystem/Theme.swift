@@ -121,7 +121,7 @@ enum BrandGradient {
         // Brand blue into navy. White text on these stops is at least 4.6:1 (light) and 6.7:1 (dark).
         // The asset colours have light and dark variants; the scheme is resolved by the environment.
         _ = colorScheme
-        return LinearGradient(colors: [.heroStart, .heroEnd], startPoint: .topLeading, endPoint: .bottomTrailing)
+        return LinearGradient(colors: [CompanyBrand.shared.heroStart ?? .heroStart, CompanyBrand.shared.heroEnd ?? .heroEnd], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 
     /// The hero for the record being shown: green on leads, blue elsewhere.
@@ -143,7 +143,7 @@ extension View {
 /// An SF Symbol in a tinted circle, for quick actions and list rows.
 struct IconBadge: View {
     let systemName: String
-    var tint: Color = .brandPrimary
+    var tint: Color = .brandTheme
     var size: CGFloat = 36
     /// A solid brand circle with a contrasting glyph, for primary actions. Otherwise a pale tinted circle.
     var filled = false
@@ -193,6 +193,6 @@ extension SectionHeader where Trailing == EmptyView {
 extension Color {
     /// Buttons and links on a record page: green on leads (4.9:1 on white; bright green in dark mode), brand blue elsewhere.
     static func recordAccent(isLead: Bool) -> Color {
-        isLead ? .leadAccent : .brandPrimary
+        isLead ? .leadAccent : .brandTheme
     }
 }

@@ -136,7 +136,7 @@ struct FilesSection: View {
         Button { open(folder: id) } label: {
             Text(title)
                 .font(.subheadline.weight(isCurrent ? .semibold : .regular))
-                .foregroundStyle(isCurrent ? Color.textPrimary : Color.brandPrimary)
+                .foregroundStyle(isCurrent ? Color.textPrimary : Color.brandTheme)
                 .frame(minHeight: Theme.minTapTarget)
         }
         .buttonStyle(.plain)
@@ -154,7 +154,7 @@ struct FilesSection: View {
             ForEach(explorer.subfolders) { folder in
                 Button { open(folder: folder.id) } label: {
                     HStack(spacing: Theme.Spacing.m) {
-                        Image(systemName: "folder.fill").iconShadow().font(.title2).foregroundStyle(Color.brandPrimary).frame(width: 32)
+                        Image(systemName: "folder.fill").iconShadow().font(.title2).foregroundStyle(Color.brandTheme).frame(width: 32)
                         Text(folder.name).font(.subheadline.weight(.semibold)).foregroundStyle(Color.textPrimary)
                         Spacer(minLength: 0)
                         if canManage {

@@ -44,8 +44,14 @@ struct HomeView: View {
                     } else {
                         VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                             hero
-                            quickActions
-                            NeedsAttentionSection(viewModel: viewModel, router: router)
+                            // Staff: what needs them comes first, then the shortcuts.
+                            if user.isInternal {
+                                NeedsAttentionSection(viewModel: viewModel, router: router)
+                                quickActions
+                            } else {
+                                quickActions
+                                NeedsAttentionSection(viewModel: viewModel, router: router)
+                            }
                             recentActivityCard
                             openSupport
                             waitingSignatures
@@ -70,6 +76,19 @@ struct HomeView: View {
     /// Greeting on the brand gradient, with the global search bar.
     private var hero: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            // The company's logo and name, as on the website's header.
+            if let company = CompanyBrand.shared.company {
+                HStack(spacing: Theme.Spacing.s) {
+                    CompanyLogo(size: 36)
+                    Text(company.name)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("homeCompany")
+            }
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Text(Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day()).uppercased())
                     .font(.caption.weight(.semibold))
@@ -489,7 +508,7 @@ struct AgendaRow: View {
             HStack(alignment: .top, spacing: Theme.Spacing.m) {
                 IconBadge(
                     systemName: item.kind == .event ? "calendar" : (item.isClosed == true ? "checkmark.circle.fill" : "checklist"),
-                    tint: item.isOverdue == true ? .warning : (item.isClosed == true && item.kind == .task ? .success : .brandPrimary),
+                    tint: item.isOverdue == true ? .warning : (item.isClosed == true && item.kind == .task ? .success : .brandTheme),
                     size: 32
                 )
                 VStack(alignment: .leading, spacing: 2) {
@@ -629,7 +648,7 @@ struct FeedPostRow: View {
         HStack(alignment: .top, spacing: Theme.Spacing.m) {
             Image(systemName: "bubble.left.and.text.bubble.right").iconShadow()
                 .font(.caption)
-                .foregroundStyle(Color.brandPrimary)
+                .foregroundStyle(Color.brandTheme)
                 .frame(width: 8)
                 .padding(.top, 4)
                 .accessibilityHidden(true)
@@ -659,7 +678,7 @@ struct ActivityRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: Theme.Spacing.m) {
             Circle()
-                .fill(item.isRead ? Color.clear : Color.brandPrimary)
+                .fill(item.isRead ? Color.clear : Color.brandTheme)
                 .frame(width: 8, height: 8)
                 .padding(.top, 6)
                 .accessibilityHidden(true)

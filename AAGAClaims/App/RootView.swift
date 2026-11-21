@@ -86,7 +86,7 @@ private struct SignInStallNotice: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.white)
-                    .foregroundStyle(Color.brandPrimary)
+                    .foregroundStyle(Color.brandTheme)
                     .accessibilityIdentifier("signInRetry")
                     if !session.signInSteps.isEmpty {
                         Text(session.signInSteps.joined(separator: " › "))

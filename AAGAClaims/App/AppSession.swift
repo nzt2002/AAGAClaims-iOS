@@ -12,6 +12,8 @@ struct CurrentUser: Equatable {
     var isInternal = false
     /// The org's web address (for pages only Salesforce can show, e.g. document generation). Nil in demo mode.
     var instanceURL: URL? = nil
+    /// The ProClaimer company: its brand colour and logo theme the app.
+    var company: PlatformCompany? = nil
 
     // Demo mode shows staff features (Chatter, New Task), like the mock data.
     static let demo = CurrentUser(firstName: "Alex", fullName: "Alex Smith", email: "alex.smith@example.com", isInternal: true)
@@ -183,6 +185,7 @@ final class AppSession {
     }
 
     func didSignOut() {
+        CompanyBrand.shared.clear()
         CallManager.shared.signOut()
         lock.reset()
         // Searches can contain customer names; don't keep them across accounts.

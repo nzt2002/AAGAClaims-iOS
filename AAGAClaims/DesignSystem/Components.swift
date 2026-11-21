@@ -53,7 +53,7 @@ struct ProgressBar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
             ProgressView(value: Double(percent), total: 100)
-                .tint(.brandPrimary)
+                .tint(.brandTheme)
             Text("\(percent)% complete")
                 .font(.caption)
                 .foregroundStyle(Color.textSecondary)
@@ -169,6 +169,7 @@ extension View {
                 if session.offline.isOffline {
                     OfflineBanner(showingDataFrom: session.offline.showingDataFrom)
                 }
+                QueuedBanner()
                 // -AppStoreScreenshots YES hides it for App Store screenshots of the demo data.
                 if session.isDemo && !UserDefaults.standard.bool(forKey: "AppStoreScreenshots") {
                     DemoBanner()

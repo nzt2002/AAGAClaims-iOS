@@ -38,7 +38,7 @@ struct MentionField: View {
                                     .font(.caption.bold())
                                     .foregroundStyle(.white)
                                     .frame(width: 28, height: 28)
-                                    .background(Color.brandPrimary, in: Circle())
+                                    .background(Color.brandTheme, in: Circle())
                                     .accessibilityHidden(true)
                                 VStack(alignment: .leading, spacing: 0) {
                                     Text(person.name).font(.subheadline.weight(.semibold)).foregroundStyle(Color.textPrimary)
@@ -84,7 +84,7 @@ func mentionText(_ text: String, mentions: [String]?) -> AttributedString {
         var searchStart = attributed.startIndex
         while let range = attributed[searchStart...].range(of: "@" + name) ?? attributed[searchStart...].range(of: name) {
             attributed[range].inlinePresentationIntent = .stronglyEmphasized
-            attributed[range].foregroundColor = Color.brandPrimary
+            attributed[range].foregroundColor = Color.brandTheme
             searchStart = range.upperBound
         }
     }

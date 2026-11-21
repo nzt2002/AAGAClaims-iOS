@@ -27,7 +27,7 @@ struct NotificationPreferencesSection: View {
                             }
                         } icon: {
                             Image(systemName: kind.systemImage).iconShadow()
-                                .foregroundStyle(Color.brandPrimary)
+                                .foregroundStyle(Color.brandTheme)
                         }
                     }
                     .disabled(saving != nil)

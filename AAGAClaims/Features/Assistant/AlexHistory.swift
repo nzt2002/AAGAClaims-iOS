@@ -69,7 +69,7 @@ struct AlexClosingFeedback: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: 44, height: 44)
-                .foregroundStyle(Color.brandPrimary)
+                .foregroundStyle(Color.brandTheme)
                 .accessibilityHidden(true)
             AlexFeedbackButtons(answer: answer)
             Button("Skip", action: skip)
@@ -259,7 +259,7 @@ private struct AlexBubble: View {
                 }
             }
             .padding(Theme.Spacing.m)
-            .background(message.isAlex ? Color.surface : Color.brandPrimary,
+            .background(message.isAlex ? Color.surface : Color.brandTheme,
                         in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             if message.isAlex { Spacer(minLength: 48) }
         }
@@ -288,7 +288,7 @@ struct AlexChatsLink: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 22, height: 22)
-                    .foregroundStyle(Color.brandPrimary)
+                    .foregroundStyle(Color.brandTheme)
                     .accessibilityHidden(true)
                 Text("Alex chats")
                     .font(.cardTitle)

@@ -133,7 +133,7 @@ struct StreetAddressField: View {
             } label: {
                 HStack(spacing: Theme.Spacing.m) {
                     Image(systemName: "mappin.circle.fill").iconShadow()
-                        .foregroundStyle(Color.brandPrimary)
+                        .foregroundStyle(Color.brandTheme)
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(suggestion.title)

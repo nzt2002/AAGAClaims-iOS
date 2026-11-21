@@ -281,7 +281,7 @@ private struct MessageBubble: View {
                     .padding(.horizontal, Theme.Spacing.m)
                     .padding(.vertical, Theme.Spacing.s)
                     .background(
-                        comment.isOwn ? Color.brandPrimary : Color.surface,
+                        comment.isOwn ? Color.brandTheme : Color.surface,
                         in: RoundedRectangle(cornerRadius: 16)
                     )
                     .overlay(

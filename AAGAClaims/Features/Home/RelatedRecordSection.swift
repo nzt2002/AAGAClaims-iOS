@@ -140,7 +140,7 @@ struct RecordLookupList: View {
                             Spacer(minLength: 0)
                             if record.id == selection {
                                 Image(systemName: "checkmark").iconShadow()
-                                    .foregroundStyle(Color.brandPrimary)
+                                    .foregroundStyle(Color.brandTheme)
                             }
                         }
                         .frame(minHeight: Theme.minTapTarget)

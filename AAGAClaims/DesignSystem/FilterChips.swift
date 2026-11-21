@@ -44,7 +44,7 @@ private struct ChipLabel: View {
         .padding(.horizontal, Theme.Spacing.m)
         .frame(minHeight: Theme.minTapTarget - 8)
         .background {
-            Capsule().fill(isActive ? Color.brandPrimary : Color.surface)
+            Capsule().fill(isActive ? Color.brandTheme : Color.surface)
         }
         .overlay {
             Capsule().stroke(isActive ? Color.clear : Color.border, lineWidth: 1)

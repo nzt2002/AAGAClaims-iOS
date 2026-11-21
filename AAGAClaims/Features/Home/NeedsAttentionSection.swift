@@ -114,7 +114,7 @@ struct NeedsAttentionSection: View {
                 }
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.capsule)
-                .tint(.brandPrimary)
+                .tint(.brandTheme)
                 .disabled(completing != nil)
                 .padding(.leading, 36 + Theme.Spacing.m)
                 .padding(.bottom, Theme.Spacing.s)
@@ -163,7 +163,7 @@ struct NeedsAttentionSection: View {
         switch kind {
         case .overdueTasks: .warning
         case .payments: .success
-        default: .brandPrimary
+        default: .brandTheme
         }
     }
 }

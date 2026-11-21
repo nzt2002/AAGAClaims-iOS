@@ -109,7 +109,7 @@ struct SearchSheet: View {
         .padding(.leading, Theme.Spacing.m)
         .frame(minHeight: 48)
         .background(Color.surface, in: Capsule())
-        .overlay(Capsule().stroke(fieldFocused ? Color.brandPrimary : Color.border, lineWidth: fieldFocused ? 2 : 1))
+        .overlay(Capsule().stroke(fieldFocused ? Color.brandTheme : Color.border, lineWidth: fieldFocused ? 2 : 1))
         .padding(.horizontal, Theme.Spacing.l)
         .padding(.top, Theme.Spacing.s)
         .background(Color.appBackground)
@@ -139,7 +139,7 @@ struct SearchSheet: View {
                         .foregroundStyle(selected ? Color.surface : Color.textPrimary)
                         .padding(.horizontal, Theme.Spacing.m)
                         .frame(minHeight: 40)
-                        .background(selected ? Color.brandPrimary : Color.surface, in: Capsule())
+                        .background(selected ? Color.brandTheme : Color.surface, in: Capsule())
                         .overlay(Capsule().stroke(Color.border, lineWidth: selected ? 0 : 1))
                     }
                     .buttonStyle(.plain)
@@ -326,7 +326,7 @@ struct SearchSheet: View {
             if let lower = AttributedString.Index(range.lowerBound, within: attributed),
                let upper = AttributedString.Index(range.upperBound, within: attributed) {
                 attributed[lower..<upper].inlinePresentationIntent = .stronglyEmphasized
-                attributed[lower..<upper].foregroundColor = Color.brandPrimary
+                attributed[lower..<upper].foregroundColor = Color.brandTheme
             }
         }
         return attributed

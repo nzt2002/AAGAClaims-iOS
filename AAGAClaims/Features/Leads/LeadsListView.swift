@@ -36,7 +36,9 @@ struct LeadsListView: View {
                         EmptyRecordsView(
                             title: "No leads yet",
                             message: "Leads you refer to us will appear here. Tap Submit a Lead to send one.",
-                            openSupport: openSupport
+                            openSupport: openSupport,
+                            actionTitle: "Add your first lead",
+                            action: { showingSubmit = true }
                         )
                     } else {
                         chips
@@ -59,6 +61,7 @@ struct LeadsListView: View {
                                     }
                                 }
                                 .buttonStyle(.plain)
+                                .recordRowMenu(address: lead.lossAddress, number: lead.claimNumber)
                                 .accessibilityIdentifier("leadCard-\(lead.recordId)")
                             }
                         }
@@ -183,7 +186,7 @@ struct LeadCard: View {
             AdaptiveStack(verticalAlignment: .leading, spacing: Theme.Spacing.xs) {
                 Text("Account manager: \(PortalFormat.nonEmpty(lead.accountManagerName) ?? "—")")
                 AdaptiveSpacer()
-                Text("Updated \(PortalFormat.date(lead.lastModifiedDate))")
+                Text("Updated \(PortalFormat.ago(lead.lastModifiedDate))")
             }
             .font(.caption)
             .foregroundStyle(Color.textSecondary)

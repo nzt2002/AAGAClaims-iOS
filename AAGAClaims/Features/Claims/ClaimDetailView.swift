@@ -425,7 +425,7 @@ private struct LifecycleCard: View {
                     if case .stage = position {
                         Image(systemName: "chevron.down").iconShadow()
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Color.brandPrimary)
+                            .foregroundStyle(Color.brandTheme)
                             .rotationEffect(.degrees(expanded ? 180 : 0))
                             .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
                     }
@@ -461,7 +461,7 @@ private struct LifecycleCard: View {
     private func guideRow(_ title: String, _ text: String, icon: String) -> some View {
         HStack(alignment: .top, spacing: Theme.Spacing.s) {
             Image(systemName: icon).iconShadow()
-                .foregroundStyle(Color.brandPrimary)
+                .foregroundStyle(Color.brandTheme)
                 .frame(width: 22)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
@@ -506,7 +506,7 @@ struct ProgressRing: View {
                 .stroke(onBrand ? Color.white.opacity(0.25) : Color.border, lineWidth: 6)
             Circle()
                 .trim(from: 0, to: CGFloat(percent) / 100)
-                .stroke(onBrand ? Color.white : (percent == 100 ? Color.success : Color.brandPrimary),
+                .stroke(onBrand ? Color.white : (percent == 100 ? Color.success : Color.brandTheme),
                         style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             Text("\(percent)%")
@@ -528,7 +528,7 @@ struct StepRow: View {
     let state: StepState
     let isLast: Bool
     var detail: String?
-    var currentTint: Color = .brandPrimary
+    var currentTint: Color = .brandTheme
 
     var body: some View {
         HStack(alignment: .top, spacing: Theme.Spacing.m) {
@@ -536,7 +536,7 @@ struct StepRow: View {
                 marker
                 if !isLast {
                     Rectangle()
-                        .fill(state == .complete ? Color.brandPrimary : Color.border)
+                        .fill(state == .complete ? Color.brandTheme : Color.border)
                         .frame(width: 2, height: 18)
                 }
             }
@@ -561,7 +561,7 @@ struct StepRow: View {
         switch state {
         case .complete:
             Image(systemName: "checkmark.circle.fill").iconShadow()
-                .foregroundStyle(Color.brandPrimary)
+                .foregroundStyle(Color.brandTheme)
         case .current:
             Image(systemName: "circle.inset.filled").iconShadow()
                 .foregroundStyle(currentTint)

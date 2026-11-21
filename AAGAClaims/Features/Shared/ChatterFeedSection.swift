@@ -373,7 +373,7 @@ struct AttachmentChip: View {
     var body: some View {
         HStack(spacing: Theme.Spacing.s) {
             Image(systemName: FilesList.icon(for: file.fileType ?? file.fileExtension)).iconShadow()
-                .foregroundStyle(Color.brandPrimary)
+                .foregroundStyle(Color.brandTheme)
                 .frame(width: 22)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 0) {

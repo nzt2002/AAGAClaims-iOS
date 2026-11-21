@@ -56,5 +56,6 @@ enum PlatformProfileCache {
 extension CurrentUser {
     init(_ profile: PlatformProfile) {
         self.init(firstName: profile.firstName, fullName: profile.fullName, email: profile.email, isInternal: profile.isInternal)
+        company = profile.company
     }
 }

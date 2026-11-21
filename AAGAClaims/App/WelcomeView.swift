@@ -80,7 +80,7 @@ struct WelcomeView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .buttonBorderShape(.roundedRectangle(radius: 14))
-                .tint(.brandPrimary)
+                .tint(.brandTheme)
                 .accessibilityIdentifier("continueDemo")
             } else {
                 Button(action: signIn) {
@@ -95,7 +95,7 @@ struct WelcomeView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .buttonBorderShape(.roundedRectangle(radius: 14))
-                .tint(.brandPrimary)
+                .tint(.brandTheme)
                 .disabled(isSigningIn)
                 .accessibilityIdentifier("signIn")
 

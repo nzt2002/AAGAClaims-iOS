@@ -22,7 +22,7 @@ struct SubjectField: View {
                 } label: {
                     HStack(spacing: Theme.Spacing.s) {
                         Image(systemName: "text.badge.checkmark").iconShadow()
-                            .foregroundStyle(Color.brandPrimary)
+                            .foregroundStyle(Color.brandTheme)
                             .accessibilityHidden(true)
                         Text(subject)
                             .foregroundStyle(Color.textPrimary)
