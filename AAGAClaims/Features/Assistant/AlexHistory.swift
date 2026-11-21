@@ -168,7 +168,7 @@ struct AlexFeedbackBadge: View {
 
     var body: some View {
         if let helpful {
-            Image(systemName: helpful ? "hand.thumbsup.fill" : "hand.thumbsdown.fill")
+            Image(systemName: helpful ? "hand.thumbsup.fill" : "hand.thumbsdown.fill").iconShadow()
                 .font(.caption)
                 .foregroundStyle(helpful ? Color.success : Color.warning)
                 .accessibilityLabel(helpful ? "Helpful" : "Not helpful")
@@ -294,7 +294,7 @@ struct AlexChatsLink: View {
                     .font(.cardTitle)
                     .foregroundStyle(Color.textPrimary)
                 Spacer()
-                Image(systemName: "chevron.right")
+                Image(systemName: "chevron.right").iconShadow()
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(Color.textSecondary)
             }

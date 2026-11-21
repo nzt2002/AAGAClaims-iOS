@@ -112,7 +112,7 @@ struct AlexFilePickerSheet: View {
                                         .foregroundStyle(Color.primary)
                                         .multilineTextAlignment(.leading)
                                 } icon: {
-                                    Image(systemName: picked.contains(file) ? "checkmark.square.fill" : "square")
+                                    Image(systemName: picked.contains(file) ? "checkmark.square.fill" : "square").iconShadow()
                                         .foregroundStyle(picked.contains(file) ? Color.accentColor : Color.secondary)
                                         .imageScale(.large)
                                 }

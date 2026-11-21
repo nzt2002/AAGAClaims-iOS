@@ -91,7 +91,7 @@ struct ChangeLeadStatusForm: View {
                             Text(status).foregroundStyle(Color.textPrimary)
                             Spacer()
                             if saving == status { ProgressView() }
-                            else if staff.status == status { Image(systemName: "checkmark").foregroundStyle(Color.leadAccent) }
+                            else if staff.status == status { Image(systemName: "checkmark").iconShadow().foregroundStyle(Color.leadAccent) }
                         }
                         .frame(minHeight: Theme.minTapTarget)
                     }

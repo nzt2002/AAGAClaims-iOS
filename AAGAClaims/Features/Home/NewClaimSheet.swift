@@ -113,7 +113,7 @@ struct NewClaimSheet: View {
                         .multilineTextAlignment(.leading)
                 }
                 Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
+                Image(systemName: "chevron.right").iconShadow()
                     .foregroundStyle(Color.textSecondary)
             }
             .cardStyle()
@@ -196,7 +196,7 @@ private struct MatchRow: View {
                 }
             }
             Spacer(minLength: 0)
-            Image(systemName: selected ? "checkmark.circle.fill" : "chevron.right")
+            Image(systemName: selected ? "checkmark.circle.fill" : "chevron.right").iconShadow()
                 .foregroundStyle(selected ? Color.brandPrimary : Color.textSecondary)
         }
         .frame(minHeight: Theme.minTapTarget)
@@ -215,7 +215,7 @@ private struct DebouncedSearchField: View {
 
     var body: some View {
         HStack {
-            Image(systemName: "magnifyingglass")
+            Image(systemName: "magnifyingglass").iconShadow()
                 .foregroundStyle(Color.textSecondary)
                 .accessibilityHidden(true)
             TextField(prompt, text: $text)
@@ -314,7 +314,7 @@ private struct AccountMatchesStep: View {
                 Label {
                     Text("This person may already have an account. To avoid a duplicate, choose the account to use for this claim.")
                 } icon: {
-                    Image(systemName: "person.2.badge.gearshape")
+                    Image(systemName: "person.2.badge.gearshape").iconShadow()
                         .foregroundStyle(Color.brandPrimary)
                 }
             }

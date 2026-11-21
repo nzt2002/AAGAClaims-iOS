@@ -437,7 +437,7 @@ private struct LeadLifecycleCard: View {
                     }
                     Spacer(minLength: 0)
                     if hasStages {
-                        Image(systemName: "chevron.down")
+                        Image(systemName: "chevron.down").iconShadow()
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Color.leadAccent)
                             .rotationEffect(.degrees(expanded ? 180 : 0))

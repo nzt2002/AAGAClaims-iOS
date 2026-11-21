@@ -40,7 +40,7 @@ struct CallScreen: View {
             Button {
                 calls.showsCallScreen = false
             } label: {
-                Image(systemName: "chevron.down")
+                Image(systemName: "chevron.down").iconShadow()
                     .font(.title3.weight(.semibold))
                     .frame(width: 44, height: 44)
             }
@@ -191,7 +191,7 @@ struct CallScreen: View {
         Button {
             calls.endCall()
         } label: {
-            Image(systemName: "phone.down.fill")
+            Image(systemName: "phone.down.fill").iconShadow()
                 .font(.system(size: 30))
                 .frame(width: 76, height: 76)
                 .background(Color.red, in: Circle())
@@ -219,7 +219,7 @@ private struct ControlButton: View {
     var body: some View {
         Button(action: action) {
             VStack(spacing: 8) {
-                Image(systemName: systemImage)
+                Image(systemName: systemImage).iconShadow()
                     .font(.system(size: 26))
                     .frame(width: 76, height: 76)
                     .foregroundStyle(isOn ? onTint : Color.white)
@@ -243,7 +243,7 @@ struct ReturnToCallBar: View {
                 calls.showsCallScreen = true
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "phone.fill")
+                    Image(systemName: "phone.fill").iconShadow()
                     Text("Return to call · \(call.title)")
                         .lineLimit(1)
                     Spacer(minLength: 8)

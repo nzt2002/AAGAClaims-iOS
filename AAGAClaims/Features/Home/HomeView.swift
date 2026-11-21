@@ -91,7 +91,7 @@ struct HomeView: View {
                 router.showingSearch = true
             } label: {
                 HStack(spacing: Theme.Spacing.s) {
-                    Image(systemName: "magnifyingglass")
+                    Image(systemName: "magnifyingglass").iconShadow()
                         .font(.headline)
                         .foregroundStyle(Theme.OnWhite.brand)
                     Text("Search claims, leads and cases")
@@ -215,7 +215,7 @@ struct HomeView: View {
                                     viewModel.showCompleted.toggle()
                                 }
                             } label: {
-                                Image(systemName: "ellipsis.circle")
+                                Image(systemName: "ellipsis.circle").iconShadow()
                                     .font(.title3)
                                     .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
                                     .contentShape(Rectangle())
@@ -284,7 +284,7 @@ struct HomeView: View {
                                 if let status = PortalFormat.nonEmpty(item.status) {
                                     StatusPill(text: status, tone: .neutral)
                                 }
-                                Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.textSecondary)
+                                Image(systemName: "chevron.right").iconShadow().font(.caption).foregroundStyle(Color.textSecondary)
                             }
                             .padding(.vertical, Theme.Spacing.s)
                             .frame(minHeight: Theme.minTapTarget)
@@ -328,7 +328,7 @@ struct HomeView: View {
                                 Text(item.daysWaiting == 0 ? "Today" : "\(item.daysWaiting)d")
                                     .font(.caption.weight(.semibold))
                                     .foregroundStyle(item.daysWaiting >= 7 ? Color.warning : Color.textSecondary)
-                                Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.textSecondary)
+                                Image(systemName: "chevron.right").iconShadow().font(.caption).foregroundStyle(Color.textSecondary)
                             }
                             .padding(.vertical, Theme.Spacing.s)
                             .frame(minHeight: Theme.minTapTarget)
@@ -514,7 +514,7 @@ struct AgendaRow: View {
                 }
                 Spacer(minLength: 0)
                 if item.recordRef != nil {
-                    Image(systemName: "chevron.right")
+                    Image(systemName: "chevron.right").iconShadow()
                         .font(.caption)
                         .foregroundStyle(Color.textSecondary)
                 }
@@ -599,7 +599,7 @@ struct RecentClaimRow: View {
             if let status = PortalFormat.nonEmpty(claim.claimStatus) {
                 StatusPill(text: status, tone: StatusPill.tone(forClaimStatus: status))
             }
-            Image(systemName: "chevron.right")
+            Image(systemName: "chevron.right").iconShadow()
                 .font(.caption)
                 .foregroundStyle(Color.textSecondary)
         }
@@ -627,7 +627,7 @@ struct FeedPostRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: Theme.Spacing.m) {
-            Image(systemName: "bubble.left.and.text.bubble.right")
+            Image(systemName: "bubble.left.and.text.bubble.right").iconShadow()
                 .font(.caption)
                 .foregroundStyle(Color.brandPrimary)
                 .frame(width: 8)

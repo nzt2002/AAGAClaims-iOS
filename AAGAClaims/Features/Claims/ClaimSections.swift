@@ -165,12 +165,12 @@ struct FilesList: View {
     private func row(_ file: PortalFile) -> some View {
         HStack(alignment: .top, spacing: Theme.Spacing.m) {
             if let selected {
-                Image(systemName: selected.contains(file.id) ? "checkmark.circle.fill" : "circle")
+                Image(systemName: selected.contains(file.id) ? "checkmark.circle.fill" : "circle").iconShadow()
                     .font(.title3)
                     .foregroundStyle(selected.contains(file.id) ? Color.brandPrimary : Color.textSecondary)
                     .accessibilityHidden(true)
             }
-            Image(systemName: Self.icon(for: file.fileType))
+            Image(systemName: Self.icon(for: file.fileType)).iconShadow()
                 .font(.title2)
                 .foregroundStyle(Color.brandPrimary)
                 .frame(width: 32)
@@ -189,7 +189,7 @@ struct FilesList: View {
             }
             Spacer(minLength: 0)
             if showsVisibility {
-                Image(systemName: file.portalVisible == true ? "eye" : "eye.slash")
+                Image(systemName: file.portalVisible == true ? "eye" : "eye.slash").iconShadow()
                     .font(.caption)
                     .foregroundStyle(file.portalVisible == true ? Color.success : Color.textSecondary)
                     .accessibilityLabel(file.portalVisible == true ? "The policyholder sees this" : "Staff only")
@@ -333,7 +333,7 @@ struct TeamCard: View {
 
     private func contactButton(url: URL, systemImage: String, label: String) -> some View {
         Link(destination: url) {
-            Image(systemName: systemImage)
+            Image(systemName: systemImage).iconShadow()
                 .frame(width: Theme.minTapTarget, height: Theme.minTapTarget)
                 .background(Color.surfaceTintedStrong, in: Circle())
         }

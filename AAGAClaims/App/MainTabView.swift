@@ -370,7 +370,7 @@ struct MainTabView: View {
                 Button {
                     router.showingSearch = true
                 } label: {
-                    Image(systemName: "magnifyingglass")
+                    Image(systemName: "magnifyingglass").iconShadow()
                         .font(.system(size: bellSize))
                         .frame(minWidth: bellButtonSize, minHeight: bellButtonSize)
                 }
@@ -382,7 +382,7 @@ struct MainTabView: View {
                 router.showingNotifications = true
             } label: {
                 // 15% smaller than a standard bar icon and button (17 pt and 44 pt).
-                Image(systemName: "bell")
+                Image(systemName: "bell").iconShadow()
                     .font(.system(size: bellSize))
                     // A ring when a new update arrives.
                     .symbolEffect(.bounce, options: .nonRepeating, value: router.home.unreadCount)
@@ -438,7 +438,7 @@ private struct RecordPlaceholder: View {
                 Text("Choose a \(noun)")
                     .font(.sectionTitle)
             } icon: {
-                Image(systemName: systemImage)
+                Image(systemName: systemImage).iconShadow()
                     .font(.system(size: 34, weight: .semibold))
                     .foregroundStyle(accent)
                     .frame(width: 84, height: 84)

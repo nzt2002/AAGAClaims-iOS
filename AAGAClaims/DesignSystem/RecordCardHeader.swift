@@ -61,7 +61,7 @@ struct RecordCardHeader: View {
                         Text(address.replacingOccurrences(of: "\n", with: ", "))
                             .multilineTextAlignment(.leading)
                     } icon: {
-                        Image(systemName: "mappin.and.ellipse")
+                        Image(systemName: "mappin.and.ellipse").iconShadow()
                     }
                     .font(.footnote.weight(.medium))
                     .foregroundStyle(accent)
@@ -104,7 +104,7 @@ private struct EditPencil: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: "pencil")
+            Image(systemName: "pencil").iconShadow()
                 .font(.body.weight(.medium))
                 .foregroundStyle(Color.textSecondary)
                 .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
@@ -187,7 +187,7 @@ struct StageTrackCard: View {
     private func dot(_ state: DotState) -> some View {
         switch state {
         case .done:
-            Image(systemName: "checkmark")
+            Image(systemName: "checkmark").iconShadow()
                 .font(.system(size: 9, weight: .heavy))
                 .foregroundStyle(.white)
                 .frame(width: 18, height: 18)

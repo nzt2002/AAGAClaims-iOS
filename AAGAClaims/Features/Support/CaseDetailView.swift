@@ -184,7 +184,7 @@ struct CaseDetailView: View {
                         if viewModel.isSending {
                             ProgressView()
                         } else {
-                            Image(systemName: "arrow.up.circle.fill")
+                            Image(systemName: "arrow.up.circle.fill").iconShadow()
                                 .font(.title)
                         }
                     }
@@ -249,7 +249,7 @@ private struct CaseHeader: View {
                                 .foregroundStyle(Color.textSecondary)
                         }
                         Spacer()
-                        Image(systemName: "chevron.right")
+                        Image(systemName: "chevron.right").iconShadow()
                             .font(.caption)
                             .foregroundStyle(Color.textSecondary)
                     }

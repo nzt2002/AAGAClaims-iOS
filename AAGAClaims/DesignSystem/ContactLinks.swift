@@ -101,7 +101,7 @@ struct LinkRow: View {
 
     private func row(_ value: String, tinted: Bool) -> some View {
         HStack(alignment: .top, spacing: Theme.Spacing.m) {
-            Image(systemName: systemImage)
+            Image(systemName: systemImage).iconShadow()
                 .foregroundStyle(Color.textSecondary)
                 .frame(width: 22)
             VStack(alignment: .leading, spacing: 2) {
@@ -130,7 +130,7 @@ struct LossAddressCard: View {
             LinkRow(label: "Loss address", value: address, url: ContactURL.map(address),
                     systemImage: "mappin.and.ellipse", actionName: "Open in Maps")
                 .overlay(alignment: .trailing) {
-                    Image(systemName: "map")
+                    Image(systemName: "map").iconShadow()
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.recordAccent(isLead: isLead))
                         .accessibilityHidden(true)
@@ -151,7 +151,7 @@ struct FieldRow: View {
         if let value = PortalFormat.nonEmpty(value) {
             HStack(alignment: .top, spacing: Theme.Spacing.m) {
                 if let systemImage {
-                    Image(systemName: systemImage)
+                    Image(systemName: systemImage).iconShadow()
                         .foregroundStyle(Color.textSecondary)
                         .frame(width: 22)
                 }

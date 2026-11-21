@@ -121,11 +121,11 @@ struct FilesSection: View {
             HStack(spacing: Theme.Spacing.xs) {
                 crumb("Files", id: nil, isCurrent: currentId == nil && !showAll)
                 if showAll {
-                    Image(systemName: "chevron.right").font(.caption2).foregroundStyle(Color.textSecondary)
+                    Image(systemName: "chevron.right").iconShadow().font(.caption2).foregroundStyle(Color.textSecondary)
                     Text("All files").font(.subheadline.weight(.semibold))
                 }
                 ForEach(explorer.breadcrumb) { folder in
-                    Image(systemName: "chevron.right").font(.caption2).foregroundStyle(Color.textSecondary)
+                    Image(systemName: "chevron.right").iconShadow().font(.caption2).foregroundStyle(Color.textSecondary)
                     crumb(folder.name, id: folder.id, isCurrent: folder.id == currentId && !showAll)
                 }
             }
@@ -154,18 +154,18 @@ struct FilesSection: View {
             ForEach(explorer.subfolders) { folder in
                 Button { open(folder: folder.id) } label: {
                     HStack(spacing: Theme.Spacing.m) {
-                        Image(systemName: "folder.fill").font(.title2).foregroundStyle(Color.brandPrimary).frame(width: 32)
+                        Image(systemName: "folder.fill").iconShadow().font(.title2).foregroundStyle(Color.brandPrimary).frame(width: 32)
                         Text(folder.name).font(.subheadline.weight(.semibold)).foregroundStyle(Color.textPrimary)
                         Spacer(minLength: 0)
                         if canManage {
-                            Image(systemName: folder.portalVisible ? "eye" : "eye.slash")
+                            Image(systemName: folder.portalVisible ? "eye" : "eye.slash").iconShadow()
                                 .font(.caption)
                                 .foregroundStyle(folder.portalVisible ? Color.success : Color.textSecondary)
                                 .accessibilityLabel(folder.portalVisible ? "The policyholder sees this folder" : "Staff only")
                         }
                         let count = explorer.fileCount(in: folder.id)
                         if count > 0 { Text("\(count)").font(.caption).foregroundStyle(Color.textSecondary) }
-                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.textSecondary)
+                        Image(systemName: "chevron.right").iconShadow().font(.caption).foregroundStyle(Color.textSecondary)
                     }
                     .padding(.vertical, Theme.Spacing.s)
                     .frame(minHeight: Theme.minTapTarget)
@@ -200,7 +200,7 @@ struct FilesSection: View {
                 Menu(current.name) { folderMenu(current) }
             }
         } label: {
-            Image(systemName: "ellipsis.circle")
+            Image(systemName: "ellipsis.circle").iconShadow()
                 .font(.title3)
                 .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
         }
@@ -240,10 +240,10 @@ struct FilesSection: View {
             Text("\(selected.count) selected").font(.subheadline.weight(.semibold))
             Spacer()
             Button("All") { selected = Set(explorer.visibleFiles.map(\.id)) }
-            Button { movingFileIds = ids } label: { Image(systemName: "folder") }.accessibilityLabel("Move")
-            Button { Task { await organize(ids, .show, done: "Visible to the policyholder.") } } label: { Image(systemName: "eye") }.accessibilityLabel("Show policyholder")
-            Button { Task { await organize(ids, .hide, done: "Now staff only.") } } label: { Image(systemName: "eye.slash") }.accessibilityLabel("Staff only")
-            Button(role: .destructive) { Task { await remove(ids) } } label: { Image(systemName: "trash") }.accessibilityLabel("Remove")
+            Button { movingFileIds = ids } label: { Image(systemName: "folder").iconShadow() }.accessibilityLabel("Move")
+            Button { Task { await organize(ids, .show, done: "Visible to the policyholder.") } } label: { Image(systemName: "eye").iconShadow() }.accessibilityLabel("Show policyholder")
+            Button { Task { await organize(ids, .hide, done: "Now staff only.") } } label: { Image(systemName: "eye.slash").iconShadow() }.accessibilityLabel("Staff only")
+            Button(role: .destructive) { Task { await remove(ids) } } label: { Image(systemName: "trash").iconShadow() }.accessibilityLabel("Remove")
         }
         .font(.subheadline)
         .buttonStyle(.bordered)
@@ -441,7 +441,7 @@ struct UploadStatusList: View {
                             Button {
                                 queue.dismiss(item.id)
                             } label: {
-                                Image(systemName: "xmark")
+                                Image(systemName: "xmark").iconShadow()
                                     .frame(width: Theme.minTapTarget, height: Theme.minTapTarget)
                             }
                             .accessibilityLabel("Remove \(item.title)")
@@ -458,10 +458,10 @@ struct UploadStatusList: View {
     @ViewBuilder
     private func statusIcon(_ status: UploadQueue.Status) -> some View {
         switch status {
-        case .waiting: Image(systemName: "clock").foregroundStyle(Color.textSecondary)
+        case .waiting: Image(systemName: "clock").iconShadow().foregroundStyle(Color.textSecondary)
         case .uploading: ProgressView()
-        case .uploaded: Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.success)
-        case .failed: Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.warning)
+        case .uploaded: Image(systemName: "checkmark.circle.fill").iconShadow().foregroundStyle(Color.success)
+        case .failed: Image(systemName: "exclamationmark.triangle.fill").iconShadow().foregroundStyle(Color.warning)
         }
     }
 

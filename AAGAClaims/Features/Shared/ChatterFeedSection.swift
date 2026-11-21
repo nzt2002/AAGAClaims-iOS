@@ -112,7 +112,7 @@ struct ChatterFeedSection: View {
                                 .foregroundStyle(Color.textSecondary)
                         }
                         Spacer(minLength: Theme.Spacing.s)
-                        Image(systemName: "chevron.down")
+                        Image(systemName: "chevron.down").iconShadow()
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Color.textSecondary)
                             .rotationEffect(.degrees(open ? 180 : 0))
@@ -283,7 +283,7 @@ struct ChatterFeedSection: View {
                     FileSourceMenu(maxCount: model.maxFiles(for: post.id), onPicked: { uploads in
                         Task { await model.attach(uploads, to: post.id) }
                     }) {
-                        Image(systemName: "paperclip")
+                        Image(systemName: "paperclip").iconShadow()
                             .font(.body.weight(.semibold))
                             .frame(width: Theme.minTapTarget, height: Theme.minTapTarget)
                             .contentShape(Rectangle())
@@ -372,7 +372,7 @@ struct AttachmentChip: View {
 
     var body: some View {
         HStack(spacing: Theme.Spacing.s) {
-            Image(systemName: FilesList.icon(for: file.fileType ?? file.fileExtension))
+            Image(systemName: FilesList.icon(for: file.fileType ?? file.fileExtension)).iconShadow()
                 .foregroundStyle(Color.brandPrimary)
                 .frame(width: 22)
                 .accessibilityHidden(true)
@@ -412,7 +412,7 @@ struct DraftAttachments: View {
                 HStack(spacing: Theme.Spacing.xs) {
                     AttachmentChip(file: file)
                     Button { remove(file) } label: {
-                        Image(systemName: "xmark.circle.fill")
+                        Image(systemName: "xmark.circle.fill").iconShadow()
                             .foregroundStyle(Color.textSecondary)
                             .frame(width: Theme.minTapTarget, height: Theme.minTapTarget)
                     }

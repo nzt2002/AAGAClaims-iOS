@@ -81,7 +81,7 @@ struct RecordCasesSection: View {
             if let status = PortalFormat.nonEmpty(supportCase.status) {
                 StatusPill(text: status, tone: supportCase.isClosed ? .neutral : .active)
             }
-            Image(systemName: systemImage)
+            Image(systemName: systemImage).iconShadow()
                 .font(.caption)
                 .foregroundStyle(Color.textSecondary)
         }

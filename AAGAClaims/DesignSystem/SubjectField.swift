@@ -21,7 +21,7 @@ struct SubjectField: View {
                     focused = false
                 } label: {
                     HStack(spacing: Theme.Spacing.s) {
-                        Image(systemName: "text.badge.checkmark")
+                        Image(systemName: "text.badge.checkmark").iconShadow()
                             .foregroundStyle(Color.brandPrimary)
                             .accessibilityHidden(true)
                         Text(subject)

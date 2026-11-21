@@ -83,7 +83,7 @@ struct LeadsListView: View {
                 Button {
                     showingSubmit = true
                 } label: {
-                    Image(systemName: "plus")
+                    Image(systemName: "plus").iconShadow()
                         .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
                 }
                 .accessibilityLabel("Submit a Lead")

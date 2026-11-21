@@ -45,7 +45,7 @@ struct WelcomeView: View {
 
     private func feature(_ icon: String, _ text: String) -> some View {
         HStack(spacing: Theme.Spacing.m) {
-            Image(systemName: icon)
+            Image(systemName: icon).iconShadow()
                 .font(.headline)
                 .foregroundStyle(.white)
                 .frame(width: 40, height: 40)

@@ -91,7 +91,7 @@ struct RecordActivitySection: View {
                     }
                     .accessibilityIdentifier("\(noun)ToggleCompleted")
                 } label: {
-                    Image(systemName: "ellipsis")
+                    Image(systemName: "ellipsis").iconShadow()
                         .font(.body.weight(.semibold))
                         .foregroundStyle(Color.textSecondary)
                         .frame(width: Theme.minTapTarget, height: Theme.minTapTarget)
@@ -150,7 +150,7 @@ struct RecordActivitySection: View {
     private func row(_ item: AgendaItem) -> some View {
         let done = item.isClosed == true && item.kind == .task
         return HStack(spacing: Theme.Spacing.m) {
-            Image(systemName: done ? "checkmark" : item.activityIcon)
+            Image(systemName: done ? "checkmark" : item.activityIcon).iconShadow()
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(done ? Color.textSecondary : Color.recordAccent(isLead: isLead))
                 .frame(width: 40, height: 40)
@@ -169,7 +169,7 @@ struct RecordActivitySection: View {
                     .lineLimit(1)
             }
             Spacer(minLength: 0)
-            Image(systemName: "chevron.right")
+            Image(systemName: "chevron.right").iconShadow()
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Color.textSecondary.opacity(0.6))
                 .accessibilityHidden(true)
@@ -304,7 +304,7 @@ struct ActivityItemRow: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            Image(systemName: "chevron.right")
+            Image(systemName: "chevron.right").iconShadow()
                 .font(.caption)
                 .foregroundStyle(Color.textSecondary)
                 .padding(.top, 4)
@@ -405,7 +405,7 @@ struct ActivityDetailView: View {
                         let path = SalesforcePageLink.path("/lightning/r/\(object)/\(item.id)/view", query: [])
                         Task { salesforceURL = await salesforcePage.url(for: path) }
                     } label: {
-                        Image(systemName: "safari")
+                        Image(systemName: "safari").iconShadow()
                     }
                     .accessibilityLabel("Open on the web")
                     .accessibilityIdentifier("activityOpenInSalesforce")
@@ -516,7 +516,7 @@ struct ActivityDetailView: View {
             }
         } label: {
             HStack(alignment: .top, spacing: Theme.Spacing.m) {
-                Image(systemName: "flag")
+                Image(systemName: "flag").iconShadow()
                     .foregroundStyle(Color.textSecondary)
                     .frame(width: 22)
                 VStack(alignment: .leading, spacing: 2) {
@@ -528,7 +528,7 @@ struct ActivityDetailView: View {
                         .foregroundStyle(Color.recordAccent(isLead: isLead))
                 }
                 Spacer(minLength: 0)
-                Image(systemName: "chevron.up.chevron.down")
+                Image(systemName: "chevron.up.chevron.down").iconShadow()
                     .font(.caption)
                     .foregroundStyle(Color.textSecondary)
                     .accessibilityHidden(true)

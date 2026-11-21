@@ -127,7 +127,7 @@ struct SignatureRequestRow: View {
             }
             ForEach(request.signers, id: \.self) { signer in
                 HStack(spacing: Theme.Spacing.xs) {
-                    Image(systemName: signer.status == "Signed" ? "checkmark.circle.fill" : "circle")
+                    Image(systemName: signer.status == "Signed" ? "checkmark.circle.fill" : "circle").iconShadow()
                         .foregroundStyle(signer.status == "Signed" ? .green : .secondary)
                     Text(signer.name ?? signer.email ?? "Signer")
                     Spacer()

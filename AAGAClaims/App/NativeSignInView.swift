@@ -117,7 +117,7 @@ struct NativeSignInView: View {
                 Button {
                     showingPassword.toggle()
                 } label: {
-                    Image(systemName: showingPassword ? "eye.slash" : "eye")
+                    Image(systemName: showingPassword ? "eye.slash" : "eye").iconShadow()
                         .foregroundStyle(Color.textSecondary)
                         .frame(width: Theme.minTapTarget, height: Theme.minTapTarget)
                 }
@@ -198,7 +198,7 @@ struct NativeSignInView: View {
 
     private func field<Content: View>(icon: String, @ViewBuilder content: () -> Content) -> some View {
         HStack(spacing: Theme.Spacing.s) {
-            Image(systemName: icon)
+            Image(systemName: icon).iconShadow()
                 .foregroundStyle(Color.textSecondary)
                 .frame(width: 24)
                 .accessibilityHidden(true)

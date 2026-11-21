@@ -47,7 +47,7 @@ struct NeedsAttentionSection: View {
 
     private var caughtUp: some View {
         HStack(spacing: Theme.Spacing.m) {
-            Image(systemName: "checkmark.seal.fill")
+            Image(systemName: "checkmark.seal.fill").iconShadow()
                 .font(.title2)
                 .foregroundStyle(Color.success)
                 .symbolEffect(.bounce, options: .nonRepeating, value: completedCount)
@@ -85,7 +85,7 @@ struct NeedsAttentionSection: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: Theme.Spacing.s)
-                    Image(systemName: "chevron.right")
+                    Image(systemName: "chevron.right").iconShadow()
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(Color.textSecondary)
                         .accessibilityHidden(true)
@@ -105,7 +105,7 @@ struct NeedsAttentionSection: View {
                         if completing == task.id {
                             ProgressView().controlSize(.small)
                         } else {
-                            Image(systemName: "checkmark.circle")
+                            Image(systemName: "checkmark.circle").iconShadow()
                         }
                         Text("Mark complete")
                     }

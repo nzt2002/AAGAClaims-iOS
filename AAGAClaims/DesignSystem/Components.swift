@@ -76,7 +76,7 @@ struct InfoRow: View {
                     .foregroundStyle(Color.textPrimary)
             } icon: {
                 if let systemImage {
-                    Image(systemName: systemImage)
+                    Image(systemName: systemImage).iconShadow()
                         .foregroundStyle(Color.textSecondary)
                 }
             }

@@ -72,7 +72,7 @@ struct FlatActionTile: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            Image(systemName: icon)
+            Image(systemName: icon).iconShadow()
                 .font(.system(size: size, weight: .medium))
                 .foregroundStyle(Color.recordAccent(isLead: isLead))
                 .frame(height: size + 8)

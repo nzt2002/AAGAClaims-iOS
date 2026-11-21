@@ -31,7 +31,7 @@ struct HeaderEditButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: "pencil")
+            Image(systemName: "pencil").iconShadow()
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(.white)
                 .frame(width: 36, height: 36)

@@ -81,7 +81,7 @@ struct SearchSheet: View {
 
     private var searchField: some View {
         HStack(spacing: Theme.Spacing.s) {
-            Image(systemName: "magnifyingglass")
+            Image(systemName: "magnifyingglass").iconShadow()
                 .foregroundStyle(Color.textSecondary)
                 .accessibilityHidden(true)
             TextField("Name, claim number, address or email", text: $viewModel.query)
@@ -97,7 +97,7 @@ struct SearchSheet: View {
                     viewModel.query = ""
                     fieldFocused = true
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
+                    Image(systemName: "xmark.circle.fill").iconShadow()
                         .foregroundStyle(Color.textSecondary)
                         .frame(minWidth: Theme.minTapTarget, minHeight: Theme.minTapTarget)
                 }
@@ -205,12 +205,12 @@ struct SearchSheet: View {
                             viewModel.query = term
                         } label: {
                             HStack(spacing: Theme.Spacing.m) {
-                                Image(systemName: "clock.arrow.circlepath")
+                                Image(systemName: "clock.arrow.circlepath").iconShadow()
                                     .foregroundStyle(Color.textSecondary)
                                 Text(term)
                                     .foregroundStyle(Color.textPrimary)
                                 Spacer()
-                                Image(systemName: "arrow.up.left")
+                                Image(systemName: "arrow.up.left").iconShadow()
                                     .font(.caption)
                                     .foregroundStyle(Color.textSecondary)
                             }
@@ -273,7 +273,7 @@ struct SearchSheet: View {
 
     private var noResults: some View {
         VStack(spacing: Theme.Spacing.m) {
-            Image(systemName: "magnifyingglass")
+            Image(systemName: "magnifyingglass").iconShadow()
                 .font(.largeTitle)
                 .foregroundStyle(Color.textSecondary)
             Text(viewModel.scope == .all ? "No results for \"\(viewModel.query)\"" : "No \(viewModel.scope.rawValue.lowercased()) match \"\(viewModel.query)\"")
@@ -309,7 +309,7 @@ struct SearchSheet: View {
                 }
             }
             Spacer(minLength: 0)
-            Image(systemName: "chevron.right")
+            Image(systemName: "chevron.right").iconShadow()
                 .font(.caption)
                 .foregroundStyle(Color.textSecondary)
         }

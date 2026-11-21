@@ -105,7 +105,7 @@ struct RecordLookupList: View {
         List {
             Section {
                 HStack {
-                    Image(systemName: "magnifyingglass")
+                    Image(systemName: "magnifyingglass").iconShadow()
                         .foregroundStyle(Color.textSecondary)
                         .accessibilityHidden(true)
                     TextField("Search by name or address", text: $query)
@@ -139,7 +139,7 @@ struct RecordLookupList: View {
                             }
                             Spacer(minLength: 0)
                             if record.id == selection {
-                                Image(systemName: "checkmark")
+                                Image(systemName: "checkmark").iconShadow()
                                     .foregroundStyle(Color.brandPrimary)
                             }
                         }

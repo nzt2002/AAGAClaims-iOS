@@ -90,7 +90,7 @@ struct ActionCircle: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Image(systemName: icon)
+            Image(systemName: icon).iconShadow()
                 .font(.system(size: size * 0.4, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: size, height: size)
@@ -186,7 +186,7 @@ private struct ChangeStatusForm: View {
                             Text(status).foregroundStyle(Color.textPrimary)
                             Spacer()
                             if saving == status { ProgressView() }
-                            else if staff.status == status { Image(systemName: "checkmark").foregroundStyle(Color.brandPrimary) }
+                            else if staff.status == status { Image(systemName: "checkmark").iconShadow().foregroundStyle(Color.brandPrimary) }
                         }
                         .frame(minHeight: Theme.minTapTarget)
                     }
@@ -505,7 +505,7 @@ private struct ChangeOwnerForm: View {
             Section {
                 LabeledContent("Current owner", value: staff.ownerName ?? "—")
                 HStack {
-                    Image(systemName: "magnifyingglass").foregroundStyle(Color.textSecondary).accessibilityHidden(true)
+                    Image(systemName: "magnifyingglass").iconShadow().foregroundStyle(Color.textSecondary).accessibilityHidden(true)
                     TextField("Search people", text: $query)
                         .autocorrectionDisabled()
                         .accessibilityIdentifier("ownerSearch")
@@ -518,7 +518,7 @@ private struct ChangeOwnerForm: View {
                             Text(user.name).foregroundStyle(Color.textPrimary)
                             Spacer()
                             if selection == user.userId {
-                                Image(systemName: "checkmark").foregroundStyle(Color.brandPrimary)
+                                Image(systemName: "checkmark").iconShadow().foregroundStyle(Color.brandPrimary)
                             }
                         }
                         .frame(minHeight: Theme.minTapTarget)
@@ -835,7 +835,7 @@ private struct AddContactForm: View {
         case .existing:
             Section {
                 HStack {
-                    Image(systemName: "magnifyingglass").foregroundStyle(Color.textSecondary).accessibilityHidden(true)
+                    Image(systemName: "magnifyingglass").iconShadow().foregroundStyle(Color.textSecondary).accessibilityHidden(true)
                     TextField("Name or email", text: $query)
                         .autocorrectionDisabled()
                         .accessibilityIdentifier("addContactSearch")
@@ -896,7 +896,7 @@ private struct AddContactForm: View {
                             HStack {
                                 Text(account.name ?? "Account").foregroundStyle(Color.textPrimary)
                                 Spacer()
-                                if model.selectedPartner?.id == account.id { Image(systemName: "checkmark").foregroundStyle(Color.brandPrimary) }
+                                if model.selectedPartner?.id == account.id { Image(systemName: "checkmark").iconShadow().foregroundStyle(Color.brandPrimary) }
                             }
                             .frame(minHeight: Theme.minTapTarget)
                             .contentShape(Rectangle())
@@ -926,7 +926,7 @@ private struct AddContactForm: View {
                                 HStack {
                                     Text(account.name ?? "Account").foregroundStyle(Color.textPrimary)
                                     Spacer()
-                                    if model.selectedPartner?.id == account.id { Image(systemName: "checkmark").foregroundStyle(Color.brandPrimary) }
+                                    if model.selectedPartner?.id == account.id { Image(systemName: "checkmark").iconShadow().foregroundStyle(Color.brandPrimary) }
                                 }
                                 .frame(minHeight: Theme.minTapTarget)
                                 .contentShape(Rectangle())
@@ -967,7 +967,7 @@ private struct AddContactForm: View {
                 }
             }
             Spacer()
-            if selected { Image(systemName: "checkmark").foregroundStyle(Color.brandPrimary) }
+            if selected { Image(systemName: "checkmark").iconShadow().foregroundStyle(Color.brandPrimary) }
         }
         .frame(minHeight: Theme.minTapTarget)
         .contentShape(Rectangle())
@@ -1122,7 +1122,7 @@ private struct EmailForm: View {
                 ForEach(addresses, id: \.self) { address in
                     HStack(spacing: 4) {
                         Text(address).lineLimit(1)
-                        Button { remove(address, address) } label: { Image(systemName: "xmark.circle.fill") }
+                        Button { remove(address, address) } label: { Image(systemName: "xmark.circle.fill").iconShadow() }
                             .buttonStyle(.plain)
                             .foregroundStyle(Color.textSecondary)
                             .accessibilityLabel("Remove \(address)")

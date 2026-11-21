@@ -160,7 +160,7 @@ struct LockScreen: View {
     var body: some View {
         VStack(spacing: Theme.Spacing.l) {
             Spacer()
-            Image(systemName: "lock.fill")
+            Image(systemName: "lock.fill").iconShadow()
                 .font(.system(size: 48))
                 .foregroundStyle(Color.brandPrimary)
                 .accessibilityHidden(true)
@@ -195,7 +195,7 @@ struct PrivacyShield: View {
     var body: some View {
         ZStack {
             Color.appBackground
-            Image(systemName: "house.and.flag.fill")
+            Image(systemName: "house.and.flag.fill").iconShadow()
                 .font(.system(size: 56))
                 .foregroundStyle(Color.brandPrimary)
         }

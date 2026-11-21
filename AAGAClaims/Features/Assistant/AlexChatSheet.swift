@@ -91,7 +91,7 @@ struct AlexChatSheet: View {
                     .onSubmit(send)
                     .accessibilityIdentifier("alexChatField")
                 Button(action: send) {
-                    Image(systemName: "arrow.up.circle.fill").font(.title)
+                    Image(systemName: "arrow.up.circle.fill").iconShadow().font(.title)
                 }
                 .disabled(thinking || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .accessibilityLabel("Send")

@@ -27,14 +27,14 @@ private struct ChipLabel: View {
     var body: some View {
         HStack(spacing: Theme.Spacing.xs) {
             if let systemImage {
-                Image(systemName: systemImage)
+                Image(systemName: systemImage).iconShadow()
                     .imageScale(.small)
                     .accessibilityHidden(true)
             }
             Text(title)
                 .lineLimit(1)
             if showsMenuIndicator {
-                Image(systemName: "chevron.down")
+                Image(systemName: "chevron.down").iconShadow()
                     .font(.caption2.weight(.bold))
                     .accessibilityHidden(true)
             }

@@ -434,7 +434,7 @@ final class AlexNavigationBar: NavigationBarBuilder {
             if let onPastChats, screen == .conversation {
                 toolbarItems.leading.append(CustomToolbarItem(placement: .topBarLeading, content: AnyView(
                     Button(action: onPastChats) {
-                        Image(systemName: "clock.arrow.circlepath")
+                        Image(systemName: "clock.arrow.circlepath").iconShadow()
                     }
                     .accessibilityLabel("Past chats")
                     .accessibilityIdentifier("alexPastChats")

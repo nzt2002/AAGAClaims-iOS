@@ -133,6 +133,13 @@ enum BrandGradient {
     static let leadHero = LinearGradient(colors: [.leadHeroStart, .leadHeroEnd], startPoint: .topLeading, endPoint: .bottomTrailing)
 }
 
+extension View {
+    /// A soft drop shadow under an icon, so SF Symbols lift off the screen. Used on every `Image(systemName:)` in the app.
+    func iconShadow() -> some View {
+        shadow(color: .black.opacity(0.22), radius: 1.5, x: 0, y: 1)
+    }
+}
+
 /// An SF Symbol in a tinted circle, for quick actions and list rows.
 struct IconBadge: View {
     let systemName: String
@@ -144,7 +151,7 @@ struct IconBadge: View {
     @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
 
     var body: some View {
-        Image(systemName: systemName)
+        Image(systemName: systemName).iconShadow()
             .font(.callout.weight(.semibold))
             // Surface is white in light mode and near-black in dark, where the brand blue is light.
             .foregroundStyle(filled ? Color.surface : tint)

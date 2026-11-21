@@ -48,7 +48,7 @@ struct RecordActions: ViewModifier {
                         Button {
                             composer = .assistance
                         } label: {
-                            Image(systemName: "questionmark.bubble")
+                            Image(systemName: "questionmark.bubble").iconShadow()
                         }
                         .disabledWhenOffline(isOffline)
                         .accessibilityLabel("Ask Question")

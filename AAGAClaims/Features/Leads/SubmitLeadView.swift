@@ -218,7 +218,7 @@ struct SubmitLeadView: View {
             LabeledContent("Email") {
                 HStack(spacing: Theme.Spacing.xs) {
                     Text(viewModel.referralEmail)
-                    Image(systemName: "lock.fill")
+                    Image(systemName: "lock.fill").iconShadow()
                         .font(.caption)
                         .accessibilityHidden(true)
                 }
@@ -287,7 +287,7 @@ private struct SubmittedLeadView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                 VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-                    Image(systemName: "checkmark.circle.fill")
+                    Image(systemName: "checkmark.circle.fill").iconShadow()
                         .font(.system(size: 48))
                         .foregroundStyle(Color.success)
                         .accessibilityHidden(true)

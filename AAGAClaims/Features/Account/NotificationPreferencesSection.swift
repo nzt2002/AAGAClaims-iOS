@@ -26,7 +26,7 @@ struct NotificationPreferencesSection: View {
                                     .foregroundStyle(Color.textSecondary)
                             }
                         } icon: {
-                            Image(systemName: kind.systemImage)
+                            Image(systemName: kind.systemImage).iconShadow()
                                 .foregroundStyle(Color.brandPrimary)
                         }
                     }

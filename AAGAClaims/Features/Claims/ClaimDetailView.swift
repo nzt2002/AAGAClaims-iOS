@@ -380,7 +380,7 @@ struct RCVHelpButton: View {
         Button {
             showing = true
         } label: {
-            Image(systemName: "info.circle")
+            Image(systemName: "info.circle").iconShadow()
                 .font(.caption)
                 .frame(minWidth: 28, minHeight: 28)
         }
@@ -423,7 +423,7 @@ private struct LifecycleCard: View {
                     }
                     Spacer(minLength: 0)
                     if case .stage = position {
-                        Image(systemName: "chevron.down")
+                        Image(systemName: "chevron.down").iconShadow()
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Color.brandPrimary)
                             .rotationEffect(.degrees(expanded ? 180 : 0))
@@ -460,7 +460,7 @@ private struct LifecycleCard: View {
 
     private func guideRow(_ title: String, _ text: String, icon: String) -> some View {
         HStack(alignment: .top, spacing: Theme.Spacing.s) {
-            Image(systemName: icon)
+            Image(systemName: icon).iconShadow()
                 .foregroundStyle(Color.brandPrimary)
                 .frame(width: 22)
                 .accessibilityHidden(true)
@@ -560,14 +560,14 @@ struct StepRow: View {
     private var marker: some View {
         switch state {
         case .complete:
-            Image(systemName: "checkmark.circle.fill")
+            Image(systemName: "checkmark.circle.fill").iconShadow()
                 .foregroundStyle(Color.brandPrimary)
         case .current:
-            Image(systemName: "circle.inset.filled")
+            Image(systemName: "circle.inset.filled").iconShadow()
                 .foregroundStyle(currentTint)
         case .upcoming:
             // Non-text contrast: at least 3:1 against the card.
-            Image(systemName: "circle")
+            Image(systemName: "circle").iconShadow()
                 .foregroundStyle(Color.textSecondary)
         }
     }

@@ -80,7 +80,7 @@ struct RecordContactsSection: View {
 
     private func contactButton(url: URL, systemImage: String, label: String) -> some View {
         Link(destination: url) {
-            Image(systemName: systemImage)
+            Image(systemName: systemImage).iconShadow()
                 .frame(width: Theme.minTapTarget, height: Theme.minTapTarget)
                 .background(Color.surfaceTintedStrong, in: Circle())
         }

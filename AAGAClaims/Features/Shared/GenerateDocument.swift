@@ -158,7 +158,7 @@ struct GenerateDocumentSheet: View {
                             if generating == template {
                                 ProgressView()
                             } else {
-                                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+                                Image(systemName: "chevron.right").iconShadow().font(.caption).foregroundStyle(.tertiary)
                             }
                         }
                         .frame(minHeight: Theme.minTapTarget)
