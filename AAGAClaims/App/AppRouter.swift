@@ -43,12 +43,14 @@ final class AppRouter {
 
     let home: HomeViewModel
     let claims: ClaimsListViewModel
+    let jobs: JobsListViewModel
     let leads: LeadsListViewModel
     let cases: CasesListViewModel
 
     init(api: PortalAPI, isInternalUser: Bool) {
         home = HomeViewModel(api: api, isInternalUser: isInternalUser)
         claims = ClaimsListViewModel(api: api)
+        jobs = JobsListViewModel(api: api)
         leads = LeadsListViewModel(api: api)
         cases = CasesListViewModel(api: api)
         // The lists open the way the user left them (not in UI tests, which expect a clean start).
@@ -227,6 +229,9 @@ struct RecordDestinations: ViewModifier {
             .navigationDestination(for: ClaimRoute.self) { route in
                 ClaimDetailView(claimId: route.id, summary: router.claims.claims.first { $0.recordId == route.id }, api: api)
                     .id(route.id)
+            }
+            .navigationDestination(for: JobRoute.self) { route in
+                JobDetailView(jobId: route.id, fallbackName: route.name, api: api).id(route.id)
             }
             .navigationDestination(for: LeadRoute.self) { route in
                 LeadDetailView(leadId: route.id, fallbackName: route.name, api: api)

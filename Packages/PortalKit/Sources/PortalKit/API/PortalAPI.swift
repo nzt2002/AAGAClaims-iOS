@@ -326,6 +326,15 @@ public enum PortalLimits {
     public static let caseReplyLength = 2_000
 }
 
+/// Jobs (the Contractor add-on): only the platform serves them (`ServerMeta.Feature.jobs`), so other servers have none.
+public extension PortalAPI {
+    func jobs() async throws -> [JobSummary] { [] }
+    func job(id: String) async throws -> JobDetail { throw PortalAPIError.notFound }
+    func jobUpdates(id: String) async throws -> [PortalUpdate] { [] }
+    func jobFiles(id: String) async throws -> [PortalFile] { [] }
+    func moveJob(id: String, to stage: String) async throws { throw PortalAPIError.notFound }
+}
+
 /// Servers without folders: nothing to list, nothing to change.
 public extension PortalAPI {
     func folders(for record: RecordRef) async throws -> [PortalFolder] { [] }

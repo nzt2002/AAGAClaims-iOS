@@ -9,6 +9,7 @@ struct HomeView: View {
 
     private var viewModel: HomeViewModel { router.home }
     @Environment(\.isOffline) private var isOffline
+    @Environment(\.serverMeta) private var serverMeta
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.colorScheme) private var colorScheme
     /// iPad, with room for two columns.
@@ -113,7 +114,7 @@ struct HomeView: View {
                     Image(systemName: "magnifyingglass").iconShadow()
                         .font(.headline)
                         .foregroundStyle(Theme.OnWhite.brand)
-                    Text("Search claims, leads and cases")
+                    Text(serverMeta.jobsOnly ? "Search jobs, leads and cases" : "Search claims, leads and cases")
                         .font(.subheadline)
                         .foregroundStyle(Theme.OnWhite.secondary)
                     Spacer(minLength: 0)
@@ -127,7 +128,7 @@ struct HomeView: View {
                 .contentShape(Capsule())
             }
             .buttonStyle(QuickActionPressStyle())
-            .accessibilityLabel("Search claims, leads and cases")
+            .accessibilityLabel(serverMeta.jobsOnly ? "Search jobs, leads and cases" : "Search claims, leads and cases")
             .accessibilityIdentifier("homeSearch")
         }
         .padding(Theme.Spacing.xl)
@@ -162,7 +163,10 @@ struct HomeView: View {
                     .disabledWhenOffline(isOffline)
             }
             // Staff create claims here; portal users can't, so they keep My Claims.
-            if user.isInternal {
+            if serverMeta.jobsOnly {
+                // A Contractor-only company has jobs, not claims.
+                quickAction("My Jobs", "hammer", id: "quickMyJobs") { router.showClaims() }
+            } else if user.isInternal {
                 quickAction("New Claim", "doc.badge.plus", id: "quickNewClaim") { router.showingNewClaim = true }
                     .disabledWhenOffline(isOffline)
             } else {
@@ -375,7 +379,7 @@ struct HomeView: View {
 
     @ViewBuilder
     private var recentClaims: some View {
-        if !viewModel.recentClaims.isEmpty {
+        if !viewModel.recentClaims.isEmpty && !serverMeta.jobsOnly {
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
                 SectionHeader("Recent claims") {
                     Button {

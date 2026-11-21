@@ -142,9 +142,13 @@ public struct ServerMeta: Codable, Hashable, Sendable {
     public static let legacy = ServerMeta(apiVersion: 4, features: ["claimActivities", "chatterAttachments", "claimReferenceId"])
 
     /// Every feature, for demo mode and previews.
-    public static let all = ServerMeta(apiVersion: .max, features: Set(Feature.allCases.map(\.rawValue)))
+    // The demo shows claims, so it lists every feature except the jobs-only switch
+    public static let all = ServerMeta(apiVersion: .max, features: Set(Feature.allCases.filter { $0 != .projectMode }.map(\.rawValue)))
 
     public func supports(_ feature: Feature) -> Bool { features.contains(feature.rawValue) }
+
+    /// A company on jobs alone: Claims aren't used, so the app shows Jobs in their place.
+    public var jobsOnly: Bool { supports(.jobs) && supports(.projectMode) }
 
     /// Server features the app checks for.
     public enum Feature: String, CaseIterable, Sendable {
@@ -175,6 +179,10 @@ public struct ServerMeta: Codable, Hashable, Sendable {
         case fileFolders
         /// Settings screens (`/settings/me`, `/settings/company`).
         case appSettings
+        /// Jobs for a company with the Contractor add-on (`GET /jobs`, `/jobs/{id}`).
+        case jobs
+        /// The company runs on jobs alone (Contractor add-on, no Claims): the app shows Jobs where it would show Claims.
+        case projectMode
     }
 }
 

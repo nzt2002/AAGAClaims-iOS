@@ -84,6 +84,17 @@ struct MainTabView: View {
                 }
                 .environment(\.alexTab, .home)
             }
+            // A company on the Contractor add-on alone has jobs, not claims: the same tab slot, the Jobs list.
+            if serverMeta.jobsOnly {
+                Tab("Jobs", systemImage: "hammer", value: .claims) {
+                    NavigationStack(path: $router.claimsPath) {
+                        JobsListView(viewModel: router.jobs, api: session.api, openSupport: { router.selection = .support })
+                            .modifier(RecordDestinations(router: router, api: session.api))
+                            .toolbar { topBarButtons() }
+                    }
+                    .environment(\.alexTab, .claims)
+                }
+            } else {
             Tab("Claims", systemImage: "doc.text", value: .claims) {
                 if isSplit {
                     // iPad: the list on the left; the chosen claim fills the detail column, and
@@ -115,6 +126,7 @@ struct MainTabView: View {
                     }
                     .environment(\.alexTab, .claims)
                 }
+            }
             }
             Tab("Leads", systemImage: "person.2", value: .leads) {
                 if isSplit {

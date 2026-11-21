@@ -24,6 +24,10 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.17.0", date: "Nov 21, 2026", items: [
+            Item(icon: "hammer", title: "Jobs for contractor companies",
+                 detail: "If your company uses ProClaimer for jobs without claims, the app now opens Jobs where Claims used to be. See each job's stage, customer, scheduled work, estimates, invoices, updates and files, and move a job to its next stage."),
+        ]),
         Release(version: "3.16.0", date: "Nov 21, 2026", items: [
             Item(icon: "paintpalette", title: "Your company's look",
                  detail: "The app now uses your company's brand colour and logo, starting on Home, so it matches the website."),

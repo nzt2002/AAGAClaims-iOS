@@ -111,6 +111,11 @@ public actor CachingPortalAPI: PortalAPI {
     public func claimPayments(id: String) async throws -> [Payment] { try await read("claims/\(id)/payments") { try await $0.claimPayments(id: id) } }
     public func leads() async throws -> [LeadSummary] { try await read("leads") { try await $0.leads() } }
     public func lead(id: String) async throws -> LeadDetail { try await read("leads/\(id)") { try await $0.lead(id: id) } }
+    public func jobs() async throws -> [JobSummary] { try await base.jobs() }
+    public func job(id: String) async throws -> JobDetail { try await base.job(id: id) }
+    public func jobUpdates(id: String) async throws -> [PortalUpdate] { try await base.jobUpdates(id: id) }
+    public func jobFiles(id: String) async throws -> [PortalFile] { try await base.jobFiles(id: id) }
+    public func moveJob(id: String, to stage: String) async throws { try await base.moveJob(id: id, to: stage) }
     public func updates(for record: RecordRef) async throws -> [PortalUpdate] {
         try await read("\(record.collectionPath)/\(record.id)/updates") { try await $0.updates(for: record) }
     }

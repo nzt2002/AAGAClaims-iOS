@@ -111,6 +111,16 @@ public struct HTTPPortalAPI: PortalAPI {
         try await get("/leads/\(escaped(id))")
     }
 
+    // MARK: Jobs (Contractor add-on)
+
+    public func jobs() async throws -> [JobSummary] { try await get("/jobs") }
+    public func job(id: String) async throws -> JobDetail { try await get("/jobs/\(escaped(id))") }
+    public func jobUpdates(id: String) async throws -> [PortalUpdate] { try await get("/jobs/\(escaped(id))/updates") }
+    public func jobFiles(id: String) async throws -> [PortalFile] { try await get("/jobs/\(escaped(id))/files") }
+    public func moveJob(id: String, to stage: String) async throws {
+        try await postNoContent("/jobs/\(escaped(id))/stage", body: ["stage": stage])
+    }
+
     public func createLead(_ submission: LeadSubmission) async throws -> String {
         let response: RecordIdResponse = try await post("/leads", body: submission)
         return response.recordId
