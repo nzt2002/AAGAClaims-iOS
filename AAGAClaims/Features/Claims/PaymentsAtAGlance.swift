@@ -218,7 +218,7 @@ struct PaymentsAtAGlance: View {
 
 /// The two series colours the website uses (blue insured payment, orange AA fee), tuned for dark mode.
 enum PaymentColors {
-    static let insured = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? UIColor(red: 0.224, green: 0.529, blue: 0.898, alpha: 1) : UIColor(red: 0.165, green: 0.471, blue: 0.839, alpha: 1) })
-    static let fee = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? UIColor(red: 0.851, green: 0.349, blue: 0.149, alpha: 1) : UIColor(red: 0.922, green: 0.408, blue: 0.204, alpha: 1) })
-    static let neutral = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? UIColor(red: 0.357, green: 0.396, blue: 0.467, alpha: 1) : UIColor(red: 0.604, green: 0.639, blue: 0.698, alpha: 1) })
+    static let insured = Color(uiColor: BrandPalette.pair(light: (0.165, 0.471, 0.839), dark: (0.224, 0.529, 0.898)))
+    static let fee = Color(uiColor: BrandPalette.pair(light: (0.922, 0.408, 0.204), dark: (0.851, 0.349, 0.149)))
+    static let neutral = Color(uiColor: BrandPalette.pair(light: (0.604, 0.639, 0.698), dark: (0.357, 0.396, 0.467)))
 }

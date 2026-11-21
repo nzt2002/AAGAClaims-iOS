@@ -10,65 +10,85 @@ final class CompanyBrand {
     static let shared = CompanyBrand()
 
     private(set) var company: PlatformCompany?
-    private var base: UIColor?
+    /// Built once in `apply`, so nothing here makes a colour closure on the main actor: iOS resolves dynamic
+    /// colours on its render threads, and a main-actor closure traps there.
+    private(set) var primary: Color?
+    private(set) var heroStart: Color?
+    private(set) var heroEnd: Color?
 
     func apply(_ company: PlatformCompany?) {
         self.company = company
-        base = Self.uiColor(company?.brandColor)
+        if let rgb = BrandPalette.rgb(company?.brandColor) {
+            primary = Color(uiColor: BrandPalette.primary(rgb))
+            heroStart = Color(uiColor: BrandPalette.heroStart(rgb))
+            heroEnd = Color(uiColor: BrandPalette.heroEnd(rgb))
+        } else {
+            primary = nil; heroStart = nil; heroEnd = nil
+        }
+        // `-BrandSelfTest YES`: resolve the colours off the main thread, as SwiftUI's renderer does on a device.
+        if UserDefaults.standard.bool(forKey: "BrandSelfTest"), let primary, let heroStart, let heroEnd {
+            for color in [primary, heroStart, heroEnd] {
+                let ui = UIColor(color)
+                DispatchQueue.global().async {
+                    _ = ui.resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark))
+                    _ = ui.resolvedColor(with: UITraitCollection(userInterfaceStyle: .light))
+                }
+            }
+        }
     }
 
     func clear() { apply(nil) }
+}
 
-    /// The brand colour for buttons, links and headers. Dark enough for white text in light mode, lifted in dark mode.
-    var primary: Color? {
-        guard let base else { return nil }
-        return Color(UIColor { traits in
-            traits.userInterfaceStyle == .dark ? Self.mix(base, with: .white, 0.30) : Self.readable(base)
-        })
+/// Brand colour maths and the light/dark colours. `nonisolated` on purpose (the app defaults to the main actor):
+/// the dynamic colours are resolved off the main thread.
+nonisolated enum BrandPalette {
+    struct RGB: Sendable {
+        var r: Double, g: Double, b: Double
+
+        func mixed(with other: RGB, _ amount: Double) -> RGB {
+            RGB(r: r + (other.r - r) * amount, g: g + (other.g - g) * amount, b: b + (other.b - b) * amount)
+        }
+
+        var ui: UIColor { UIColor(red: r, green: g, blue: b, alpha: 1) }
+
+        /// Contrast of white text on this colour.
+        var contrastWithWhite: Double {
+            func channel(_ v: Double) -> Double { v <= 0.03928 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4) }
+            return 1.05 / (0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b) + 0.05)
+        }
+
+        /// Darkened until white text on it is at least 4.5:1.
+        var readable: RGB {
+            var c = self
+            for _ in 0..<12 where c.contrastWithWhite < 4.5 { c = c.mixed(with: .black, 0.12) }
+            return c
+        }
+
+        static let white = RGB(r: 1, g: 1, b: 1)
+        static let black = RGB(r: 0, g: 0, b: 0)
     }
 
-    /// The far end of the hero gradient.
-    var heroEnd: Color? {
-        guard let base else { return nil }
-        return Color(UIColor { traits in
-            traits.userInterfaceStyle == .dark ? Self.mix(base, with: .black, 0.55) : Self.mix(Self.readable(base), with: .black, 0.40)
-        })
-    }
-
-    var heroStart: Color? {
-        guard let base else { return nil }
-        return Color(UIColor { traits in
-            traits.userInterfaceStyle == .dark ? Self.mix(base, with: .black, 0.25) : Self.readable(base)
-        })
-    }
-
-    nonisolated private static func uiColor(_ hex: String?) -> UIColor? {
+    static func rgb(_ hex: String?) -> RGB? {
         guard var hex = hex?.trimmingCharacters(in: .whitespaces), hex.hasPrefix("#") else { return nil }
         hex.removeFirst()
         guard hex.count == 6, let n = UInt32(hex, radix: 16) else { return nil }
-        return UIColor(red: CGFloat((n >> 16) & 255) / 255, green: CGFloat((n >> 8) & 255) / 255, blue: CGFloat(n & 255) / 255, alpha: 1)
+        return RGB(r: Double((n >> 16) & 255) / 255, g: Double((n >> 8) & 255) / 255, b: Double(n & 255) / 255)
     }
 
-    nonisolated private static func mix(_ a: UIColor, with b: UIColor, _ amount: CGFloat) -> UIColor {
-        var (r1, g1, b1, r2, g2, b2): (CGFloat, CGFloat, CGFloat, CGFloat, CGFloat, CGFloat) = (0, 0, 0, 0, 0, 0)
-        a.getRed(&r1, green: &g1, blue: &b1, alpha: nil)
-        b.getRed(&r2, green: &g2, blue: &b2, alpha: nil)
-        return UIColor(red: r1 + (r2 - r1) * amount, green: g1 + (g2 - g1) * amount, blue: b1 + (b2 - b1) * amount, alpha: 1)
+    /// Buttons, links and headers: dark enough for white text in light mode, lifted in dark mode.
+    static func primary(_ base: RGB) -> UIColor { dynamic(light: base.readable, dark: base.mixed(with: .white, 0.30)) }
+    static func heroStart(_ base: RGB) -> UIColor { dynamic(light: base.readable, dark: base.mixed(with: .black, 0.25)) }
+    static func heroEnd(_ base: RGB) -> UIColor { dynamic(light: base.readable.mixed(with: .black, 0.40), dark: base.mixed(with: .black, 0.55)) }
+
+    /// A fixed light/dark pair (the Payments chart's colours), safe to resolve off the main thread.
+    static func pair(light: (Double, Double, Double), dark: (Double, Double, Double)) -> UIColor {
+        dynamic(light: RGB(r: light.0, g: light.1, b: light.2), dark: RGB(r: dark.0, g: dark.1, b: dark.2))
     }
 
-    /// Darkens a pale brand colour until white text on it is at least 4.5:1.
-    nonisolated private static func readable(_ color: UIColor) -> UIColor {
-        var c = color
-        for _ in 0..<12 where contrastWithWhite(c) < 4.5 { c = mix(c, with: .black, 0.12) }
-        return c
-    }
-
-    nonisolated private static func contrastWithWhite(_ color: UIColor) -> CGFloat {
-        var (r, g, b): (CGFloat, CGFloat, CGFloat) = (0, 0, 0)
-        color.getRed(&r, green: &g, blue: &b, alpha: nil)
-        func channel(_ v: CGFloat) -> CGFloat { v <= 0.03928 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4) }
-        let luminance = 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
-        return 1.05 / (luminance + 0.05)
+    /// Only picks between two colours made up front, and captures nothing but Sendable values.
+    private static func dynamic(light: RGB, dark: RGB) -> UIColor {
+        UIColor { @Sendable traits in traits.userInterfaceStyle == .dark ? dark.ui : light.ui }
     }
 }
 

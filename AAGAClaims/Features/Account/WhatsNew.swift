@@ -24,6 +24,10 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.17.2", date: "Nov 21, 2026", items: [
+            Item(icon: "wrench.and.screwdriver", title: "Crash fix, for real",
+                 detail: "Fixes the app closing on its own right after opening for companies that have a brand colour. The earlier fix didn't cover every case."),
+        ]),
         Release(version: "3.17.1", date: "Nov 21, 2026", items: [
             Item(icon: "wrench.and.screwdriver", title: "Crash fix",
                  detail: "Fixes the app closing on its own right after opening for companies that have a brand colour."),
