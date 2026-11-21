@@ -24,6 +24,10 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.15.3", date: "Nov 21, 2026", items: [
+            Item(icon: "building.2", title: "Choose your company",
+                 detail: "If your email is on more than one company, sign-in now lets you pick which one to open, and opens that one. Before, it could open a different company than the one you chose."),
+        ]),
         Release(version: "3.15.2", date: "Nov 21, 2026", items: [
             Item(icon: "circle.hexagongrid", title: "Icons with a soft shadow",
                  detail: "Icons across the app now have a gentle shadow, so they lift off the screen."),

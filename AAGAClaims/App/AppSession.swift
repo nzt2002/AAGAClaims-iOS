@@ -136,10 +136,10 @@ final class AppSession {
     // MARK: - Platform sign-in
 
     /// Email and password: signs in, loads who it is, and opens the app.
-    func signInPlatform(email: String, password: String) async throws {
+    func signInPlatform(email: String, password: String, company: PlatformCompany? = nil) async throws {
         guard let platform else { return }
         noteSignInStep("signing in")
-        _ = try await platform.signIn(email: email, password: password)
+        _ = try await platform.signIn(email: email, password: password, company: company)
         do {
             let profile = try await platform.profile()
             PlatformProfileCache.save(profile)

@@ -67,6 +67,45 @@ private func session(access: String = "access-1", refresh: String = "refresh-1",
 
 @Suite("Platform sign-in")
 struct PlatformAuthTests {
+    private let renovations = PlatformCompany(name: "1761 Renovations", subdomain: "1761renovations", apiBase: URL(string: "https://1761renovations.myproclaimer.com")!)
+
+    @Test("Choosing a company makes it the active one, renews the token for it, and sends requests to its site")
+    func signInToChosenCompany() async throws {
+        let http = ScriptedHTTP { request, _ in
+            let path = request.url?.path ?? ""
+            if path.hasSuffix("/session/company") { return (200, #"{"ok":true}"#) }
+            if request.url?.query?.contains("refresh_token") == true { return (200, tokenBody(access: "access-renovations", refresh: "refresh-2")) }
+            return (200, tokenBody())
+        }
+        let store = MemoryStore()
+        let auth = PlatformAuth(config: config, http: http, store: store)
+        let signedIn = try await auth.signIn(email: "amy@a.test", password: "pw", company: renovations)
+        #expect(signedIn.accessToken == "access-renovations") // the renewed token, which carries the chosen company
+        #expect(await auth.apiBase() == renovations.apiBase)
+        let chose = await http.requests.first { $0.url?.path.hasSuffix("/session/company") == true }
+        #expect(chose?.value(forHTTPHeaderField: "Authorization") == "Bearer access-1")
+        #expect(jsonBody(chose!) == ["subdomain": "1761renovations"])
+        #expect(store.load()?.accessToken == "access-renovations")
+    }
+
+    @Test("A company the person isn't on is refused and leaves no session behind")
+    func notOnThatTeam() async throws {
+        let http = ScriptedHTTP { request, _ in request.url?.path.hasSuffix("/session/company") == true ? (403, #"{"error":"forbidden"}"#) : (200, tokenBody()) }
+        let store = MemoryStore()
+        let auth = PlatformAuth(config: config, http: http, store: store)
+        await #expect(throws: PlatformAuthError.self) { try await auth.signIn(email: "amy@a.test", password: "pw", company: renovations) }
+        #expect(await auth.isSignedIn == false)
+        #expect(store.load() == nil)
+    }
+
+    @Test("A server that can't choose a company yet (404) still signs in")
+    func olderServer() async throws {
+        let http = ScriptedHTTP { request, _ in request.url?.path.hasSuffix("/session/company") == true ? (404, "{}") : (200, tokenBody()) }
+        let auth = PlatformAuth(config: config, http: http, store: MemoryStore())
+        _ = try await auth.signIn(email: "amy@a.test", password: "pw", company: renovations)
+        #expect(await auth.isSignedIn == true)
+    }
+
     @Test("Signing in posts the email and password and keeps the session")
     func signIn() async throws {
         let http = ScriptedHTTP { _, _ in (200, tokenBody()) }

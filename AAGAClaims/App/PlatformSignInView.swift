@@ -18,6 +18,8 @@ struct PlatformSignInView: View {
     @State private var didOfferSavedSignIn = false
     /// The company the typed email belongs to (shown above the fields once found).
     @State private var company: PlatformCompany?
+    /// Every company the email belongs to: with more than one, the person chooses.
+    @State private var companies: [PlatformCompany] = []
     @State private var lookedUp = ""
     @FocusState private var focus: Field?
 
@@ -89,7 +91,9 @@ struct PlatformSignInView: View {
                 .foregroundStyle(Color.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            if let company {
+            if companies.count > 1 {
+                companyChooser
+            } else if let company {
                 companyBadge(company)
             }
             field(icon: "envelope.fill") {
@@ -198,6 +202,34 @@ struct PlatformSignInView: View {
         }
     }
 
+    /// More than one company: tap the one to sign in to.
+    private var companyChooser: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            Text("Which company?")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.textSecondary)
+            ForEach(companies, id: \.subdomain) { option in
+                Button {
+                    company = option
+                    UserDefaults.standard.set(option.subdomain, forKey: "platformCompany.\(email.trimmingCharacters(in: .whitespaces).lowercased())")
+                } label: {
+                    HStack(spacing: Theme.Spacing.s) {
+                        Text(option.name).font(.subheadline.weight(.semibold)).foregroundStyle(Color.textPrimary)
+                        Spacer(minLength: 0)
+                        Image(systemName: company?.subdomain == option.subdomain ? "checkmark.circle.fill" : "circle").iconShadow()
+                            .foregroundStyle(company?.subdomain == option.subdomain ? Color.brandPrimary : Color.textSecondary)
+                    }
+                    .padding(Theme.Spacing.s)
+                    .background(company?.subdomain == option.subdomain ? Color.surfaceTinted : Color.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(company?.subdomain == option.subdomain ? Color.brandPrimary : Color.border, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(company?.subdomain == option.subdomain ? [.isSelected] : [])
+            }
+        }
+        .accessibilityIdentifier("platformCompanyChooser")
+    }
+
     /// "Signing in to Accurate Adjustments GA", with its logo, so the person knows the app found the right company.
     private func companyBadge(_ company: PlatformCompany) -> some View {
         HStack(spacing: Theme.Spacing.s) {
@@ -240,7 +272,12 @@ struct PlatformSignInView: View {
         let found = await session.discoverCompanies(email: address)
         // Only if the field still holds the address that was asked about.
         guard address == email.trimmingCharacters(in: .whitespaces).lowercased() else { return }
-        withAnimation { company = found.first }
+        withAnimation {
+            companies = found
+            // The company chosen last time for this address, otherwise the first.
+            let remembered = UserDefaults.standard.string(forKey: "platformCompany.\(address)")
+            company = found.first { $0.subdomain == remembered } ?? found.first
+        }
     }
 
     private func field<Content: View>(icon: String, @ViewBuilder content: () -> Content) -> some View {
@@ -266,7 +303,7 @@ struct PlatformSignInView: View {
         let address = email.trimmingCharacters(in: .whitespaces)
         var failure: PlatformAuthError?
         do {
-            try await session.signInPlatform(email: address, password: password)
+            try await session.signInPlatform(email: address, password: password, company: company)
             // Kept for Face ID sign-in if the person has (or turns on) the Face ID lock.
             SavedSignIn.pending = .init(username: address, password: password)
         } catch let error as PlatformAuthError {

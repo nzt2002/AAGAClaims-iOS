@@ -170,13 +170,46 @@ public actor PlatformAuth {
         return session
     }
 
-    public func signIn(email: String, password: String) async throws -> PlatformSession {
+    /// Signs in. With a `company` (the one the person chose, for someone on several), that company is made the active one on the
+    /// server and the token is renewed: the token carries the company it was issued for, which is the one used last on the
+    /// website, so without this every company would open the same one.
+    public func signIn(email: String, password: String, company: PlatformCompany? = nil) async throws -> PlatformSession {
         let (data, response) = try await http.send(authRequest("token", query: "grant_type=password", body: ["email": email.trimmingCharacters(in: .whitespaces), "password": password]))
         guard response.statusCode == 200 else { throw Self.failure(response.statusCode, data) }
-        let signedIn = try tokens(from: data, email: email.trimmingCharacters(in: .whitespaces))
+        var signedIn = try tokens(from: data, email: email.trimmingCharacters(in: .whitespaces))
         session = signedIn
         store.save(signedIn)
+        if let company {
+            do {
+                try await choose(company, token: signedIn.accessToken)
+                signedIn = try await renew(signedIn)
+                signedIn.apiBase = company.apiBase
+                session = signedIn
+                store.save(signedIn)
+            } catch let error as PlatformAuthError {
+                // Not on that company's team: don't leave a session open for a company they didn't get.
+                if error == .notSignedIn { signOutLocally(); throw error }
+                if case .rejected = error { signOutLocally(); throw error }
+                throw error
+            }
+        }
         return signedIn
+    }
+
+    /// `POST /session/company` on the default address (which serves every company). An older server without it answers 404: carry on.
+    private func choose(_ company: PlatformCompany, token: String) async throws {
+        var request = URLRequest(url: config.apiBaseURL.appending(path: PlatformConfig.apiPath + "/session/company"))
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: ["subdomain": company.subdomain])
+        let (data, response) = try await http.send(request)
+        switch response.statusCode {
+        case 200, 404: return
+        case 403: throw PlatformAuthError.rejected("You're not on the team at \(company.name).")
+        case 401: throw PlatformAuthError.notSignedIn
+        default: throw Self.failure(response.statusCode, data)
+        }
     }
 
     /// A token that's good for the next minute: the saved one, or a fresh one if it's about to run out.
