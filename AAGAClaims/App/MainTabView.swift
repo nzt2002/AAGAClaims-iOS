@@ -53,6 +53,7 @@ struct MainTabView: View {
     private static var demoCompany: PlatformCompany? {
         guard let hex = UserDefaults.standard.string(forKey: "DemoBrand") else { return nil }
         return PlatformCompany(name: "Demo Roofing", subdomain: "demo", apiBase: URL(string: "https://demo.example.com")!, brandColor: hex, markText: "DR")
+            .withDemoLogo(UserDefaults.standard.string(forKey: "DemoBrandLogo"))
     }
 
     private var isSplit: Bool { horizontalSizeClass == .regular }
@@ -503,5 +504,13 @@ struct ProfileAvatar: View {
             .frame(width: size, height: size)
             .background(Color.brandTheme, in: Circle())
             .accessibilityHidden(true)
+    }
+}
+
+
+private extension PlatformCompany {
+    /// `-DemoBrandLogo <url>` gives the demo company that logo (screenshots, tests).
+    func withDemoLogo(_ string: String?) -> PlatformCompany {
+        PlatformCompany(name: name, subdomain: subdomain, apiBase: apiBase, brandColor: brandColor, logoUrl: string.flatMap(URL.init(string:)), markText: markText)
     }
 }

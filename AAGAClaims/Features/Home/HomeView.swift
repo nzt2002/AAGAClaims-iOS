@@ -137,12 +137,17 @@ struct HomeView: View {
             // Shadow on the shape only, so the text stays crisp.
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(BrandGradient.hero(colorScheme))
-                .overlay(alignment: .topTrailing) {
-                    // Decorative ring, kept to the top-right corner, away from the text.
-                    Circle()
-                        .stroke(.white.opacity(0.12), lineWidth: 18)
-                        .frame(width: 140, height: 140)
-                        .offset(x: 50, y: -50)
+                .overlay {
+                    if let logo = CompanyBrand.shared.company?.logoUrl {
+                        HeroLogoBackdrop(url: logo)
+                    } else {
+                        // No company logo: a decorative ring, kept to the top-right corner, away from the text.
+                        Circle()
+                            .stroke(.white.opacity(0.12), lineWidth: 18)
+                            .frame(width: 140, height: 140)
+                            .offset(x: 50, y: -50)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 .shadow(color: Color.brandBright.opacity(colorScheme == .dark ? 0 : 0.28), radius: 18, x: 0, y: 10)
@@ -728,5 +733,38 @@ struct RecordHeader: View {
 #Preview("Home") {
     NavigationStack {
         HomeView(router: PreviewData.router(), user: .demo)
+    }
+}
+
+
+/// The company's logo as a watermark behind the Home header, as on the website's header: an oversized, tilted, pale
+/// grayscale copy at about 11% opacity, with a soft pool of brand light behind the logo plate. It's too faint to
+/// affect the greeting's contrast.
+struct HeroLogoBackdrop: View {
+    let url: URL
+    private var brand: CompanyBrand { CompanyBrand.shared }
+
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            // Light pooling at the top left, behind the company's logo plate.
+            RadialGradient(colors: [(brand.heroStart ?? .heroStart).opacity(0.55), .clear],
+                           center: UnitPoint(x: 0.12, y: 0.1), startRadius: 0, endRadius: 260)
+            AsyncImage(url: url) { phase in
+                if let image = phase.image {
+                    image.resizable().scaledToFit()
+                        .grayscale(1)
+                        .brightness(0.55)
+                        .opacity(0.14)
+                } else {
+                    Color.clear
+                }
+            }
+            .frame(width: 190, height: 190)
+            .rotationEffect(.degrees(-10))
+            .padding(.trailing, 12)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
