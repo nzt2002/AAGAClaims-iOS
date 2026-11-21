@@ -192,6 +192,14 @@ public protocol PortalAPI: Sendable {
     func fileContent(contentDocumentId: String) async throws -> Data
     /// `POST /claims|leads/{id}/files`: multipart upload (`file`, `title`).
     func uploadFile(_ upload: FileUpload, to record: RecordRef) async throws -> PortalFile
+
+    // Jobs (Contractor add-on). Declared here, not only in the extension below: a call through `any PortalAPI` uses the
+    // extension's empty default unless the protocol itself requires the function.
+    func jobs() async throws -> [JobSummary]
+    func job(id: String) async throws -> JobDetail
+    func jobUpdates(id: String) async throws -> [PortalUpdate]
+    func jobFiles(id: String) async throws -> [PortalFile]
+    func moveJob(id: String, to stage: String) async throws
 }
 
 /// A file ready to upload (already checked and downscaled by `FileUploadRules`).

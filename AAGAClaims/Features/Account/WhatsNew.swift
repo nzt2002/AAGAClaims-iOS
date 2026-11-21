@@ -24,6 +24,10 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.17.4", date: "Nov 21, 2026", items: [
+            Item(icon: "hammer", title: "Jobs show up",
+                 detail: "Fixes the Jobs list always saying \"No jobs yet\" for companies on the Contractor add-on. Pull down to refresh if your jobs aren't showing."),
+        ]),
         Release(version: "3.17.3", date: "Nov 21, 2026", items: [
             Item(icon: "photo", title: "Your logo on Home",
                  detail: "Your company's logo now sits behind the Home header as a faint watermark, like the website's header."),
