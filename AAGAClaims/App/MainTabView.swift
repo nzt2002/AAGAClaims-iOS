@@ -37,7 +37,7 @@ struct MainTabView: View {
     var body: some View {
         tabs
             .tint(Color.brandTheme)
-            .onChange(of: user.company, initial: true) { _, company in CompanyBrand.shared.apply(company) }
+            .onChange(of: user.company, initial: true) { _, company in CompanyBrand.shared.apply(company ?? Self.demoCompany) }
             .environment(\.isInternalUser, user.isInternal)
             .environment(\.salesforceInstanceURL, user.instanceURL)
             .environment(\.salesforcePage, user.instanceURL.map { instance in
@@ -47,6 +47,12 @@ struct MainTabView: View {
             .environment(\.serverMeta, serverMeta)
             .environment(\.alexRecordContext, hasAlex ? alexContext : nil)
             .businessLineCallScreen()
+    }
+
+    /// `-DemoBrand "#C2410C"` themes the demo like a company with that brand colour (screenshots, tests).
+    private static var demoCompany: PlatformCompany? {
+        guard let hex = UserDefaults.standard.string(forKey: "DemoBrand") else { return nil }
+        return PlatformCompany(name: "Demo Roofing", subdomain: "demo", apiBase: URL(string: "https://demo.example.com")!, brandColor: hex, markText: "DR")
     }
 
     private var isSplit: Bool { horizontalSizeClass == .regular }

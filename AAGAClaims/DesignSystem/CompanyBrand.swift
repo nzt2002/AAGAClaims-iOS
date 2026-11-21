@@ -4,7 +4,7 @@ import UIKit
 
 /// The signed-in company's brand colour, logo and mark, as set under Company settings and shown on the
 /// website. Everything that was ProClaimer blue follows it; with none set (or Salesforce) the app keeps its own blue.
-@MainActor
+/// Not main-actor isolated: iOS resolves the light/dark colours below on its own render threads.
 @Observable
 final class CompanyBrand {
     static let shared = CompanyBrand()
@@ -42,14 +42,14 @@ final class CompanyBrand {
         })
     }
 
-    private static func uiColor(_ hex: String?) -> UIColor? {
+    nonisolated private static func uiColor(_ hex: String?) -> UIColor? {
         guard var hex = hex?.trimmingCharacters(in: .whitespaces), hex.hasPrefix("#") else { return nil }
         hex.removeFirst()
         guard hex.count == 6, let n = UInt32(hex, radix: 16) else { return nil }
         return UIColor(red: CGFloat((n >> 16) & 255) / 255, green: CGFloat((n >> 8) & 255) / 255, blue: CGFloat(n & 255) / 255, alpha: 1)
     }
 
-    private static func mix(_ a: UIColor, with b: UIColor, _ amount: CGFloat) -> UIColor {
+    nonisolated private static func mix(_ a: UIColor, with b: UIColor, _ amount: CGFloat) -> UIColor {
         var (r1, g1, b1, r2, g2, b2): (CGFloat, CGFloat, CGFloat, CGFloat, CGFloat, CGFloat) = (0, 0, 0, 0, 0, 0)
         a.getRed(&r1, green: &g1, blue: &b1, alpha: nil)
         b.getRed(&r2, green: &g2, blue: &b2, alpha: nil)
@@ -57,13 +57,13 @@ final class CompanyBrand {
     }
 
     /// Darkens a pale brand colour until white text on it is at least 4.5:1.
-    private static func readable(_ color: UIColor) -> UIColor {
+    nonisolated private static func readable(_ color: UIColor) -> UIColor {
         var c = color
         for _ in 0..<12 where contrastWithWhite(c) < 4.5 { c = mix(c, with: .black, 0.12) }
         return c
     }
 
-    private static func contrastWithWhite(_ color: UIColor) -> CGFloat {
+    nonisolated private static func contrastWithWhite(_ color: UIColor) -> CGFloat {
         var (r, g, b): (CGFloat, CGFloat, CGFloat) = (0, 0, 0)
         color.getRed(&r, green: &g, blue: &b, alpha: nil)
         func channel(_ v: CGFloat) -> CGFloat { v <= 0.03928 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4) }
