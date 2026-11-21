@@ -24,6 +24,18 @@ enum WhatsNew {
     }
 
     static let releases: [Release] = [
+        Release(version: "3.16.0", date: "Nov 21, 2026", items: [
+            Item(icon: "paintpalette", title: "Your company's look",
+                 detail: "The app now uses your company's brand colour and logo, starting on Home, so it matches the website."),
+            Item(icon: "plus.circle", title: "Add a claim from the list",
+                 detail: "Claims has a + button, and an empty Claims or Leads list offers to add your first one.",
+                 staffOnly: true),
+            Item(icon: "clock.arrow.circlepath", title: "Easier to scan",
+                 detail: "Lists say how recently a claim or lead changed, and pressing and holding one gives Directions and Copy. A banner shows updates still waiting to send when you're offline."),
+            Item(icon: "house", title: "Needs attention first",
+                 detail: "On Home, what needs you today now comes before the shortcut buttons.",
+                 staffOnly: true),
+        ]),
         Release(version: "3.15.3", date: "Nov 21, 2026", items: [
             Item(icon: "building.2", title: "Choose your company",
                  detail: "If your email is on more than one company, sign-in now lets you pick which one to open, and opens that one. Before, it could open a different company than the one you chose."),
